@@ -48,9 +48,35 @@
         let clicks = [];
         let currentImage = null;
 
+        function loadImageFromUrl(url) {
+            currentImage = new Image();
+            currentImage.onload = function() {
+                let width = currentImage.width;
+                let height = currentImage.height;
+        
+                if (width > MAX_WIDTH) {
+                    const scaleFactor = MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                    height = Math.floor(height * scaleFactor);
+                }
+        
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(currentImage, 0, 0, width, height);
+                messageDiv.textContent = `기본 이미지가 로드되었습니다. 크기: ${width}x${height}`;
+                clicks = [];
+                clickCount = 0;
+            }
+            currentImage.onerror = function() {
+                console.error("이미지 로드 실패:", url);
+                messageDiv.textContent = "기본 이미지 로드에 실패했습니다.";
+            }
+            currentImage.src = url;
+        }
+        
         // 기본 이미지 로드
         window.onload = function() {
-            loadImageFromUrl('./src/default-image.jpg');
+            loadImageFromUrl('/tiger-dream.github.io/src/default-image.jpg');
         }
         
         imageLoader.addEventListener('change', handleFileSelect, false);
