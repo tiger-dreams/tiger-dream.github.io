@@ -48,6 +48,11 @@
         let clicks = [];
         let currentImage = null;
 
+        // 기본 이미지 로드
+        window.onload = function() {
+            loadImageFromUrl('./src/default-image.jpg');
+        }
+        
         imageLoader.addEventListener('change', handleFileSelect, false);
         clipboardButton.addEventListener('click', handleClipboardPaste, false);
         saveButton.addEventListener('click', saveImage, false);
