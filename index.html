@@ -30,17 +30,22 @@
         <input type="file" id="imageLoader" accept="image/*">
         <button id="clipboardButton">클립보드에서 가져오기</button>
         <button id="saveButton">저장하기</button>
+        <button id="undoButton">뒤로가기</button>
     </div>
     <div id="imageContainer">
         <canvas id="imageCanvas"></canvas>
     </div>
     <div id="message"></div>
+    <div id="shortcuts">
+        <p>단축키: Ctrl+Z (Mac: Command+Z) - 마지막 클릭 취소</p>
+    </div>
 
     <script>
         const MAX_WIDTH = 1400;
         const imageLoader = document.getElementById('imageLoader');
         const clipboardButton = document.getElementById('clipboardButton');
         const saveButton = document.getElementById('saveButton');
+        const undoButton = document.getElementById('undoButton');
         const canvas = document.getElementById('imageCanvas');
         const ctx = canvas.getContext('2d');
         const messageDiv = document.getElementById('message');
@@ -49,8 +54,11 @@
         let currentImage = null;
 
         function loadImageFromUrl(url) {
+            console.log("Attempting to load image from:", url);
             currentImage = new Image();
+            currentImage.crossOrigin = "anonymous";
             currentImage.onload = function() {
+                console.log("Image loaded successfully");
                 let width = currentImage.width;
                 let height = currentImage.height;
         
@@ -67,8 +75,8 @@
                 clicks = [];
                 clickCount = 0;
             }
-            currentImage.onerror = function() {
-                console.error("이미지 로드 실패:", url);
+            currentImage.onerror = function(err) {
+                console.error("Image load failed:", url, err);
                 messageDiv.textContent = "기본 이미지 로드에 실패했습니다.";
             }
             currentImage.src = url;
@@ -82,6 +90,7 @@
         imageLoader.addEventListener('change', handleFileSelect, false);
         clipboardButton.addEventListener('click', handleClipboardPaste, false);
         saveButton.addEventListener('click', saveImage, false);
+        undoButton.addEventListener('click', undoLastClick, false);
 
         function handleFileSelect(e) {
             const file = e.target.files[0];
@@ -164,15 +173,17 @@
 
                 fileName += ".png";
 
-                const dataURL = canvas.toDataURL("image/png");
-                const link = document.createElement('a');
-                link.download = fileName;
-                link.href = dataURL;
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                messageDiv.textContent = `이미지가 "${fileName}" 이름으로 성공적으로 저장되었습니다. 다운로드 폴더를 확인해주세요.`;
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = fileName;
+                    link.href = url;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    messageDiv.textContent = `이미지가 "${fileName}" 이름으로 성공적으로 저장되었습니다. 다운로드 폴더를 확인해주세요.`;
+                }, 'image/png');
             } catch (err) {
                 console.error("저장 중 오류 발생:", err);
                 messageDiv.textContent = "이미지 저장 중 오류가 발생했습니다. 콘솔을 확인해주세요.";
@@ -198,10 +209,12 @@
         function redrawCanvas() {
             if (!currentImage) return;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 캔버스 크기 재설정
+            canvas.width = canvas.width;
+
             ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
 
-            clicks.forEach(click => {
+            clicks.forEach((click, index) => {
                 ctx.beginPath();
                 ctx.arc(click.x, click.y, 15, 0, 2 * Math.PI);
                 ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
@@ -210,9 +223,32 @@
                 ctx.font = 'bold 16px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(click.count, click.x, click.y);
+                ctx.fillText(index + 1, click.x, click.y);
             });
         }
+
+        function undoLastClick() {
+            if (clicks.length > 0) {
+                clicks.pop();
+                clickCount--;
+                redrawCanvas();
+                if (clicks.length > 0) {
+                    const lastClick = clicks[clicks.length - 1];
+                    messageDiv.textContent = `마지막 클릭 취소됨. 현재 클릭 수: ${clickCount}`;
+                } else {
+                    messageDiv.textContent = '모든 클릭이 취소되었습니다.';
+                }
+            } else {
+                messageDiv.textContent = '취소할 클릭이 없습니다.';
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+                event.preventDefault();
+                undoLastClick();
+            }
+        });
     </script>
 </body>
 </html>
