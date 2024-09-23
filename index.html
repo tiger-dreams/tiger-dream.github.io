@@ -37,6 +37,11 @@
             <option value="#00FF00">녹색</option>
             <option value="#0000FF">파랑색</option>
         </select>
+        <select id="sizeSelector">
+            <option value="small">작게</option>
+            <option value="medium" selected>보통</option>
+            <option value="large">크게</option>
+        </select>
     </div>
     <div id="imageContainer">
         <canvas id="imageCanvas"></canvas>
@@ -53,6 +58,7 @@
         const saveButton = document.getElementById('saveButton');
         const undoButton = document.getElementById('undoButton');
         const colorSelector = document.getElementById('colorSelector');
+        const sizeSelector = document.getElementById('sizeSelector');
         const canvas = document.getElementById('imageCanvas');
         const ctx = canvas.getContext('2d');
         const messageDiv = document.getElementById('message');
@@ -60,6 +66,7 @@
         let clicks = [];
         let currentImage = null;
         let currentColor = "#FF0000"; // 기본 색상
+        let currentSize = "medium"; // 기본 크기
 
         function loadImageFromUrl(url) {
             console.log("Attempting to load image from:", url);
@@ -101,6 +108,10 @@
         undoButton.addEventListener('click', undoLastClick, false);
         colorSelector.addEventListener('change', function(e) {
             currentColor = e.target.value;
+            redrawCanvas();
+        });
+        sizeSelector.addEventListener('change', function(e) {
+            currentSize = e.target.value;
             redrawCanvas();
         });
 
@@ -213,7 +224,7 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
 
-            clicks.push({x, y, count: clickCount, color: currentColor});
+            clicks.push({x, y, count: clickCount, color: currentColor, size: currentSize});
             redrawCanvas();
             messageDiv.textContent = `클릭 ${clickCount}: (${Math.round(x)}, ${Math.round(y)})`;
         });
@@ -228,11 +239,25 @@
 
             clicks.forEach((click, index) => {
                 ctx.beginPath();
-                ctx.arc(click.x, click.y, 15, 0, 2 * Math.PI);
+                let circleSize = 15; // 기본 원 크기
+                let fontSize = 16; // 기본 폰트 크기
+
+                switch(click.size) {
+                    case 'small':
+                        circleSize = 10;
+                        fontSize = 12;
+                        break;
+                    case 'large':
+                        circleSize = 20;
+                        fontSize = 20;
+                        break;
+                }
+
+                ctx.arc(click.x, click.y, circleSize, 0, 2 * Math.PI);
                 ctx.fillStyle = click.color;
                 ctx.fill();
                 ctx.fillStyle = 'white';
-                ctx.font = 'bold 16px Arial';
+                ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(index + 1, click.x, click.y);
