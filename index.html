@@ -14,7 +14,7 @@
         #controls {
             margin-bottom: 10px;
         }
-        button {
+        button, select {
             margin-right: 10px;
         }
         #message {
@@ -31,6 +31,12 @@
         <button id="clipboardButton">클립보드에서 가져오기</button>
         <button id="saveButton">저장하기</button>
         <button id="undoButton">뒤로가기</button>
+        <select id="colorSelector">
+            <option value="#FF0000">빨간색</option>
+            <option value="#FF8000">주황색</option>
+            <option value="#00FF00">녹색</option>
+            <option value="#0000FF">파랑색</option>
+        </select>
     </div>
     <div id="imageContainer">
         <canvas id="imageCanvas"></canvas>
@@ -46,12 +52,14 @@
         const clipboardButton = document.getElementById('clipboardButton');
         const saveButton = document.getElementById('saveButton');
         const undoButton = document.getElementById('undoButton');
+        const colorSelector = document.getElementById('colorSelector');
         const canvas = document.getElementById('imageCanvas');
         const ctx = canvas.getContext('2d');
         const messageDiv = document.getElementById('message');
         let clickCount = 0;
         let clicks = [];
         let currentImage = null;
+        let currentColor = "#FF0000"; // 기본 색상
 
         function loadImageFromUrl(url) {
             console.log("Attempting to load image from:", url);
@@ -91,6 +99,10 @@
         clipboardButton.addEventListener('click', handleClipboardPaste, false);
         saveButton.addEventListener('click', saveImage, false);
         undoButton.addEventListener('click', undoLastClick, false);
+        colorSelector.addEventListener('change', function(e) {
+            currentColor = e.target.value;
+            redrawCanvas();
+        });
 
         function handleFileSelect(e) {
             const file = e.target.files[0];
@@ -201,7 +213,7 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
 
-            clicks.push({x, y, count: clickCount});
+            clicks.push({x, y, count: clickCount, color: currentColor});
             redrawCanvas();
             messageDiv.textContent = `클릭 ${clickCount}: (${Math.round(x)}, ${Math.round(y)})`;
         });
@@ -217,7 +229,7 @@
             clicks.forEach((click, index) => {
                 ctx.beginPath();
                 ctx.arc(click.x, click.y, 15, 0, 2 * Math.PI);
-                ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+                ctx.fillStyle = click.color;
                 ctx.fill();
                 ctx.fillStyle = 'white';
                 ctx.font = 'bold 16px Arial';
