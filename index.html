@@ -68,8 +68,20 @@
         let currentColor = "#FF0000"; // 기본 색상
         let currentSize = "medium"; // 기본 크기
 
+        const DEFAULT_IMAGE_URL = 'https://raw.githubusercontent.com/tiger-dreams/tiger-dream.github.io/main/src/default-image.jpg';
+
         function loadImageFromUrl(url) {
             console.log("Attempting to load image from:", url);
+            
+            // 로컬 스토리지에서 이미지 확인 (URL 기반 키 사용)
+            const storageKey = 'cachedImage_' + url;
+            const cachedImage = localStorage.getItem(storageKey);
+            if (cachedImage) {
+                console.log("Loading image from local storage");
+                loadImageFromDataUrl(cachedImage);
+                return;
+            }
+
             currentImage = new Image();
             currentImage.crossOrigin = "anonymous";
             currentImage.onload = function() {
@@ -89,6 +101,9 @@
                 messageDiv.textContent = `기본 이미지가 로드되었습니다. 크기: ${width}x${height}`;
                 clicks = [];
                 clickCount = 0;
+
+                // 이미지를 로컬 스토리지에 캐시
+                cacheImageToLocalStorage(currentImage, url);
             }
             currentImage.onerror = function(err) {
                 console.error("Image load failed:", url, err);
@@ -96,10 +111,27 @@
             }
             currentImage.src = url;
         }
+
+        function cacheImageToLocalStorage(img, url) {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = img.width;
+            tempCanvas.height = img.height;
+            tempCtx.drawImage(img, 0, 0);
+            
+            try {
+                const dataURL = tempCanvas.toDataURL('image/jpeg');
+                const storageKey = 'cachedImage_' + url;
+                localStorage.setItem(storageKey, dataURL);
+                console.log("Image cached to local storage");
+            } catch (e) {
+                console.error("Failed to cache image:", e);
+            }
+        }
         
         // 기본 이미지 로드
         window.onload = function() {
-            loadImageFromUrl('https://raw.githubusercontent.com/tiger-dreams/tiger-dream.github.io/main/src/default-image.jpg');
+            loadImageFromUrl(DEFAULT_IMAGE_URL);
         }
         
         imageLoader.addEventListener('change', handleFileSelect, false);
