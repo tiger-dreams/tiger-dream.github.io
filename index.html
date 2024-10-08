@@ -42,6 +42,14 @@
             <option value="medium" selected>보통</option>
             <option value="large">크게</option>
         </select>
+        <select id="modeSelector">
+            <option value="number">숫자 입력 모드</option>
+            <option value="shape">도형 모드</option>
+        </select>
+        <select id="shapeSelector" style="display: none;">
+            <option value="rectangle">사각형</option>
+            <option value="circle">원</option>
+        </select>
     </div>
     <div id="imageContainer">
         <canvas id="imageCanvas"></canvas>
@@ -62,13 +70,29 @@
         const canvas = document.getElementById('imageCanvas');
         const ctx = canvas.getContext('2d');
         const messageDiv = document.getElementById('message');
+        const modeSelector = document.getElementById('modeSelector');
+        const shapeSelector = document.getElementById('shapeSelector');
         let clickCount = 0;
         let clicks = [];
         let currentImage = null;
         let currentColor = "#FF0000"; // 기본 색상
         let currentSize = "medium"; // 기본 크기
+        let currentMode = 'number';
+        let currentShape = 'rectangle';
+        let isDrawing = false;
+        let startX, startY;
+        let shapeCount = 0; // 도형 개수를 위한 새로운 변수
 
-        const DEFAULT_IMAGE_URL = 'https://raw.githubusercontent.com/tiger-dreams/tiger-dream.github.io/main/src/default-image.jpg';
+        modeSelector.addEventListener('change', function(e) {
+            currentMode = e.target.value;
+            shapeSelector.style.display = currentMode === 'shape' ? 'inline' : 'none';
+        });
+
+            shapeSelector.addEventListener('change', function(e) {
+            currentShape = e.target.value;
+        });
+
+        const DEFAULT_IMAGE_URL = './src/default-image.jpg';
 
         function loadImageFromUrl(url) {
             console.log("Attempting to load image from:", url);
@@ -246,71 +270,152 @@
         }
 
         canvas.addEventListener('click', function(e) {
-            if (!currentImage) {
-                messageDiv.textContent = "클릭하기 전에 먼저 이미지를 로드해주세요.";
-                return;
-            }
+    if (!currentImage) {
+        messageDiv.textContent = "클릭하기 전에 먼저 이미지를 로드해주세요.";
+        return;
+    }
 
-            clickCount++;
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+    if (currentMode === 'number') {
+        clickCount++;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
-            clicks.push({x, y, count: clickCount, color: currentColor, size: currentSize});
-            redrawCanvas();
-            messageDiv.textContent = `클릭 ${clickCount}: (${Math.round(x)}, ${Math.round(y)})`;
-        });
+        clicks.push({type: 'number', x, y, count: clickCount, color: currentColor, size: currentSize});
+        redrawCanvas();
+        messageDiv.textContent = `클릭 ${clickCount}: (${Math.round(x)}, ${Math.round(y)})`;
+    }
+});
+
+        // 도형 그리기를 위한 새로운 이벤트 리스너들
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
 
         function redrawCanvas() {
-            if (!currentImage) return;
+    if (!currentImage) return;
 
-            // 캔버스 크기 재설정
-            canvas.width = canvas.width;
+    canvas.width = canvas.width;
+    ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
 
-            ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
-
-            clicks.forEach((click, index) => {
-                ctx.beginPath();
-                let circleSize = 15; // 기본 원 크기
-                let fontSize = 16; // 기본 폰트 크기
-
-                switch(click.size) {
-                    case 'small':
-                        circleSize = 10;
-                        fontSize = 12;
-                        break;
-                    case 'large':
-                        circleSize = 20;
-                        fontSize = 20;
-                        break;
-                }
-
-                ctx.arc(click.x, click.y, circleSize, 0, 2 * Math.PI);
-                ctx.fillStyle = click.color;
-                ctx.fill();
-                ctx.fillStyle = 'white';
-                ctx.font = `bold ${fontSize}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(index + 1, click.x, click.y);
-            });
+    clicks.forEach((click, index) => {
+        if (click.type === 'number') {
+            drawNumber(click, index);
+        } else if (click.type === 'shape') {
+            drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color);
         }
+    });
+}
 
-        function undoLastClick() {
-            if (clicks.length > 0) {
-                clicks.pop();
-                clickCount--;
-                redrawCanvas();
-                if (clicks.length > 0) {
-                    const lastClick = clicks[clicks.length - 1];
-                    messageDiv.textContent = `마지막 클릭 취소됨. 현재 클릭 수: ${clickCount}`;
-                } else {
-                    messageDiv.textContent = '모든 클릭이 취소되었습니다.';
-                }
-            } else {
-                messageDiv.textContent = '취소할 클릭이 없습니다.';
-            }
+function startDrawing(e) {
+    if (currentMode === 'shape') {
+        isDrawing = true;
+        [startX, startY] = getMousePos(canvas, e);
+    }
+}
+
+function drawNumber(click, index) {
+    let circleSize = 15;
+    let fontSize = 16;
+
+    switch(click.size) {
+        case 'small':
+            circleSize = 10;
+            fontSize = 12;
+            break;
+        case 'large':
+            circleSize = 20;
+            fontSize = 20;
+            break;
+    }
+
+    ctx.beginPath();
+    ctx.arc(click.x, click.y, circleSize, 0, 2 * Math.PI);
+    ctx.fillStyle = click.color;
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(click.count, click.x, click.y); // index + 1 대신 click.count 사용
+}
+
+function drawShape(x1, y1, x2, y2, shape, color) {
+    ctx.strokeStyle = color || currentColor;
+    ctx.lineWidth = 2;
+    if (shape === 'rectangle') {
+        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    } else if (shape === 'circle') {
+        const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        ctx.beginPath();
+        ctx.arc(x1, y1, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+}
+
+function undoLastClick() {
+    if (clicks.length > 0) {
+        const lastClick = clicks.pop();
+        if (lastClick.type === 'number') {
+            clickCount--;
+        } else if (lastClick.type === 'shape') {
+            shapeCount--;
         }
+        redrawCanvas();
+        if (clicks.length > 0) {
+            messageDiv.textContent = `마지막 동작 취소됨. 현재 숫자 클릭 수: ${clickCount}, 도형 수: ${shapeCount}`;
+        } else {
+            messageDiv.textContent = '모든 동작이 취소되었습니다.';
+        }
+    } else {
+        messageDiv.textContent = '취소할 동작이 없습니다.';
+    }
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    const [mouseX, mouseY] = getMousePos(canvas, e);
+    redrawCanvas();
+    drawShape(startX, startY, mouseX, mouseY, currentShape, currentColor);
+}
+
+function stopDrawing(e) {
+    if (!isDrawing) return;
+    isDrawing = false;
+    const [mouseX, mouseY] = getMousePos(canvas, e);
+    shapeCount++; // 도형 개수 증가
+    clicks.push({
+        type: 'shape',
+        shape: currentShape,
+        startX, startY,
+        endX: mouseX, endY: mouseY,
+        color: currentColor,
+        id: shapeCount // 각 도형에 고유 ID 부여
+    });
+    redrawCanvas();
+}
+
+function drawShape(x1, y1, x2, y2, shape, color) {
+    ctx.strokeStyle = color || currentColor;
+    ctx.lineWidth = 2;
+    if (shape === 'rectangle') {
+        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    } else if (shape === 'circle') {
+        const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        ctx.beginPath();
+        ctx.arc(x1, y1, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+}
+
+function getMousePos(canvas, evt) {
+    const rect = canvas.getBoundingClientRect();
+    return [
+        evt.clientX - rect.left,
+        evt.clientY - rect.top
+    ];
+}
 
         document.addEventListener('keydown', function(event) {
             if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
