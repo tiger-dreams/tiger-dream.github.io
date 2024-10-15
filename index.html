@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-adsense-account" content="ca-pub-3945001668113003">
-    <title>Interactive Image Clicker</title>
+    <title data-i18n="title">스크린샷 숫자/도형 넣기 서비스</title>
     <style>
         #imageContainer {
             position: relative;
@@ -37,27 +37,32 @@
 <body>
     <div id="controls">
         <input type="file" id="imageLoader" accept="image/*">
-        <button id="clipboardButton">클립보드에서 가져오기</button>
-        <button id="saveButton">저장하기</button>
-        <button id="undoButton">뒤로가기</button>
+        <button id="clipboardButton" data-lang-key="clipboard">클립보드에서 가져오기</button>
+        <button id="saveButton" data-lang-key="save">저장하기</button>
+        <button id="undoButton" data-lang-key="undo">뒤로가기</button>
         <select id="colorSelector">
-            <option value="#FF0000">빨간색</option>
-            <option value="#FF8000">주황색</option>
-            <option value="#00FF00">녹색</option>
-            <option value="#0000FF">파랑색</option>
+            <option value="#FF0000" data-lang-key="red">빨간색</option>
+            <option value="#FF8000" data-lang-key="orange">주황색</option>
+            <option value="#00FF00" data-lang-key="green">녹색</option>
+            <option value="#0000FF" data-lang-key="blue">파랑색</option>
         </select>
         <select id="sizeSelector">
-            <option value="small">작게</option>
-            <option value="medium" selected>보통</option>
-            <option value="large">크게</option>
+            <option value="small" data-lang-key="small">작게</option>
+            <option value="medium" selected data-lang-key="medium">보통</option>
+            <option value="large" data-lang-key="large">크게</option>
         </select>
         <select id="modeSelector">
-            <option value="number">숫자 입력 모드</option>
-            <option value="shape">도형 모드</option>
+            <option value="number" data-lang-key="numberMode">숫자 입력 모드</option>
+            <option value="shape" data-lang-key="shapeMode">도형 모드</option>
         </select>
         <select id="shapeSelector" style="display: none;">
-            <option value="rectangle">사각형</option>
-            <option value="circle">원</option>
+            <option value="rectangle" data-lang-key="rectangle">사각형</option>
+            <option value="circle" data-lang-key="circle">원</option>
+        </select>
+        <select id="lineWidthSelector" style="display: none;">
+            <option value="thin">얇게</option>
+            <option value="regular" selected>보통</option>
+            <option value="heavy">굵게</option>
         </select>
     </div>
     <div id="imageContainer">
@@ -65,7 +70,7 @@
     </div>
     <div id="message"></div>
     <div id="shortcuts">
-        <p>단축키: Ctrl+Z (Mac: Command+Z) - 마지막 클릭 취소</p>
+        <p id="shortcutGuide" data-lang-key="shortcutGuide"></p>
     </div>
 
     <script>
@@ -81,12 +86,13 @@
         const messageDiv = document.getElementById('message');
         const modeSelector = document.getElementById('modeSelector');
         const shapeSelector = document.getElementById('shapeSelector');
+        const lineWidthSelector = document.getElementById('lineWidthSelector');
         let clickCount = 0;
         let clicks = [];
         let currentImage = null;
         let currentColor = "#FF0000"; // 기본 색상
         let currentSize = "medium"; // 기본 크기
-        let currentMode = 'number';
+        let currentMode = 'number'; // 현재 모드를 추적하는 변수 추가
         let currentShape = 'rectangle';
         let isDrawing = false;
         let startX, startY;
@@ -95,6 +101,7 @@
         modeSelector.addEventListener('change', function(e) {
             currentMode = e.target.value;
             shapeSelector.style.display = currentMode === 'shape' ? 'inline' : 'none';
+            lineWidthSelector.style.display = currentMode === 'shape' ? 'inline' : 'none';
         });
 
             shapeSelector.addEventListener('change', function(e) {
@@ -131,7 +138,7 @@
                 canvas.width = width;
                 canvas.height = height;
                 ctx.drawImage(currentImage, 0, 0, width, height);
-                messageDiv.textContent = `기본 이미지가 로드되었습니다. 크기: ${width}x${height}`;
+                messageDiv.textContent = translate('defaultImageLoaded', { width, height });
                 clicks = [];
                 clickCount = 0;
 
@@ -140,7 +147,7 @@
             }
             currentImage.onerror = function(err) {
                 console.error("Image load failed:", url, err);
-                messageDiv.textContent = "기본 이미지 로드에 실패했습니다.";
+                messageDiv.textContent = translate('defaultImageLoadFailed');
             }
             currentImage.src = url;
         }
@@ -270,7 +277,7 @@
                     link.click();
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
-                    messageDiv.textContent = `이미지가 "${fileName}" 이름으로 성공적으로 저장되었습니다. 다운로드 폴더를 확인해주세요.`;
+                    messageDiv.textContent = translate('imageSavedAs', { fileName: fileName });
                 }, 'image/png');
             } catch (err) {
                 console.error("저장 중 오류 발생:", err);
@@ -431,6 +438,312 @@ function getMousePos(canvas, evt) {
                 event.preventDefault();
                 undoLastClick();
             }
+        });
+
+        // 언어 데이터
+        const languages = {
+            'ko': {
+                'clipboard': '클립보드에서 가져오기',
+                'save': '저장하기',
+                'undo': '뒤로가기',
+                'red': '빨간색',
+                'orange': '주황색',
+                'green': '녹색',
+                'blue': '파랑색',
+                'small': '작게',
+                'medium': '보통',
+                'large': '크게',
+                'numberMode': '숫자 입력 모드',
+                'shapeMode': '도형 모드',
+                'rectangle': '사각형',
+                'circle': '원',
+                'defaultImageLoaded': '기본 이미지가 로드되었습니다. 크기: {width}x{height}',
+                'imageLoaded': '이미지가 로드되었습니다. 크기: {width}x{height}',
+                'clipboardImageLoaded': '클립보드 이미지가 로드되었습니다. 크기: {width}x{height}',
+                'clicksCleared': '클릭이 초기화되었습니다.',
+                'imageSaved': '이미지가 저장되었습니다.',
+                'undoPerformed': '마지막 작업이 취소되었습니다.',
+                'noMoreUndo': '더 이상 취소할 작업이 없습니다.',
+                'shapeDrawn': '{shape}이(가) 그려졌습니다.',
+                'imageSavedAs': '이미지가 "{fileName}" 이름으로 성공적으로 저장되었습니다. 다운로드 폴더를 확인해주세요.',
+                'defaultImageLoadFailed': '기본 이미지 로드에 실패했습니다.',
+                'shortcutGuide': '단축키: Ctrl+Z (Mac: Command+Z) - 마지막 클릭 취소',
+            },
+            'ja': {
+                'clipboard': 'クリップボードから取得',
+                'save': '保存',
+                'undo': '元に戻す',
+                'red': '赤',
+                'orange': 'オレンジ',
+                'green': '緑',
+                'blue': '青',
+                'small': '小',
+                'medium': '中',
+                'large': '大',
+                'numberMode': '数字入力モード',
+                'shapeMode': '図形モード',
+                'rectangle': '四角形',
+                'circle': '丸',  // '원'을 '丸'으로 수정
+                'defaultImageLoaded': 'デフォルト画像が読み込まれました。サイズ: {width}x{height}',
+                'imageLoaded': '画像が読み込まれました。サイズ: {width}x{height}',
+                'clipboardImageLoaded': 'クリップボードの画像が読み込まれました。サイズ: {width}x{height}',
+                'clicksCleared': 'クリックがリセットされました。',
+                'imageSaved': '画像が保存されました。',
+                'undoPerformed': '最後の操作が取り消されました。',
+                'noMoreUndo': 'これ以上取り消す操作はありません。',
+                'shapeDrawn': '{shape}が描画されました。',
+                'imageSavedAs': '画像が "{fileName}" という名前で正常に保存されました。ダウンロードフォルダをご確認ください。',
+                'defaultImageLoadFailed': 'デフォルト画像の読み込みに失敗しました。',
+                'shortcutGuide': 'ショートカット: Ctrl+Z (Mac: Command+Z) - 最後のクリックを取り消し',
+            },
+            'en': {
+                'clipboard': 'Paste from Clipboard',
+                'save': 'Save',
+                'undo': 'Undo',
+                'red': 'Red',
+                'orange': 'Orange',
+                'green': 'Green',
+                'blue': 'Blue',
+                'small': 'Small',
+                'medium': 'Medium',
+                'large': 'Large',
+                'numberMode': 'Number Input Mode',
+                'shapeMode': 'Shape Mode',
+                'rectangle': 'Rectangle',
+                'circle': 'Circle',
+                'defaultImageLoaded': 'Default image has been loaded. Size: {width}x{height}',
+                'imageLoaded': 'Image has been loaded. Size: {width}x{height}',
+                'clipboardImageLoaded': 'Clipboard image has been loaded. Size: {width}x{height}',
+                'clicksCleared': 'Clicks have been cleared.',
+                'imageSaved': 'Image has been saved.',
+                'undoPerformed': 'Last action has been undone.',
+                'noMoreUndo': 'No more actions to undo.',
+                'shapeDrawn': '{shape} has been drawn.',
+                'imageSavedAs': 'The image has been successfully saved as "{fileName}". Please check your download folder.',
+                'defaultImageLoadFailed': 'Failed to load the default image.',
+                'shortcutGuide': 'Shortcut: Ctrl+Z (Mac: Command+Z) - Undo last click',
+            }
+        };
+
+        // 브라우저 언어 감지 및 언어 설정
+        function getLanguage() {
+            // 테스트를 위해 언어를 강제로 설정
+            // return 'ja'; // 일본어로 테스트
+            // return 'en'; // 영어로 테스트
+            // return 'ko'; // 한국어로 테스트
+
+            const lang = navigator.language.split('-')[0];
+            return ['ko', 'ja', 'en'].includes(lang) ? lang : 'en';
+        }
+
+        // 페이지 언어 적용
+        function applyLanguage() {
+            const lang = getLanguage();
+            const elements = document.querySelectorAll('[data-lang-key]');
+            elements.forEach(element => {
+                const key = element.getAttribute('data-lang-key');
+                if (languages[lang] && languages[lang][key]) {
+                    if (element.tagName === 'OPTION') {
+                        element.textContent = languages[lang][key];
+                    } else {
+                        element.innerText = languages[lang][key];
+                    }
+                }
+            });
+        }
+
+        // 페이지 로드 시 언어 적용
+        window.addEventListener('DOMContentLoaded', applyLanguage);
+
+        // 번역 함수 추가
+        function translate(key, params = {}) {
+            const lang = getLanguage();
+            let text = languages[lang][key] || languages['en'][key] || key;
+            
+            // 파라미터 치환
+            Object.keys(params).forEach(param => {
+                text = text.replace(`{${param}}`, params[param]);
+            });
+            
+            return text;
+        }
+
+        // 사용자 설정을 저장하는 함수 수정
+        function saveUserSettings() {
+            const settings = {
+                mode: currentMode,
+                color: colorSelector.value,
+                size: sizeSelector.value,
+                shape: shapeSelector.value
+            };
+            localStorage.setItem('userSettings', JSON.stringify(settings));
+        }
+
+        // 저장된 사용자 설정을 불러오는 함수 수정
+        function loadUserSettings() {
+            const savedSettings = localStorage.getItem('userSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                currentMode = settings.mode;
+                modeSelector.value = currentMode;
+                colorSelector.value = settings.color;
+                sizeSelector.value = settings.size;
+                shapeSelector.value = settings.shape;
+                
+                // UI 업데이트
+                updateUIForMode(currentMode);
+            }
+        }
+
+        // 모드에 따라 UI를 업데이트하는 함수 수정
+        function updateUIForMode(mode) {
+            currentMode = mode;
+            if (mode === 'shape') {
+                shapeSelector.style.display = 'inline-block';
+            } else {
+                shapeSelector.style.display = 'none';
+            }
+            // 색상 선택기 값 설정
+            document.getElementById('colorDisplay').style.backgroundColor = colorSelector.value;
+        }
+
+        // 모드 선택기의 change 이벤트 핸들러
+        modeSelector.addEventListener('change', function() {
+            updateUIForMode(this.value);
+            saveUserSettings();
+        });
+
+        // 이미지 로드 이벤트 핸들러 수정
+        imageLoader.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                loadImageFromFile(file);
+            }
+            
+            // 이미지 로드 후 현재 모드에 맞게 동작 설정
+            setCanvasClickHandler();
+        });
+
+        // 캔버스 클릭 핸들러 설정 함수
+        function setCanvasClickHandler() {
+            canvas.onclick = function(e) {
+                if (currentMode === 'number') {
+                    // 숫자 모드 동작
+                    // ... 기존의 숫자 입력 코드 ...
+                } else if (currentMode === 'shape') {
+                    // 도형 모드 동작
+                    // ... 기존의 도형 그리기 코드 ...
+                }
+            };
+        }
+
+        // 페이지 로드 시 저장된 설정 불러오기 및 초기 설정
+        window.addEventListener('DOMContentLoaded', function() {
+            loadUserSettings();
+            setCanvasClickHandler();
+        });
+
+        // 캔버스 이벤트 핸들러 설정 함수 수정
+        function setCanvasEventHandlers() {
+            canvas.onmousedown = function(e) {
+                if (currentMode === 'shape') {
+                    isDrawing = true;
+                    startX = e.offsetX;
+                    startY = e.offsetY;
+                    console.log('Mouse down:', startX, startY);
+                }
+            };
+
+            canvas.onmousemove = function(e) {
+                if (isDrawing && currentMode === 'shape') {
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 임시 캔버스 생성
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = canvas.width;
+                    tempCanvas.height = canvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    // 임시 캔버스에 현재 이미지 그리기
+                    tempCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // 임시 캔버스에 새로운 도형 그리기
+                    tempCtx.strokeStyle = colorSelector.value;
+                    tempCtx.fillStyle = colorSelector.value;
+                    setLineWidth(tempCtx);
+                    
+                    switch (shapeSelector.value) {
+                        case 'rectangle':
+                            tempCtx.strokeRect(startX, startY, e.offsetX - startX, e.offsetY - startY);
+                            break;
+                        case 'circle':
+                            const radius = Math.sqrt(Math.pow(e.offsetX - startX, 2) + Math.pow(e.offsetY - startY, 2));
+                            tempCtx.beginPath();
+                            tempCtx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                            tempCtx.stroke();
+                            break;
+                    }
+                    
+                    // 임시 캔버스의 내용을 실제 캔버스에 그리기
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(tempCanvas, 0, 0);
+                }
+            };
+
+            canvas.onmouseup = function(e) {
+                if (isDrawing && currentMode === 'shape') {
+                    isDrawing = false;
+                    console.log('Mouse up:', e.offsetX, e.offsetY);
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.strokeStyle = colorSelector.value;
+                    ctx.fillStyle = colorSelector.value;
+                    setLineWidth(ctx);
+                    
+                    switch (shapeSelector.value) {
+                        case 'rectangle':
+                            ctx.strokeRect(startX, startY, e.offsetX - startX, e.offsetY - startY);
+                            break;
+                        case 'circle':
+                            const radius = Math.sqrt(Math.pow(e.offsetX - startX, 2) + Math.pow(e.offsetY - startY, 2));
+                            ctx.beginPath();
+                            ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                            ctx.stroke();
+                            break;
+                    }
+                    
+                    img = new Image();
+                    img.src = canvas.toDataURL();
+                    saveUserSettings();  // 설정 저장
+                }
+            };
+
+            canvas.onclick = function(e) {
+                if (currentMode === 'number') {
+                    // 숫자 입력 모드 코드
+                }
+            };
+        }
+
+        // 모드 선택기 이벤트 리스너 추가
+        modeSelector.addEventListener('change', function() {
+            currentMode = this.value;
+            console.log('Mode changed:', currentMode);
+            updateUIForMode(currentMode);
+            saveUserSettings();
+        });
+
+        // 색상 선택기 이벤트 리스너 추가
+        colorSelector.addEventListener('change', function() {
+            document.getElementById('colorDisplay').style.backgroundColor = this.value;
+            saveUserSettings();
+        });
+
+        // 페이지 로드 시 실행
+        window.addEventListener('DOMContentLoaded', function() {
+            loadUserSettings();
+            setCanvasEventHandlers();
+            applyLanguage();
         });
     </script>
         <!-- 페이지뷰 카운터 추가 -->
