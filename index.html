@@ -279,10 +279,13 @@
             }
 
             if (currentMode === 'number') {
-                clickCount++;
                 const rect = canvas.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
+
+                if (!e.shiftKey) {
+                    clickCount++;
+                }
 
                 clicks.push({type: 'number', x, y, count: clickCount, color: currentColor, size: currentSize});
                 redrawCanvas();
