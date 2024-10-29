@@ -87,8 +87,6 @@
         const messageDiv = document.getElementById('message');
         const modeSelector = document.getElementById('modeSelector');
         const shapeSelector = document.getElementById('shapeSelector');
-        let clickCount = 0;
-        let clicks = [];
         let currentImage = null;
         let currentColor = "#FF0000";
         let currentSize = "medium";
@@ -97,6 +95,13 @@
         let isDrawing = false;
         let startX, startY;
         let shapeCount = 0;
+        let clicks = [];
+        let undoStack = [];
+        let clickCount = 0;
+        let maxClickCount = 0; // 최대 클릭 카운트를 추적하기 위한 변수
+        let lastRemovedCount = 0; // 마지막으로 제거된 숫자를 추적
+        let isWaitingForClick = false;
+        let pendingNumber = null;
 
         let currentLineWidth = 2;
 
@@ -278,25 +283,71 @@
         }
 
         canvas.addEventListener('click', function(e) {
-            if (!currentImage) {
-                messageDiv.textContent = "클릭하기 전에 먼저 이미지를 로드해주세요.";
-                return;
-            }
+    if (!currentImage) {
+        messageDiv.textContent = "클릭하기 전에 먼저 이미지를 로드해주세요.";
+        return;
+    }
 
-            if (currentMode === 'number') {
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+    if (currentMode === 'number') {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
-                if (!e.shiftKey) {
-                    clickCount++;
-                }
+        let displayNumber; // 사용자에게 보이는 숫자
 
-                clicks.push({type: 'number', x, y, count: clickCount, color: currentColor, size: currentSize});
-                redrawCanvas();
-                messageDiv.textContent = `클릭 ${clickCount}: (${Math.round(x)}, ${Math.round(y)})`;
-            }
-        });
+        if (isWaitingForClick && pendingNumber !== null) {
+            displayNumber = pendingNumber; // 대기 중인 숫자 사용
+            isWaitingForClick = false;
+            pendingNumber = null;
+        } else if (!e.shiftKey) {
+            displayNumber = maxClickCount + 1; // 최대 클릭 카운트 다음 번호 사용
+        } else {
+            displayNumber = maxClickCount; // Shift 키를 누른 경우 현재 최대 클릭 카운트 사용
+        }
+
+        clickCount++; // 클릭 횟수 증가
+        maxClickCount = Math.max(maxClickCount, displayNumber); // 최대 클릭 카운트 업데이트
+
+        // 클릭 정보를 clicks 배열에 저장
+        clicks.push({type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize});
+        redrawCanvas();
+        messageDiv.textContent = `클릭 ${displayNumber}: (${Math.round(x)}, ${Math.round(y)})`;
+    }
+});
+
+function undo() {
+    if (clicks.length > 0) {
+        const removedClick = clicks.pop();
+        undoStack.push(removedClick);
+        redrawCanvas();
+
+        // undo 후 maxClickCount와 clickCount를 업데이트
+        if (clicks.length > 0) {
+            maxClickCount = Math.max(...clicks.map(click => click.displayNumber));
+        } else {
+            maxClickCount = 0;
+        }
+    }
+}
+
+function redo() {
+    if (undoStack.length > 0) {
+        const redoItem = undoStack.pop();
+        clicks.push(redoItem);
+        maxClickCount = Math.max(maxClickCount, redoItem.displayNumber);
+        redrawCanvas();
+    }
+}
+
+    // 초기화 함수에 maxClickCount 리셋 추가
+    function resetDrawing() {
+    clicks = [];
+    undoStack = [];
+    clickCount = 0;
+    maxClickCount = 0;
+    lastRemovedCount = 0;
+    redrawCanvas();
+}
 
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
@@ -348,7 +399,7 @@
             ctx.font = `bold ${fontSize}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(click.count, click.x, click.y);
+            ctx.fillText(click.displayNumber, click.x, click.y);
         }
 
         function drawShape(x1, y1, x2, y2, shape, color) {
@@ -416,12 +467,22 @@
             ];
         }
 
-        document.addEventListener('keydown', function(event) {
-            if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
-                event.preventDefault();
-                undoLastClick();
-            }
-        });
+// 키보드 이벤트 리스너 추가
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault(); // 기본 동작 방지
+        undo(); // undo 함수 호출
+    }
+
+    if (currentMode === 'number' && !isWaitingForClick) {
+        const key = e.key;
+        if (/^[0-9]$/.test(key)) {
+            pendingNumber = parseInt(key);
+            isWaitingForClick = true;
+            messageDiv.textContent = `${pendingNumber}부터 시작하려면 캔버스를 클릭하세요.`;
+        }
+    }
+});
 
         const languages = {
             'ko': {
