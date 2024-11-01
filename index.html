@@ -246,6 +246,8 @@
                 messageDiv.textContent = `이미지가 로드되었습니다. 크기: ${width}x${height}`;
                 clicks = [];
                 clickCount = 0;
+                maxClickCount = 0; // maxClickCount 초기화
+                cacheImageToLocalStorage(currentImage, url);
             }
             currentImage.src = dataUrl;
         }
