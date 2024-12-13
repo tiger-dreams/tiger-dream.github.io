@@ -65,6 +65,17 @@
             <option value="rectangle" data-lang-key="rectangle">사각형</option>
             <option value="circle" data-lang-key="circle">원</option>
         </select>
+        <label for="resizeSelector">이미지 크기 옵션:</label>
+        <select id="resizeSelector">
+            <option value="default">자동 리사이즈 (기본)</option>
+            <option value="original">원본</option>
+            <option value="300">너비 300</option>
+            <option value="600">너비 600</option>
+            <option value="900">너비 900</option>
+            <option value="scale30">원본 대비 30% 축소</option>
+            <option value="scale50">원본 대비 50% 축소</option>
+            <option value="scale70">원본 대비 70% 축소</option>
+        </select>
     </div>
     <div id="imageContainer">
         <canvas id="imageCanvas"></canvas>
@@ -229,33 +240,72 @@
             reader.readAsDataURL(blob);
         }
 
-        function loadImageFromDataUrl(dataUrl) {
-    currentImage = new Image();
-    currentImage.onload = function() {
-        let width = currentImage.width;
-        let height = currentImage.height;
+        const resizeSelector = document.getElementById('resizeSelector');
 
-        // 너비와 높이 제한을 적용
-        if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-            const widthScale = MAX_WIDTH / width;
-            const heightScale = MAX_HEIGHT / height;
-            const scaleFactor = Math.min(widthScale, heightScale);
+    function loadImageFromDataUrl(dataUrl) {
+        currentImage = new Image();
+        currentImage.onload = function() {
+            let width = currentImage.width;
+            let height = currentImage.height;
 
-            width = Math.floor(width * scaleFactor);
-            height = Math.floor(height * scaleFactor);
+            // 리사이즈 옵션에 따른 크기 계산
+            switch (resizeSelector.value) {
+                case "original":
+                    // 원본 크기 유지
+                    break;
+                case "300":
+                    height = Math.floor(height * (300 / width));
+                    width = 300;
+                    break;
+                case "600":
+                    height = Math.floor(height * (600 / width));
+                    width = 600;
+                    break;
+                case "900":
+                    height = Math.floor(height * (900 / width));
+                    width = 900;
+                    break;
+                case "scale30":
+                    width = Math.floor(width * 0.3);
+                    height = Math.floor(height * 0.3);
+                    break;
+                case "scale50":
+                    width = Math.floor(width * 0.5);
+                    height = Math.floor(height * 0.5);
+                    break;
+                case "scale70":
+                    width = Math.floor(width * 0.7);
+                    height = Math.floor(height * 0.7);
+                    break;
+                default:
+                    // 기본 동작: 자동 리사이즈 (너비와 높이 제한)
+                    if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                        const widthScale = MAX_WIDTH / width;
+                        const heightScale = MAX_HEIGHT / height;
+                        const scaleFactor = Math.min(widthScale, heightScale);
+                        width = Math.floor(width * scaleFactor);
+                        height = Math.floor(height * scaleFactor);
+                    }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(currentImage, 0, 0, width, height);
+            messageDiv.textContent = `이미지가 로드되었습니다. 크기: ${width}x${height}`;
+            clicks = [];
+            clickCount = 0;
+            maxClickCount = 0; // maxClickCount 초기화
+            cacheImageToLocalStorage(currentImage, url);
         }
-
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(currentImage, 0, 0, width, height);
-        messageDiv.textContent = `이미지가 로드되었습니다. 크기: ${width}x${height}`;
-        clicks = [];
-        clickCount = 0;
-        maxClickCount = 0; // maxClickCount 초기화
-        cacheImageToLocalStorage(currentImage, url);
+        currentImage.src = dataUrl;
     }
-    currentImage.src = dataUrl;
-}
+
+    // 선택된 옵션이 변경될 때 재로드하도록 이벤트 추가
+    resizeSelector.addEventListener('change', function() {
+        if (currentImage) {
+            loadImageFromDataUrl(currentImage.src);
+        }
+    });
 
 
         function saveImage() {
@@ -675,7 +725,7 @@ document.addEventListener('keydown', function(e) {
         </a>
     </div>
     <footer>
-        <a href="changelog.html" target="_blank">View Release Notes (Last Updated: 2024-12-11)</a>
+        <a href="changelog.html" target="_blank">View Release Notes (Last Updated: 2024-12-13)</a>
     </footer>
 </body>
 </html>
