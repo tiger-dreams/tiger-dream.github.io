@@ -64,6 +64,7 @@
         <select id="shapeSelector" style="display: none;">
             <option value="rectangle" data-lang-key="rectangle">사각형</option>
             <option value="circle" data-lang-key="circle">원</option>
+            <option value="arrow" data-lang-key="arrow">화살표</option>
         </select>
         <label for="resizeSelector">이미지 크기 옵션:</label>
         <select id="resizeSelector">
@@ -460,18 +461,108 @@ function redo() {
             ctx.fillText(click.displayNumber, click.x, click.y);
         }
 
-        function drawShape(x1, y1, x2, y2, shape, color) {
-            ctx.strokeStyle = color || currentColor;
-            ctx.lineWidth = currentLineWidth;
-            if (shape === 'rectangle') {
-                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-            } else if (shape === 'circle') {
-                const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-                ctx.beginPath();
-                ctx.arc(x1, y1, radius, 0, 2 * Math.PI);
-                ctx.stroke();
-            }
+
+
+        // 화살표를 그리는 함수
+function drawArrow(ctx, x1, y1, x2, y2, color) {
+    const headLength = 10; // 화살촉 길이
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const angle = Math.atan2(dy, dx);
+
+    // 선 그리기
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = currentLineWidth;
+    ctx.stroke();
+
+    // 화살촉 그리기
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(
+        x2 - headLength * Math.cos(angle - Math.PI / 6),
+        y2 - headLength * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.lineTo(
+        x2 - headLength * Math.cos(angle + Math.PI / 6),
+        y2 - headLength * Math.sin(angle + Math.PI / 6)
+    );
+    ctx.lineTo(x2, y2);
+    ctx.fillStyle = color;
+    ctx.fill();
+}
+
+// 드래그 상태에서 화살표 미리보기
+function drawShapePreview(x1, y1, x2, y2) {
+    if (currentShape === 'arrow') {
+        drawArrow(ctx, x1, y1, x2, y2, currentColor);
+    } else {
+        drawShape(x1, y1, x2, y2, currentShape, currentColor);
+    }
+}
+
+// 드래그 이벤트 핸들러 수정
+canvas.addEventListener('mousemove', function (e) {
+    if (!isDrawing) return;
+    const [mouseX, mouseY] = getMousePos(canvas, e);
+    redrawCanvas();
+    drawShapePreview(startX, startY, mouseX, mouseY);
+});
+
+// 드래그 종료 시 화살표 저장
+canvas.addEventListener('mouseup', function (e) {
+    if (!isDrawing) return;
+    isDrawing = false;
+    const [mouseX, mouseY] = getMousePos(canvas, e);
+
+    if (currentShape === 'arrow') {
+        shapeCount++;
+        clicks.push({
+            type: 'shape',
+            shape: 'arrow',
+            startX,
+            startY,
+            endX: mouseX,
+            endY: mouseY,
+            color: currentColor,
+            id: shapeCount
+        });
+    } else {
+        shapeCount++;
+        clicks.push({
+            type: 'shape',
+            shape: currentShape,
+            startX,
+            startY,
+            endX: mouseX,
+            endY: mouseY,
+            color: currentColor,
+            id: shapeCount
+        });
+    }
+    redrawCanvas();
+    saveUserSettings();
+});
+
+// 기존 도형 그리기 로직에 화살표 추가
+drawShape = function (x1, y1, x2, y2, shape, color) {
+    if (shape === 'arrow') {
+        drawArrow(ctx, x1, y1, x2, y2, color);
+    } else {
+        ctx.strokeStyle = color || currentColor;
+        ctx.lineWidth = currentLineWidth;
+        if (shape === 'rectangle') {
+            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+        } else if (shape === 'circle') {
+            const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            ctx.beginPath();
+            ctx.arc(x1, y1, radius, 0, 2 * Math.PI);
+            ctx.stroke();
         }
+    }
+}
 
         function undoLastClick() {
             if (clicks.length > 0) {
