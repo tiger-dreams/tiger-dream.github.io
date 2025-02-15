@@ -349,8 +349,14 @@
 
     if (currentMode === 'number') {
         const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        let x = e.clientX - rect.left;
+        let y = e.clientY - rect.top;
+
+        if (isHorizontalLock) {
+            y = initialY;
+        } else if (isVerticalLock) {
+            x = initialX;
+        }
 
         let displayNumber; // 사용자에게 보이는 숫자
 
@@ -371,6 +377,9 @@
         clicks.push({type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize});
         redrawCanvas();
         messageDiv.textContent = `클릭 ${displayNumber}: (${Math.round(x)}, ${Math.round(y)})`;
+
+        initialX = x;
+        initialY = y;
     }
 });
 
@@ -505,7 +514,7 @@ function drawShapePreview(x1, y1, x2, y2) {
 
 // 드래그 이벤트 핸들러 수정
 canvas.addEventListener('mousemove', function (e) {
-    if (!isDrawing) return;
+    if (!isDrawing || currentMode !== 'shape') return;
     const [mouseX, mouseY] = getMousePos(canvas, e);
     redrawCanvas();
     drawShapePreview(startX, startY, mouseX, mouseY);
@@ -513,7 +522,7 @@ canvas.addEventListener('mousemove', function (e) {
 
 // 드래그 종료 시 화살표 저장
 canvas.addEventListener('mouseup', function (e) {
-    if (!isDrawing) return;
+    if (!isDrawing || currentMode !== 'shape') return;
     isDrawing = false;
     const [mouseX, mouseY] = getMousePos(canvas, e);
 
@@ -563,6 +572,123 @@ drawShape = function (x1, y1, x2, y2, shape, color) {
         }
     }
 }
+
+    let isHorizontalLock = false;
+    let isVerticalLock = false;
+    let initialX, initialY;
+
+    canvas.addEventListener('mousedown', function(e) {
+        if (currentMode === 'shape') {
+            isDrawing = true;
+            [startX, startY] = getMousePos(canvas, e);
+            initialX = startX;
+            initialY = startY;
+        }
+    });
+
+    canvas.addEventListener('mousemove', function(e) {
+        if (!isDrawing || currentMode !== 'shape') return;
+        let [mouseX, mouseY] = getMousePos(canvas, e);
+
+        if (isHorizontalLock) {
+            mouseY = initialY;
+        } else if (isVerticalLock) {
+            mouseX = initialX;
+        }
+
+        redrawCanvas();
+        drawShapePreview(startX, startY, mouseX, mouseY);
+    });
+
+    canvas.addEventListener('mouseup', function(e) {
+        if (!isDrawing || currentMode !== 'shape') return;
+        isDrawing = false;
+        let [mouseX, mouseY] = getMousePos(canvas, e);
+
+        if (isHorizontalLock) {
+            mouseY = initialY;
+        } else if (isVerticalLock) {
+            mouseX = initialX;
+        }
+
+        shapeCount++;
+        clicks.push({
+            type: 'shape',
+            shape: currentShape,
+            startX, startY,
+            endX: mouseX, endY: mouseY,
+            color: currentColor,
+            id: shapeCount
+        });
+        redrawCanvas();
+        saveUserSettings();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (currentMode === 'shape') {
+            if (e.key === 'H' || e.key === 'h') {
+                isHorizontalLock = true;
+            } else if (e.key === 'V' || e.key === 'v') {
+                isVerticalLock = true;
+            }
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault(); // 기본 동작 방지
+            undo(); // undo 함수 호출
+        }
+
+        if (currentMode === 'number' && !isWaitingForClick) {
+            const key = e.key;
+            if (/^[0-9]$/.test(key)) {
+                pendingNumber = parseInt(key);
+                isWaitingForClick = true;
+                messageDiv.textContent = `${pendingNumber}부터 시작하려면 캔버스를 클릭하세요.`;
+            }
+        }
+    });
+
+    document.addEventListener('keyup', function(e) {
+        if (currentMode === 'shape') {
+            if (e.key === 'H' || e.key === 'h') {
+                isHorizontalLock = false;
+            } else if (e.key === 'V' || e.key === 'v') {
+                isVerticalLock = false;
+            }
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (currentMode === 'number') {
+            if (e.key === 'H' || e.key === 'h') {
+                isHorizontalLock = true;
+            } else if (e.key === 'V' || e.key === 'v') {
+                isVerticalLock = true;
+            }
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault(); // 기본 동작 방지
+            undo(); // undo 함수 호출
+        }
+
+        if (currentMode === 'number' && !isWaitingForClick) {
+            const key = e.key;
+            if (/^[0-9]$/.test(key)) {
+                pendingNumber = parseInt(key);
+                isWaitingForClick = true;
+                messageDiv.textContent = `${pendingNumber}부터 시작하려면 캔버스를 클릭하세요.`;
+            }
+        }
+    });
+
+    document.addEventListener('keyup', function(e) {
+        if (currentMode === 'number') {
+            if (e.key === 'H' || e.key === 'h') {
+                isHorizontalLock = false;
+            } else if (e.key === 'V' || e.key === 'v') {
+                isVerticalLock = false;
+            }
+        }
+    });
 
         function undoLastClick() {
             if (clicks.length > 0) {
@@ -816,7 +942,7 @@ document.addEventListener('keydown', function(e) {
         </a>
     </div>
     <footer>
-        <a href="changelog.html" target="_blank">View Release Notes (Last Updated: 2025-01-17)</a>
+        <a href="changelog.html" target="_blank">View Release Notes (Last Updated: 2025-02-15)</a>
     </footer>
 </body>
 </html>
