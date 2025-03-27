@@ -428,59 +428,67 @@
                 if (currentMode === 'number' || currentMode === 'shape') {
                     isHorizontalLock = true;
                 }
-
-                fileName += ".png";
-
-                canvas.toBlob(function(blob) {
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.download = fileName;
-                    link.href = url;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    messageDiv.textContent = translate('imageSavedAs', { fileName: fileName });
-                }, 'image/png');
-            } catch (err) {
-                console.error("저장 중 오류 발생:", err);
-                messageDiv.textContent = "이미지 저장 중 오류가 발생했습니다. 콘솔을 확인해주세요.";
+            } else if (e.key === 'V' || e.key === 'v') {
+                if (currentMode === 'number' || currentMode === 'shape') {
+                    isVerticalLock = true;
+                }
             }
-        }
 
-        canvas.addEventListener('click', function(e) {
-    if (!currentImage) {
-        messageDiv.textContent = "클릭하기 전에 먼저 이미지를 로드해주세요.";
-        return;
-    }
+            if (currentMode === 'number' && !isWaitingForClick) {
+                if (/^[0-9]$/.test(e.key)) {
+                    pendingNumber = parseInt(e.key);
+                    isWaitingForClick = true;
+                    messageDiv.textContent = translate('clickToStartFrom', { number: pendingNumber });
+                }
+            }
+        });
 
-    if (currentMode === 'number') {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        document.addEventListener('keyup', e => {
+            if (e.key === 'H' || e.key === 'h') {
+                if (currentMode === 'number' || currentMode === 'shape') {
+                    isHorizontalLock = false;
+                }
+            } else if (e.key === 'V' || e.key === 'v') {
+                if (currentMode === 'number' || currentMode === 'shape') {
+                    isVerticalLock = false;
+                }
+            }
+        });
+
+        // 주요 로직 함수
+        function handleNumberClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
 
             if (isHorizontalLock && initialY !== null) y = initialY;
             if (isVerticalLock && initialX !== null) x = initialX;
 
-        if (isWaitingForClick && pendingNumber !== null) {
-            displayNumber = pendingNumber; // 대기 중인 숫자 사용
-            isWaitingForClick = false;
-            pendingNumber = null;
-        } else if (!e.shiftKey) {
-            displayNumber = maxClickCount + 1; // 최대 클릭 카운트 다음 번호 사용
-        } else {
-            displayNumber = maxClickCount; // Shift 키를 누른 경우 현재 최대 클릭 카운트 사용
+            let displayNumber = isWaitingForClick && pendingNumber !== null ? pendingNumber : (e.shiftKey ? maxClickCount : maxClickCount + 1);
+            if (isWaitingForClick) {
+                isWaitingForClick = false;
+                pendingNumber = null;
+            }
+            clickCount++;
+            maxClickCount = Math.max(maxClickCount, displayNumber);
+            clicks.push({ type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize });
+            redrawCanvas();
+            messageDiv.textContent = translate('clickAdded', { number: displayNumber, x: Math.round(x), y: Math.round(y) });
+            initialX = x;
+            initialY = y;
         }
 
-        clickCount++; // 클릭 횟수 증가
-        maxClickCount = Math.max(maxClickCount, displayNumber); // 최대 클릭 카운트 업데이트
-
-        // 클릭 정보를 clicks 배열에 저장
-        clicks.push({type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize});
-        redrawCanvas();
-        messageDiv.textContent = `클릭 ${displayNumber}: (${Math.round(x)}, ${Math.round(y)})`;
-    }
-});
+        function handleTextClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+            const text = prompt(translate('enterText'));
+            if (text) {
+                clicks.push({ type: 'text', x, y, text, color: currentColor, size: currentSize });
+                redrawCanvas();
+                messageDiv.textContent = translate('textAdded', { text, x: Math.round(x), y: Math.round(y) });
+            }
+        }
 
         function undo() {
             if (clicks.length === 0) return;
@@ -619,118 +627,29 @@
             ctx.fill();
         }
 
-// 드래그 상태에서 화살표 미리보기
-function drawShapePreview(x1, y1, x2, y2) {
-    if (currentShape === 'arrow') {
-        drawArrow(ctx, x1, y1, x2, y2, currentColor);
-    } else {
-        drawShape(x1, y1, x2, y2, currentShape, currentColor);
-    }
-}
-
-// 드래그 이벤트 핸들러 수정
-canvas.addEventListener('mousemove', function (e) {
-    if (!isDrawing) return;
-    const [mouseX, mouseY] = getMousePos(canvas, e);
-    redrawCanvas();
-    drawShapePreview(startX, startY, mouseX, mouseY);
-});
-
-// 드래그 종료 시 화살표 저장
-canvas.addEventListener('mouseup', function (e) {
-    if (!isDrawing) return;
-    isDrawing = false;
-    const [mouseX, mouseY] = getMousePos(canvas, e);
-
-    if (currentShape === 'arrow') {
-        shapeCount++;
-        clicks.push({
-            type: 'shape',
-            shape: 'arrow',
-            startX,
-            startY,
-            endX: mouseX,
-            endY: mouseY,
-            color: currentColor,
-            id: shapeCount
-        });
-    } else {
-        shapeCount++;
-        clicks.push({
-            type: 'shape',
-            shape: currentShape,
-            startX,
-            startY,
-            endX: mouseX,
-            endY: mouseY,
-            color: currentColor,
-            id: shapeCount
-        });
-    }
-    redrawCanvas();
-    saveUserSettings();
-});
-
-// 기존 도형 그리기 로직에 화살표 추가
-drawShape = function (x1, y1, x2, y2, shape, color) {
-    if (shape === 'arrow') {
-        drawArrow(ctx, x1, y1, x2, y2, color);
-    } else {
-        ctx.strokeStyle = color || currentColor;
-        ctx.lineWidth = currentLineWidth;
-        if (shape === 'rectangle') {
-            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-        } else if (shape === 'circle') {
-            const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-            ctx.beginPath();
-            ctx.arc(x1, y1, radius, 0, 2 * Math.PI);
-            ctx.stroke();
+        function drawShapePreview(x1, y1, x2, y2) {
+            if (currentShape === 'arrow') drawArrow(ctx, x1, y1, x2, y2, currentColor);
+            else drawShape(x1, y1, x2, y2, currentShape, currentColor);
         }
-    }
-}
 
-        function undoLastClick() {
-            if (clicks.length > 0) {
-                const lastClick = clicks.pop();
-                if (lastClick.type === 'number') {
-                    clickCount--;
-                } else if (lastClick.type === 'shape') {
-                    shapeCount--;
-                }
-
-                redrawCanvas();
-                if (clicks.length > 0) {
-                    messageDiv.textContent = `마지막 동작 취소됨. 현재 숫자 클릭 수: ${clickCount}, 도형 수: ${shapeCount}`;
-                } else {
-                    messageDiv.textContent = '모든 동작이 취소되었습니다.';
-                }
-            } else {
-                messageDiv.textContent = '취소할 동작이 없습니다.';
+        // 저장 함수
+        function saveImage() {
+            if (!currentImage) {
+                messageDiv.textContent = translate('noImageToSave');
+                return;
             }
-        }
-
-        function draw(e) {
-            if (!isDrawing) return;
-            const [mouseX, mouseY] = getMousePos(canvas, e);
-            redrawCanvas();
-            drawShape(startX, startY, mouseX, mouseY, currentShape, currentColor);
-        }
-
-        function stopDrawing(e) {
-            if (!isDrawing) return;
-            isDrawing = false;
-            const [mouseX, mouseY] = getMousePos(canvas, e);
-            shapeCount++;
-            clicks.push({
-                type: 'shape',
-                shape: currentShape,
-                startX, startY,
-                endX: mouseX, endY: mouseY,
-                color: currentColor,
-                id: shapeCount
-            });
-            redrawCanvas();
-            saveUserSettings();
+            try {
+                let fileName = prompt(translate('enterFileName'), "interactive_image") || "interactive_image";
+                fileName += ".png";
+                canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    downloadImage(url, fileName);
+                    messageDiv.textContent = translate('imageSavedAs', { fileName });
+                }, 'image/png');
+            } catch (err) {
+                console.error("Save error:", err);
+                messageDiv.textContent = translate('saveImageError');
+            }
         }
 
         function downloadImage(url, fileName) {
@@ -869,13 +788,5 @@ drawShape = function (x1, y1, x2, y2, shape, color) {
             applyLanguage();
         });
     </script>
-    <div style="text-align: center; margin-top: 20px;">
-        <a href="https://hits.seeyoufarm.com">
-            <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Falllogo.net&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=true"/>
-        </a>
-    </div>
-    <footer>
-        <a href="changelog.html" target="_blank">View Release Notes (Last Updated: 2025-01-17)</a>
-    </footer>
 </body>
 </html>
