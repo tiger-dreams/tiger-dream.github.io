@@ -1,5 +1,4 @@
-
-        // 전역 상수 및 변수
+// 전역 상수 및 변수
         const MAX_WIDTH = 1400;
         const MAX_HEIGHT = 900;
         const DEFAULT_IMAGE_URL = './src/default-image.jpg';
@@ -15,7 +14,6 @@
         const modeSelector = document.getElementById('modeSelector');
         const shapeSelector = document.getElementById('shapeSelector');
         const lineWidthSelector = document.getElementById('lineWidthSelector');
-        const emojiSelector = document.getElementById('emojiSelector'); // New constant
         const resizeSelector = document.getElementById('resizeSelector');
 
         let currentImage = null;
@@ -23,7 +21,6 @@
         let currentSize = "medium";
         let currentMode = 'number';
         let currentShape = 'rectangle';
-        let currentEmoji = "😀"; // New variable for current emoji
         let isDrawing = false;
         let startX, startY;
         let shapeCount = 0;
@@ -182,11 +179,6 @@
             saveUserSettings();
             redrawCanvas();
         });
-        emojiSelector.addEventListener('change', e => { // New event listener for emoji selector
-            currentEmoji = e.target.value;
-            saveUserSettings();
-            redrawCanvas();
-        });
 
         // 캔버스 이벤트
         // Refactored mousedown to allow dragging of existing objects in any mode,
@@ -214,8 +206,6 @@
                     handleNumberClick(e); // Add a new number
                 } else if (currentMode === 'text') {
                     handleTextClick(e); // Add new text
-                } else if (currentMode === 'emoji') { // New condition for emoji mode
-                    handleEmojiClick(e); // Add new emoji
                 }
             }
         });
@@ -284,19 +274,14 @@
                 return;
             }
 
-            if (e.key === 'H' || e.key === 'h') {
-                if (currentMode === 'number' || currentMode === 'shape') {
+            if (currentMode === 'number') {
+                if (e.key === 'H' || e.key === 'h') {
                     isHorizontalLock = true;
-                }
-            } else if (e.key === 'V' || e.key === 'v') {
-                if (currentMode === 'number' || currentMode === 'shape') {
+                } else if (e.key === 'V' || e.key === 'v') {
                     isVerticalLock = true;
-                }
-            }
-
-            if (currentMode === 'number' && !isWaitingForClick) {
-                if (/^[0-9]$/.test(e.key)) {
+                } else if (!isNaN(parseInt(e.key))) { // 숫자 키 입력 처리
                     pendingNumber = parseInt(e.key);
+                    maxClickCount = pendingNumber - 1; // maxClickCount를 입력한 숫자 바로 이전으로 설정
                     isWaitingForClick = true;
                     messageDiv.textContent = translate('clickToStartFrom', { number: pendingNumber });
                 }
@@ -304,12 +289,10 @@
         });
 
         document.addEventListener('keyup', e => {
-            if (e.key === 'H' || e.key === 'h') {
-                if (currentMode === 'number' || currentMode === 'shape') {
+            if (currentMode === 'number') {
+                if (e.key === 'H' || e.key === 'h') {
                     isHorizontalLock = false;
-                }
-            } else if (e.key === 'V' || e.key === 'v') {
-                if (currentMode === 'number' || currentMode === 'shape') {
+                } else if (e.key === 'V' || e.key === 'v') {
                     isVerticalLock = false;
                 }
             }
@@ -321,20 +304,33 @@
             let x = e.clientX - rect.left;
             let y = e.clientY - rect.top;
 
-            if (isHorizontalLock && initialY !== null) y = initialY;
-            if (isVerticalLock && initialX !== null) x = initialX;
+            // 플래그에 따라 좌표 고정
+            if (isHorizontalLock && initialY !== null) {
+                y = initialY;
+            }
+            if (isVerticalLock && initialX !== null) {
+                x = initialX;
+            }
 
-            let displayNumber = isWaitingForClick && pendingNumber !== null ? pendingNumber : (e.shiftKey ? maxClickCount : maxClickCount + 1);
-            if (isWaitingForClick) {
+            // 숫자 계산 로직
+            let displayNumber;
+            if (isWaitingForClick && pendingNumber !== null) {
+                displayNumber = pendingNumber;
+                maxClickCount = pendingNumber; // maxClickCount를 업데이트하여 이후 숫자가 이어지도록 설정
                 isWaitingForClick = false;
                 pendingNumber = null;
+            } else {
+                displayNumber = maxClickCount + 1; // maxClickCount를 기준으로 숫자를 증가
             }
+
             clickCount++;
-            maxClickCount = Math.max(maxClickCount, displayNumber);
+            maxClickCount = Math.max(maxClickCount, displayNumber); // maxClickCount를 최신 상태로 유지
             clicks.push({ type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize });
-            
+
             redrawCanvas();
             messageDiv.textContent = translate('clickAdded', { number: displayNumber, x: Math.round(x), y: Math.round(y) });
+
+            // 마지막 클릭 좌표 저장
             initialX = x;
             initialY = y;
         }
@@ -351,16 +347,6 @@
             }
         }
 
-        function handleEmojiClick(e) {
-            const rect = canvas.getBoundingClientRect();
-            let x = e.clientX - rect.left;
-            let y = e.clientY - rect.top;
-
-            // Emojis don't typically use H/V lock, but if desired, can be added.
-            clicks.push({ type: 'emoji', x, y, emoji: currentEmoji, color: currentColor, size: currentSize });
-            redrawCanvas();
-            messageDiv.textContent = translate('emojiAdded', { emoji: currentEmoji, x: Math.round(x), y: Math.round(y) });
-        }
 
         function undo() {
             if (clicks.length === 0) return;
@@ -405,7 +391,6 @@
                 if (click.type === 'number') drawNumber(click, index);
                 else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color);
                 else if (click.type === 'text') drawText(click);
-                else if (click.type === 'emoji') drawEmoji(click); // New: Draw emoji
             });
         }
 
@@ -438,10 +423,7 @@
 
         function getAdjustedMousePos(canvas, e) {
             const [x, y] = getMousePos(canvas, e);
-            return [
-                isVerticalLock && initialX !== null ? initialX : x,
-                isHorizontalLock && initialY !== null ? initialY : y
-            ];
+            return [x, y];
         }
 
         function getMousePos(canvas, e) {
@@ -471,15 +453,6 @@
             ctx.fillText(click.text, click.x, click.y);
         }
 
-        function drawEmoji(click) {
-            // Emojis are typically rendered in their own color, so currentColor might not apply directly.
-            // We use the sizeSelector for font size.
-            const fontSize = click.size === 'small' ? 20 : click.size === 'large' ? 40 : 30; // Larger default sizes for emojis
-            ctx.font = `${fontSize}px Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`; // Fallback fonts for emoji support
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(click.emoji, click.x, click.y);
-        }
         function drawShape(x1, y1, x2, y2, shape, color) {
             ctx.strokeStyle = color || currentColor;
             ctx.lineWidth = currentLineWidth;
@@ -551,18 +524,6 @@
                     const textHeight = fontSize;
 
                     if (mouseX >= click.x && mouseX <= click.x + textWidth && mouseY >= click.y && mouseY <= click.y + textHeight) {
-                        return click;
-                    }
-                } else if (click.type === 'emoji') { // New: Hit-test for emoji
-                    const fontSize = click.size === 'small' ? 20 : click.size === 'large' ? 40 : 30;
-                    // Emojis are drawn with textAlign 'center' and textBaseline 'middle'.
-                    // So, click.x, click.y is the center.
-                    // Approximate emoji bounding box as a square of size 'fontSize'.
-                    const emojiWidth = fontSize;
-                    const emojiHeight = fontSize;
-
-                    if (mouseX >= click.x - emojiWidth / 2 && mouseX <= click.x + emojiWidth / 2 &&
-                        mouseY >= click.y - emojiHeight / 2 && mouseY <= click.y + emojiHeight / 2) {
                         return click;
                     }
                 }
@@ -704,7 +665,6 @@
                 size: sizeSelector.value,
                 shape: shapeSelector.value,
                 lineWidth: lineWidthSelector.value,
-                emoji: emojiSelector.value, // Save current emoji
                 clicks, // clicks array already contains emoji objects
                 clickCount,
                 shapeCount
@@ -722,7 +682,6 @@
             sizeSelector.value = settings.size;
             shapeSelector.value = settings.shape;
             lineWidthSelector.value = settings.lineWidth || "2"; // 기본값 보장
-            emojiSelector.value = settings.emoji || "😀"; // Load current emoji, default if not found
             currentColor = settings.color;
             currentSize = settings.size;
             currentShape = settings.shape;
@@ -730,7 +689,6 @@
             clicks = settings.clicks || [];
             clickCount = settings.clickCount || 0;
             shapeCount = settings.shapeCount || 0;
-            currentEmoji = settings.emoji || "😀"; // Update currentEmoji variable
             updateUIForMode(currentMode);
             redrawCanvas();
         }
@@ -740,13 +698,10 @@
             // Hide all mode-specific selectors first
             shapeSelector.style.display = 'none';
             lineWidthSelector.style.display = 'none';
-            emojiSelector.style.display = 'none';
 
             if (mode === 'shape') {
                 shapeSelector.style.display = 'inline-block';
                 lineWidthSelector.style.display = 'inline-block';
-            } else if (mode === 'emoji') {
-                emojiSelector.style.display = 'inline-block';
             }
         }
 
