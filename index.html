@@ -186,7 +186,19 @@
                 <option value="number" data-lang-key="numberMode">숫자 입력 모드</option>
                 <option value="shape" data-lang-key="shapeMode">도형 모드</option>
                 <option value="text" data-lang-key="textMode">텍스트 모드</option>
+                <option value="emoji" data-lang-key="emojiMode">이모지 모드</option>
             </select>
+            <select class="btn" id="emojiSelector" style="display: none;" aria-label="Select emoji type">
+                <option value="😀">😀</option>
+                <option value="👍">👍</option>
+                <option value="💡">💡</option>
+            </select>
+            <select class="btn" id="emojiSelector" style="display: none;" aria-label="Select emoji type">
+                <option value="😀">😀</option>
+                <option value="👍">👍</option>
+                <option value="💡">💡</option>
+            </select>
+            <input type="range" id="emojiSizeSlider" min="10" max="100" value="40" style="display: none;" aria-label="Emoji size">
             <select class="btn" id="shapeSelector" style="display: none;" aria-label="Select shape type">
                 <option value="rectangle" data-lang-key="rectangle">사각형</option>
                 <option value="circle" data-lang-key="circle">원</option>

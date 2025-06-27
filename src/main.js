@@ -15,6 +15,7 @@
         const modeSelector = document.getElementById('modeSelector');
         const shapeSelector = document.getElementById('shapeSelector');
         const lineWidthSelector = document.getElementById('lineWidthSelector');
+        const emojiSelector = document.getElementById('emojiSelector'); // New constant
         const resizeSelector = document.getElementById('resizeSelector');
 
         let currentImage = null;
@@ -22,6 +23,7 @@
         let currentSize = "medium";
         let currentMode = 'number';
         let currentShape = 'rectangle';
+        let currentEmoji = "😀"; // New variable for current emoji
         let isDrawing = false;
         let startX, startY;
         let shapeCount = 0;
@@ -180,38 +182,74 @@
             saveUserSettings();
             redrawCanvas();
         });
+        emojiSelector.addEventListener('change', e => { // New event listener for emoji selector
+            currentEmoji = e.target.value;
+            saveUserSettings();
+            redrawCanvas();
+        });
 
         // 캔버스 이벤트
+        // Refactored mousedown to allow dragging of existing objects in any mode,
+        // and drawing new objects if no existing object is clicked.
         canvas.addEventListener('mousedown', e => {
-            if (currentMode === 'shape') {
-                startDrawing(e);
+            const clickedObject = isMouseOverObject(e); // Check if an existing object is clicked
+
+            if (clickedObject) {
+                // If an object is clicked, initiate dragging
+                isDragging = true;
+                draggedObject = clickedObject;
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                // Calculate offset based on object type (number/text use x,y; shapes use startX,startY)
+                dragOffsetX = mouseX - (draggedObject.x !== undefined ? draggedObject.x : draggedObject.startX);
+                dragOffsetY = mouseY - (draggedObject.y !== undefined ? draggedObject.y : draggedObject.startY);
+                canvas.style.cursor = 'grabbing';
             } else {
-                const clickedObject = isMouseOverObject(e);
-                if (clickedObject) {
-                    isDragging = true;
-                    draggedObject = clickedObject;
-                    dragOffsetX = e.clientX - canvas.getBoundingClientRect().left - draggedObject.x;
-                    dragOffsetY = e.clientY - canvas.getBoundingClientRect().top - draggedObject.y;
-                    canvas.style.cursor = 'grabbing';
+                // If no object is clicked, proceed with drawing new elements based on mode
+                if (currentMode === 'shape') {
+                    startDrawing(e); // Start drawing a new shape
                 } else if (currentMode === 'number') {
-                    handleNumberClick(e);
+                    handleNumberClick(e); // Add a new number
                 } else if (currentMode === 'text') {
-                    handleTextClick(e);
+                    handleTextClick(e); // Add new text
+                } else if (currentMode === 'emoji') { // New condition for emoji mode
+                    handleEmojiClick(e); // Add new emoji
                 }
             }
         });
         canvas.addEventListener('mousemove', e => {
             if (isDragging) {
                 const rect = canvas.getBoundingClientRect();
-                draggedObject.x = e.clientX - rect.left - dragOffsetX;
-                draggedObject.y = e.clientY - rect.top - dragOffsetY;
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                // Update object position based on type
+                if (draggedObject.type === 'number' || draggedObject.type === 'text') {
+                    draggedObject.x = mouseX - dragOffsetX;
+                    draggedObject.y = mouseY - dragOffsetY;
+                } else if (draggedObject.type === 'shape') {
+                    // For shapes, update start and end points relative to the drag
+                    const newStartX = mouseX - dragOffsetX;
+                    const newStartY = mouseY - dragOffsetY;
+                    const deltaX = newStartX - draggedObject.startX;
+                    const deltaY = newStartY - draggedObject.startY;
+                    draggedObject.startX = newStartX;
+                    draggedObject.startY = newStartY;
+                    draggedObject.endX += deltaX;
+                    draggedObject.endY += deltaY;
+                }
                 redrawCanvas();
-            } else if (currentMode !== 'shape') { // 도형 모드에서는 그리기 커서 유지
+            } else {
+                // Handle cursor change for hovering over objects
                 const hoveredObject = isMouseOverObject(e);
                 canvas.style.cursor = hoveredObject ? 'grab' : 'default';
-            }
-            if (currentMode === 'shape') {
-                debounce(draw, 16)(e);
+
+                // Handle shape drawing preview (only if currently drawing a new shape)
+                if (currentMode === 'shape' && isDrawing) {
+                    debounce(draw, 16)(e);
+                }
             }
         });
         canvas.addEventListener('mouseup', e => {
@@ -219,9 +257,9 @@
                 isDragging = false;
                 draggedObject = null;
                 canvas.style.cursor = 'default';
-                saveUserSettings(); // 드래그 후 설정 저장
-            } else if (currentMode === 'shape') {
-                stopDrawing(e);
+                saveUserSettings(); // Save state after dragging
+            } else if (currentMode === 'shape' && isDrawing) { // Only stop drawing if currently drawing a new shape
+                stopDrawing(e); // Finalize drawing a new shape
             }
         });
         canvas.addEventListener('mouseout', e => {
@@ -229,12 +267,12 @@
                 isDragging = false;
                 draggedObject = null;
                 canvas.style.cursor = 'default';
-                saveUserSettings();
-            } else if (currentMode !== 'shape') {
+                saveUserSettings(); // Save state if drag ends by leaving canvas
+            } else { // Only reset cursor if not dragging
                 canvas.style.cursor = 'default';
             }
-            if (currentMode === 'shape') {
-                stopDrawing(e);
+            if (currentMode === 'shape' && isDrawing) { // Only stop drawing if currently drawing a new shape
+                stopDrawing(e); // Finalize drawing a new shape
             }
         });
 
@@ -313,6 +351,17 @@
             }
         }
 
+        function handleEmojiClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+
+            // Emojis don't typically use H/V lock, but if desired, can be added.
+            clicks.push({ type: 'emoji', x, y, emoji: currentEmoji, color: currentColor, size: currentSize });
+            redrawCanvas();
+            messageDiv.textContent = translate('emojiAdded', { emoji: currentEmoji, x: Math.round(x), y: Math.round(y) });
+        }
+
         function undo() {
             if (clicks.length === 0) return;
             const removedClick = clicks.pop();
@@ -326,11 +375,14 @@
                 messageDiv.textContent = translate('noMoreUndo');
                 return;
             }
-            const lastClick = clicks.pop();
-            if (lastClick.type === 'number') clickCount--;
-            else if (lastClick.type === 'shape') shapeCount--;
+            clicks.pop(); // Simply remove the last item
+
+            // Recalculate maxClickCount and shapeCount based on remaining clicks
+            maxClickCount = clicks.filter(c => c.type === 'number').reduce((max, c) => Math.max(max, c.displayNumber), 0);
+            shapeCount = clicks.filter(c => c.type === 'shape').length;
+
             redrawCanvas();
-            messageDiv.textContent = clicks.length > 0
+            messageDiv.textContent = clicks.length > 0 // Update message with current counts
                 ? translate('undoPerformedWithCount', { clickCount, shapeCount })
                 : translate('allActionsUndone');
         }
@@ -353,6 +405,7 @@
                 if (click.type === 'number') drawNumber(click, index);
                 else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color);
                 else if (click.type === 'text') drawText(click);
+                else if (click.type === 'emoji') drawEmoji(click); // New: Draw emoji
             });
         }
 
@@ -418,6 +471,15 @@
             ctx.fillText(click.text, click.x, click.y);
         }
 
+        function drawEmoji(click) {
+            // Emojis are typically rendered in their own color, so currentColor might not apply directly.
+            // We use the sizeSelector for font size.
+            const fontSize = click.size === 'small' ? 20 : click.size === 'large' ? 40 : 30; // Larger default sizes for emojis
+            ctx.font = `${fontSize}px Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`; // Fallback fonts for emoji support
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(click.emoji, click.x, click.y);
+        }
         function drawShape(x1, y1, x2, y2, shape, color) {
             ctx.strokeStyle = color || currentColor;
             ctx.lineWidth = currentLineWidth;
@@ -439,34 +501,73 @@
             for (let i = clicks.length - 1; i >= 0; i--) {
                 const click = clicks[i];
                 if (click.type === 'number') {
-                    const circleSize = click.size === 'small' ? 10 : click.size === 'large' ? 20 : 15;
+                    const circleSize = (click.size === 'small' ? 10 : click.size === 'large' ? 20 : 15);
                     const distance = Math.sqrt(Math.pow(mouseX - click.x, 2) + Math.pow(mouseY - click.y, 2));
                     if (distance <= circleSize) {
                         return click;
                     }
                 } else if (click.type === 'shape') {
-                    // 도형의 경우, 간단한 바운딩 박스 체크
-                    const minX = Math.min(click.startX, click.endX);
-                    const maxX = Math.max(click.startX, click.endX);
-                    const minY = Math.min(click.startY, click.endY);
-                    const maxY = Math.max(click.startY, click.endY);
+                    // Add a small tolerance for easier selection of shapes
+                    const tolerance = 5; // pixels
 
-                    if (mouseX >= minX && mouseX <= maxX && mouseY >= minY && mouseY <= maxY) {
-                        return click;
+                    if (click.shape === 'rectangle') {
+                        const minX = Math.min(click.startX, click.endX);
+                        const maxX = Math.max(click.startX, click.endX);
+                        const minY = Math.min(click.startY, click.endY);
+                        const maxY = Math.max(click.startY, click.endY);
+                        if (mouseX >= minX && mouseX <= maxX && mouseY >= minY && mouseY <= maxY) {
+                            return click;
+                        }
+                    } else if (click.shape === 'circle') {
+                        const centerX = click.startX; // Circle is drawn from center to edge
+                        const centerY = click.startY;
+                        const radius = Math.sqrt(Math.pow(click.endX - click.startX, 2) + Math.pow(click.endY - click.startY, 2));
+                        const distance = Math.sqrt(Math.pow(mouseX - centerX, 2) + Math.pow(mouseY - centerY, 2));
+                        if (distance <= radius + tolerance && distance >= radius - tolerance) { // Check if near the circle's circumference
+                            return click;
+                        }
+                    } else if (click.shape === 'arrow') {
+                        // For arrows, check if mouse is near the line segment (simplified bounding box with padding)
+                        const minX = Math.min(click.startX, click.endX) - tolerance;
+                        const maxX = Math.max(click.startX, click.endX) + tolerance;
+                        const minY = Math.min(click.startY, click.endY) - tolerance;
+                        const maxY = Math.max(click.startY, click.endY) + tolerance;
+                        if (mouseX >= minX && mouseX <= maxX && mouseY >= minY && mouseY <= maxY) {
+                            return click;
+                        }
                     }
                 } else if (click.type === 'text') {
                     // 텍스트의 경우, 간단한 바운딩 박스 체크 (폰트 크기 고려)
                     const fontSize = click.size === 'small' ? 12 : click.size === 'large' ? 24 : 16;
-                    // 텍스트 너비는 동적으로 계산해야 하지만, 여기서는 간단히 고정값 사용
-                    const textWidth = click.text.length * (fontSize / 2); // 대략적인 너비
+                    // To get accurate text width, we need to set font and then use ctx.measureText.
+                    // For simplicity, using a rough estimate or relying on the stored width if available.
+                    // Assuming text is drawn from top-left (as per drawText function)
+                    // A more accurate hit-test would involve measuring text width dynamically.
+                    // For now, let's use a reasonable estimate for width or rely on the origin.
+                    // The current implementation of drawText uses textAlign = 'left', textBaseline = 'top'.
+                    // Let's estimate width based on font size and length, or use a fixed small bounding box.
+                    // For now, keep the existing rough estimate.
+                    const textWidth = click.text.length * (fontSize * 0.6); // Rough estimate
                     const textHeight = fontSize;
 
                     if (mouseX >= click.x && mouseX <= click.x + textWidth && mouseY >= click.y && mouseY <= click.y + textHeight) {
                         return click;
                     }
+                } else if (click.type === 'emoji') { // New: Hit-test for emoji
+                    const fontSize = click.size === 'small' ? 20 : click.size === 'large' ? 40 : 30;
+                    // Emojis are drawn with textAlign 'center' and textBaseline 'middle'.
+                    // So, click.x, click.y is the center.
+                    // Approximate emoji bounding box as a square of size 'fontSize'.
+                    const emojiWidth = fontSize;
+                    const emojiHeight = fontSize;
+
+                    if (mouseX >= click.x - emojiWidth / 2 && mouseX <= click.x + emojiWidth / 2 &&
+                        mouseY >= click.y - emojiHeight / 2 && mouseY <= click.y + emojiHeight / 2) {
+                        return click;
+                    }
                 }
             }
-            return null;
+            return null; // No object found at mouse position
         }
 
         function drawArrow(ctx, x1, y1, x2, y2, color) {
@@ -540,7 +641,8 @@
                 'numberMode': '숫자 입력 모드',
                 'shapeMode': '도형 모드',
                 'textMode': '텍스트 모드',
-                'emojiMode': '이모지 모드', // 새롭게 추가
+                'emojiMode': '이모지 모드', // New translation
+                'emojiAdded': '이모지 "{emoji}" 추가됨: ({x}, {y})', // New translation
                 'rectangle': '사각형',
                 'circle': '원',
                 'arrow': '화살표',
@@ -602,7 +704,8 @@
                 size: sizeSelector.value,
                 shape: shapeSelector.value,
                 lineWidth: lineWidthSelector.value,
-                clicks,
+                emoji: emojiSelector.value, // Save current emoji
+                clicks, // clicks array already contains emoji objects
                 clickCount,
                 shapeCount
             };
@@ -619,6 +722,7 @@
             sizeSelector.value = settings.size;
             shapeSelector.value = settings.shape;
             lineWidthSelector.value = settings.lineWidth || "2"; // 기본값 보장
+            emojiSelector.value = settings.emoji || "😀"; // Load current emoji, default if not found
             currentColor = settings.color;
             currentSize = settings.size;
             currentShape = settings.shape;
@@ -626,14 +730,24 @@
             clicks = settings.clicks || [];
             clickCount = settings.clickCount || 0;
             shapeCount = settings.shapeCount || 0;
+            currentEmoji = settings.emoji || "😀"; // Update currentEmoji variable
             updateUIForMode(currentMode);
             redrawCanvas();
         }
 
         function updateUIForMode(mode) {
             currentMode = mode;
-            shapeSelector.style.display = mode === 'shape' ? 'inline-block' : 'none';
-            lineWidthSelector.style.display = mode === 'shape' ? 'inline-block' : 'none'; // 도형 모드에서만 선 두께 표시
+            // Hide all mode-specific selectors first
+            shapeSelector.style.display = 'none';
+            lineWidthSelector.style.display = 'none';
+            emojiSelector.style.display = 'none';
+
+            if (mode === 'shape') {
+                shapeSelector.style.display = 'inline-block';
+                lineWidthSelector.style.display = 'inline-block';
+            } else if (mode === 'emoji') {
+                emojiSelector.style.display = 'inline-block';
+            }
         }
 
         modeSelector.addEventListener('change', () => {
@@ -650,4 +764,3 @@
             loadUserSettings();
             applyLanguage();
         });
-         
