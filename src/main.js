@@ -37,6 +37,12 @@
         let initialX = null;
         let initialY = null;
 
+        // 드래그 관련 변수
+        let isDragging = false;
+        let draggedObject = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
         // 디바운싱 유틸리티 함수
         function debounce(func, wait) {
             let timeout;
@@ -176,19 +182,61 @@
         });
 
         // 캔버스 이벤트
-        canvas.addEventListener('click', e => {
-            if (!currentImage) {
-                messageDiv.textContent = translate('noImageLoaded');
-                return;
+        canvas.addEventListener('mousedown', e => {
+            if (currentMode === 'shape') {
+                startDrawing(e);
+            } else {
+                const clickedObject = isMouseOverObject(e);
+                if (clickedObject) {
+                    isDragging = true;
+                    draggedObject = clickedObject;
+                    dragOffsetX = e.clientX - canvas.getBoundingClientRect().left - draggedObject.x;
+                    dragOffsetY = e.clientY - canvas.getBoundingClientRect().top - draggedObject.y;
+                    canvas.style.cursor = 'grabbing';
+                } else if (currentMode === 'number') {
+                    handleNumberClick(e);
+                } else if (currentMode === 'text') {
+                    handleTextClick(e);
+                }
             }
-            if (currentMode === 'number') handleNumberClick(e);
-            else if (currentMode === 'text') handleTextClick(e);
         });
-
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', debounce(draw, 16));
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
+        canvas.addEventListener('mousemove', e => {
+            if (isDragging) {
+                const rect = canvas.getBoundingClientRect();
+                draggedObject.x = e.clientX - rect.left - dragOffsetX;
+                draggedObject.y = e.clientY - rect.top - dragOffsetY;
+                redrawCanvas();
+            } else if (currentMode !== 'shape') { // 도형 모드에서는 그리기 커서 유지
+                const hoveredObject = isMouseOverObject(e);
+                canvas.style.cursor = hoveredObject ? 'grab' : 'default';
+            }
+            if (currentMode === 'shape') {
+                debounce(draw, 16)(e);
+            }
+        });
+        canvas.addEventListener('mouseup', e => {
+            if (isDragging) {
+                isDragging = false;
+                draggedObject = null;
+                canvas.style.cursor = 'default';
+                saveUserSettings(); // 드래그 후 설정 저장
+            } else if (currentMode === 'shape') {
+                stopDrawing(e);
+            }
+        });
+        canvas.addEventListener('mouseout', e => {
+            if (isDragging) {
+                isDragging = false;
+                draggedObject = null;
+                canvas.style.cursor = 'default';
+                saveUserSettings();
+            } else if (currentMode !== 'shape') {
+                canvas.style.cursor = 'default';
+            }
+            if (currentMode === 'shape') {
+                stopDrawing(e);
+            }
+        });
 
         // 키보드 이벤트 처리
         document.addEventListener('keydown', e => {
@@ -246,7 +294,7 @@
             clickCount++;
             maxClickCount = Math.max(maxClickCount, displayNumber);
             clicks.push({ type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize });
-            console.log("Number click added:", clicks[clicks.length - 1]);
+            
             redrawCanvas();
             messageDiv.textContent = translate('clickAdded', { number: displayNumber, x: Math.round(x), y: Math.round(y) });
             initialX = x;
@@ -301,7 +349,6 @@
             if (!currentImage) return;
             canvas.width = canvas.width;
             ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
-            console.log("Redrawing canvas. Clicks array length:", clicks.length);
             clicks.forEach((click, index) => {
                 if (click.type === 'number') drawNumber(click, index);
                 else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color);
@@ -331,7 +378,7 @@
             const [mouseX, mouseY] = getAdjustedMousePos(canvas, e);
             shapeCount++;
             clicks.push({ type: 'shape', shape: currentShape, startX, startY, endX: mouseX, endY: mouseY, color: currentColor, id: shapeCount });
-            console.log("Shape added:", clicks[clicks.length - 1]);
+            
             redrawCanvas();
             saveUserSettings();
         }
@@ -350,7 +397,7 @@
         }
 
         function drawNumber(click, index) {
-            let circleSize = currentSize === 'small' ? 10 : currentSize === 'large' ? 20 : 15;
+            let circleSize = click.size === 'small' ? 10 : click.size === 'large' ? 20 : 15;
             ctx.beginPath();
             ctx.arc(click.x, click.y, circleSize, 0, 2 * Math.PI);
             ctx.fillStyle = click.color;
@@ -382,6 +429,44 @@
                 ctx.arc(x1, y1, radius, 0, 2 * Math.PI);
                 ctx.stroke();
             }
+        }
+
+        function isMouseOverObject(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            for (let i = clicks.length - 1; i >= 0; i--) {
+                const click = clicks[i];
+                if (click.type === 'number') {
+                    const circleSize = click.size === 'small' ? 10 : click.size === 'large' ? 20 : 15;
+                    const distance = Math.sqrt(Math.pow(mouseX - click.x, 2) + Math.pow(mouseY - click.y, 2));
+                    if (distance <= circleSize) {
+                        return click;
+                    }
+                } else if (click.type === 'shape') {
+                    // 도형의 경우, 간단한 바운딩 박스 체크
+                    const minX = Math.min(click.startX, click.endX);
+                    const maxX = Math.max(click.startX, click.endX);
+                    const minY = Math.min(click.startY, click.endY);
+                    const maxY = Math.max(click.startY, click.endY);
+
+                    if (mouseX >= minX && mouseX <= maxX && mouseY >= minY && mouseY <= maxY) {
+                        return click;
+                    }
+                } else if (click.type === 'text') {
+                    // 텍스트의 경우, 간단한 바운딩 박스 체크 (폰트 크기 고려)
+                    const fontSize = click.size === 'small' ? 12 : click.size === 'large' ? 24 : 16;
+                    // 텍스트 너비는 동적으로 계산해야 하지만, 여기서는 간단히 고정값 사용
+                    const textWidth = click.text.length * (fontSize / 2); // 대략적인 너비
+                    const textHeight = fontSize;
+
+                    if (mouseX >= click.x && mouseX <= click.x + textWidth && mouseY >= click.y && mouseY <= click.y + textHeight) {
+                        return click;
+                    }
+                }
+            }
+            return null;
         }
 
         function drawArrow(ctx, x1, y1, x2, y2, color) {
@@ -565,3 +650,4 @@
             loadUserSettings();
             applyLanguage();
         });
+         
