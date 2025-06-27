@@ -246,6 +246,7 @@
             clickCount++;
             maxClickCount = Math.max(maxClickCount, displayNumber);
             clicks.push({ type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize });
+            console.log("Number click added:", clicks[clicks.length - 1]);
             redrawCanvas();
             messageDiv.textContent = translate('clickAdded', { number: displayNumber, x: Math.round(x), y: Math.round(y) });
             initialX = x;
@@ -300,6 +301,7 @@
             if (!currentImage) return;
             canvas.width = canvas.width;
             ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+            console.log("Redrawing canvas. Clicks array length:", clicks.length);
             clicks.forEach((click, index) => {
                 if (click.type === 'number') drawNumber(click, index);
                 else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color);
@@ -329,6 +331,7 @@
             const [mouseX, mouseY] = getAdjustedMousePos(canvas, e);
             shapeCount++;
             clicks.push({ type: 'shape', shape: currentShape, startX, startY, endX: mouseX, endY: mouseY, color: currentColor, id: shapeCount });
+            console.log("Shape added:", clicks[clicks.length - 1]);
             redrawCanvas();
             saveUserSettings();
         }
@@ -353,6 +356,7 @@
             ctx.fillStyle = click.color;
             ctx.fill();
             ctx.fillStyle = 'white';
+            const fontSize = click.size === 'small' ? 10 : click.size === 'large' ? 20 : 15;
             ctx.font = `bold ${fontSize}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
