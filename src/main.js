@@ -203,8 +203,14 @@
         // Refactored mousedown to allow dragging of existing objects in any mode,
         // and drawing new objects if no existing object is clicked.
         canvas.addEventListener('mousedown', e => {
+            // 좌클릭(마우스 왼쪽 버튼)만 처리
+            if (e.button !== 0) {
+                console.log('좌클릭이 아닌 이벤트는 무시됩니다.');
+                return;
+            }
+        
             const clickedObject = isMouseOverObject(e); // Check if an existing object is clicked
-
+        
             if (clickedObject) {
                 // If an object is clicked, initiate dragging
                 isDragging = true;
@@ -212,7 +218,7 @@
                 const rect = canvas.getBoundingClientRect();
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
-
+        
                 // Calculate offset based on object type (number/text use x,y; shapes use startX,startY)
                 dragOffsetX = mouseX - (draggedObject.x !== undefined ? draggedObject.x : draggedObject.startX);
                 dragOffsetY = mouseY - (draggedObject.y !== undefined ? draggedObject.y : draggedObject.startY);
@@ -228,6 +234,7 @@
                 }
             }
         });
+        
         canvas.addEventListener('mousemove', e => {
             if (isDragging) {
                 const rect = canvas.getBoundingClientRect();
