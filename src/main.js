@@ -1,7 +1,6 @@
 // 전역 상수 및 변수
         const MAX_WIDTH = 1400;
         const MAX_HEIGHT = 900;
-        const DEFAULT_IMAGE_URL = './src/default-image.jpg';
         const imageLoader = document.getElementById('imageLoader');
         const clipboardButton = document.getElementById('clipboardButton');
         const saveButton = document.getElementById('saveButton');
@@ -78,10 +77,30 @@
             currentImage.src = dataUrl;
         }
 
+        function drawDefaultCanvasBackground() {
+            canvas.width = MAX_WIDTH; // Set a default size for the blank canvas
+            canvas.height = MAX_HEIGHT;
+            ctx.fillStyle = '#f5f7fa'; // Light background color
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#888';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(translate('uploadImagePrompt'), canvas.width / 2, canvas.height / 2);
+        }
+
         function applyImageToCanvas() {
+            if (!currentImage) {
+                drawDefaultCanvasBackground();
+                messageDiv.textContent = translate('noImageLoaded');
+                resetDrawingState();
+                return;
+            }
+
             const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
             applyCanvasDimensions(width, height);
             resetDrawingState();
+            messageDiv.textContent = translate('imageLoaded', { width, height });
         }
 
         function calculateImageDimensions(width, height) {
@@ -122,8 +141,8 @@
 
         // 초기화 및 이벤트 설정
         window.onload = () => {
-            loadImageFromUrl(DEFAULT_IMAGE_URL);
             loadUserSettings();
+            applyImageToCanvas(); // Call applyImageToCanvas directly to draw a blank canvas initially
         };
 
         imageLoader.addEventListener('change', e => {
@@ -384,9 +403,12 @@
         }
 
         function redrawCanvas() {
-            if (!currentImage) return;
-            canvas.width = canvas.width;
-            ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+            if (!currentImage) {
+                drawDefaultCanvasBackground();
+            } else {
+                canvas.width = canvas.width;
+                ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+            }
             clicks.forEach((click, index) => {
                 if (click.type === 'number') drawNumber(click, index);
                 else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color);
@@ -630,7 +652,8 @@
                 'clickToStartFrom': '{number}부터 시작하려면 캔버스을 클릭하세요.',
                 'undoPerformedWithCount': '마지막 동작 취소됨. 현재 숫자 클릭 수: {clickCount}, 도형 수: {shapeCount}',
                 'allActionsUndone': '모든 동작이 취소되었습니다.',
-                'noMoreUndo': '취소할 동작이 없습니다.'
+                'noMoreUndo': '취소할 동작이 없습니다.',
+                'uploadImagePrompt': '이미지를 업로드하거나 클립보드에서 붙여넣으세요.'
             }
             // 'ja'와 'en' 생략
         };
