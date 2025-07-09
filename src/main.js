@@ -119,9 +119,24 @@
         }
 
         function applyCanvasDimensions(width, height) {
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(currentImage, 0, 0, width, height);
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Set the internal canvas resolution (drawing buffer size)
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+
+            // Set the CSS display size of the canvas to the original dimensions
+            // This ensures the canvas is displayed at the intended size,
+            // while the internal resolution is higher for sharp rendering on high-DPI screens.
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
+
+            // Scale the drawing context to match the CSS size,
+            // so all drawing operations (e.g., ctx.fillRect, ctx.arc)
+            // are still done in terms of CSS pixels.
+            ctx.scale(dpr, dpr);
+
+            ctx.drawImage(currentImage, 0, 0, width, height); // Draw at original logical size
             messageDiv.textContent = translate('imageLoaded', { width, height });
         }
 
@@ -326,9 +341,10 @@
 
         // 주요 로직 함수
         function handleNumberClick(e) {
-            const rect = canvas.getBoundingClientRect();
-            let x = e.clientX - rect.left;
-            let y = e.clientY - rect.top;
+            let [x, y] = getMousePos(canvas, e);
+
+            //console.log('화면상 마우스 좌표:', mouseX, mouseY);
+            //console.log('캔버스 실제 좌표:', x, y);
 
             // 플래그에 따라 좌표 고정
             if (isHorizontalLock && initialY !== null) {
@@ -457,7 +473,12 @@
 
         function getMousePos(canvas, e) {
             const rect = canvas.getBoundingClientRect();
-            return [e.clientX - rect.left, e.clientY - rect.top];
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return [
+                (e.clientX - rect.left) * scaleX,
+                (e.clientY - rect.top) * scaleY
+            ];
         }
 
         function drawNumber(click, index) {
