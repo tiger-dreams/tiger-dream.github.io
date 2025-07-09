@@ -513,11 +513,17 @@
                     const tolerance = 5; // pixels
 
                     if (click.shape === 'rectangle') {
+                        const tolerance = 5; // pixels
                         const minX = Math.min(click.startX, click.endX);
                         const maxX = Math.max(click.startX, click.endX);
                         const minY = Math.min(click.startY, click.endY);
                         const maxY = Math.max(click.startY, click.endY);
-                        if (mouseX >= minX && mouseX <= maxX && mouseY >= minY && mouseY <= maxY) {
+                        
+                        // Check if the mouse is near the border of the rectangle, not inside it.
+                        const isWithinOuterBox = mouseX >= minX - tolerance && mouseX <= maxX + tolerance && mouseY >= minY - tolerance && mouseY <= maxY + tolerance;
+                        const isWithinInnerBox = mouseX >= minX + tolerance && mouseX < maxX - tolerance && mouseY >= minY + tolerance && mouseY < maxY - tolerance;
+
+                        if (isWithinOuterBox && !isWithinInnerBox) {
                             return click;
                         }
                     } else if (click.shape === 'circle') {
