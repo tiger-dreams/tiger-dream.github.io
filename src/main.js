@@ -230,9 +230,8 @@
                 // If an object is clicked, initiate dragging
                 isDragging = true;
                 draggedObject = clickedObject;
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
+                // Get mouse coordinates in canvas's internal pixel space
+                const [mouseX, mouseY] = getMousePos(canvas, e);
         
                 // Calculate offset based on object type (number/text use x,y; shapes use startX,startY)
                 dragOffsetX = mouseX - (draggedObject.x !== undefined ? draggedObject.x : draggedObject.startX);
@@ -252,9 +251,8 @@
         
         canvas.addEventListener('mousemove', e => {
             if (isDragging) {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
+                // Get mouse coordinates in canvas's internal pixel space
+                const [mouseX, mouseY] = getMousePos(canvas, e);
 
                 // Update object position based on type
                 if (draggedObject.type === 'number' || draggedObject.type === 'text') {
@@ -517,9 +515,8 @@
         }
 
         function isMouseOverObject(e) {
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
+            // Get mouse coordinates in canvas's internal pixel space
+            const [mouseX, mouseY] = getMousePos(canvas, e);
 
             for (let i = clicks.length - 1; i >= 0; i--) {
                 const click = clicks[i];
