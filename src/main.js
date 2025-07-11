@@ -156,8 +156,10 @@
 
         // 초기화 및 이벤트 설정
         window.onload = () => {
-            loadUserSettings();
-            applyImageToCanvas(); // Call applyImageToCanvas directly to draw a blank canvas initially
+            // 페이지 로드 완료 후 초기화: 설정 로드 없이 깨끗한 캔버스 표시
+            drawDefaultCanvasBackground();
+            // 설정은 로드하되, 이전 작업 내용은 초기화
+            loadUserSettingsWithoutHistory();
         };
 
         imageLoader.addEventListener('change', e => {
@@ -507,9 +509,12 @@
             if (shape === 'arrow') drawArrow(ctx, x1, y1, x2, y2, color);
             else if (shape === 'rectangle') ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
             else if (shape === 'circle') {
-                const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                // 시작점(x1, y1)에서 끝점(x2, y2)까지가 지름이 되도록 원을 그림
+                const centerX = (x1 + x2) / 2; // 중심점 X는 시작점과 끝점의 중점
+                const centerY = (y1 + y2) / 2; // 중심점 Y는 시작점과 끝점의 중점
+                const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)) / 2; // 반지름은 지름의 절반
                 ctx.beginPath();
-                ctx.arc(x1, y1, radius, 0, 2 * Math.PI);
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
                 ctx.stroke();
             }
         }
@@ -545,9 +550,10 @@
                             return click;
                         }
                     } else if (click.shape === 'circle') {
-                        const centerX = click.startX; // Circle is drawn from center to edge
-                        const centerY = click.startY;
-                        const radius = Math.sqrt(Math.pow(click.endX - click.startX, 2) + Math.pow(click.endY - click.startY, 2));
+                        // 새로운 원 그리기 방식에 맞게 중심점과 반지름 계산
+                        const centerX = (click.startX + click.endX) / 2; // 중심점은 시작점과 끝점의 중점
+                        const centerY = (click.startY + click.endY) / 2;
+                        const radius = Math.sqrt(Math.pow(click.endX - click.startX, 2) + Math.pow(click.endY - click.startY, 2)) / 2; // 반지름은 지름의 절반
                         const distance = Math.sqrt(Math.pow(mouseX - centerX, 2) + Math.pow(mouseY - centerY, 2));
                         if (distance <= radius + tolerance && distance >= radius - tolerance) { // Check if near the circle's circumference
                             return click;
@@ -747,6 +753,28 @@
             redrawCanvas();
         }
 
+        function loadUserSettingsWithoutHistory() {
+            const savedSettings = localStorage.getItem('userSettings');
+            if (!savedSettings) return;
+            const settings = JSON.parse(savedSettings);
+            currentMode = settings.mode;
+            modeSelector.value = currentMode;
+            colorSelector.value = settings.color;
+            sizeSelector.value = settings.size;
+            shapeSelector.value = settings.shape;
+            lineWidthSelector.value = settings.lineWidth || "2"; // 기본값 보장
+            currentColor = settings.color;
+            currentSize = settings.size;
+            currentShape = settings.shape;
+            currentLineWidth = parseInt(settings.lineWidth) || 2;
+            // 이전 작업 내용은 로드하지 않음 - 깨끗한 상태 유지
+            clicks = [];
+            clickCount = 0;
+            shapeCount = 0;
+            updateUIForMode(currentMode);
+            // redrawCanvas 호출하지 않음 - 이미 깨끗한 캔버스가 표시되어 있음
+        }
+
         function updateUIForMode(mode) {
             currentMode = mode;
             // Hide all mode-specific selectors first
@@ -770,6 +798,7 @@
         });
 
         window.addEventListener('DOMContentLoaded', () => {
-            loadUserSettings();
             applyLanguage();
+            // DOM 로드 즉시 깨끗한 캔버스 표시 (이전 작업 내용 표시 방지)
+            drawDefaultCanvasBackground();
         });
