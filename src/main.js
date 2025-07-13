@@ -369,7 +369,11 @@
 
             // 숫자 계산 로직
             let displayNumber;
-            if (isWaitingForClick && pendingNumber !== null) {
+            if (e.shiftKey && clicks.length > 0) {
+                // Shift 키가 눌린 상태: 마지막 숫자와 동일한 숫자 사용
+                const lastNumberClick = clicks.filter(click => click.type === 'number').pop();
+                displayNumber = lastNumberClick ? lastNumberClick.displayNumber : 1;
+            } else if (isWaitingForClick && pendingNumber !== null) {
                 displayNumber = pendingNumber;
                 maxClickCount = pendingNumber; // maxClickCount를 업데이트하여 이후 숫자가 이어지도록 설정
                 isWaitingForClick = false;
@@ -379,7 +383,10 @@
             }
 
             clickCount++;
-            maxClickCount = Math.max(maxClickCount, displayNumber); // maxClickCount를 최신 상태로 유지
+            // Shift 키가 눌린 상태가 아닐 때만 maxClickCount 업데이트
+            if (!e.shiftKey) {
+                maxClickCount = Math.max(maxClickCount, displayNumber);
+            }
             clicks.push({ type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize });
 
             redrawCanvas();
