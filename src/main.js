@@ -329,9 +329,10 @@
             }
 
             if (currentMode === 'number') {
-                if (e.key === 'H' || e.key === 'h') {
+                // 키코드 기반으로 물리적 키 위치 확인 (언어 무관)
+                if (e.key === 'H' || e.key === 'h' || e.key === 'ㅗ' || e.code === 'KeyH') {
                     isHorizontalLock = true;
-                } else if (e.key === 'V' || e.key === 'v') {
+                } else if (e.key === 'V' || e.key === 'v' || e.key === 'ㅍ' || e.code === 'KeyV') {
                     isVerticalLock = true;
                 } else if (!isNaN(parseInt(e.key))) { // 숫자 키 입력 처리
                     pendingNumber = parseInt(e.key);
@@ -344,9 +345,10 @@
 
         document.addEventListener('keyup', e => {
             if (currentMode === 'number') {
-                if (e.key === 'H' || e.key === 'h') {
+                // 키코드 기반으로 물리적 키 위치 확인 (언어 무관)
+                if (e.key === 'H' || e.key === 'h' || e.key === 'ㅗ' || e.code === 'KeyH') {
                     isHorizontalLock = false;
-                } else if (e.key === 'V' || e.key === 'v') {
+                } else if (e.key === 'V' || e.key === 'v' || e.key === 'ㅍ' || e.code === 'KeyV') {
                     isVerticalLock = false;
                 }
             }
@@ -733,8 +735,8 @@
                 'imageSavedAs': '이미지가 "{fileName}" 이름으로 성공적으로 저장되었습니다.',
                 'defaultImageLoadFailed': '기본 이미지 로드에 실패했습니다.',
                 'shortcutGuide': '단축키: Ctrl+Z (Mac: Command+Z) - 마지막 클릭 취소',
-                'shortcutGuide2': '숫자 모드 특수키: H + 클릭 - 마지막 클릭과 동일한 Y 좌표로 고정',
-                'shortcutGuide3': '숫자 모드 특수키: V + 클릭 - 마지막 클릭과 동일한 X 좌표로 고정',
+                'shortcutGuide2': '숫자 모드 특수키: H(ㅗ) + 클릭 - 마지막 클릭과 동일한 Y 좌표로 고정',
+                'shortcutGuide3': '숫자 모드 특수키: V(ㅍ) + 클릭 - 마지막 클릭과 동일한 X 좌표로 고정',
                 'shortcutGuide4': '숫자 모드 특수키: Shift + 클릭 - 마지막 클릭한 숫자와 동일한 숫자가 기록됨',
                 'clickToStartFrom': '{number}부터 시작하려면 캔버스을 클릭하세요.',
                 'undoPerformedWithCount': '마지막 동작 취소됨. 현재 숫자 클릭 수: {clickCount}, 도형 수: {shapeCount}',

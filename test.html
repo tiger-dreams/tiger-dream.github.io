@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnnotateShot 자동화 테스트</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --background-color: #f5f7fa;
+            --card-background: #ffffff;
+            --text-color: #333;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --border-radius: 5px;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .test-section {
+            background: var(--card-background);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .test-controls {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .test-case {
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            margin: 10px 0;
+            padding: 15px;
+            background: #fafafa;
+        }
+
+        .test-case h4 {
+            margin: 0 0 10px 0;
+            color: var(--primary-color);
+        }
+
+        .test-result {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .result-pending {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+        .result-pass {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .result-fail {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .test-canvas-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .test-canvas {
+            border: 2px solid #ddd;
+            border-radius: var(--border-radius);
+            background: #e0e0e0;
+        }
+
+        .test-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .test-summary {
+            display: flex;
+            justify-content: space-around;
+            background: var(--card-background);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-color);
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .test-canvas-container {
+                flex-direction: column;
+            }
+            
+            .test-summary {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 AnnotateShot 자동화 테스트</h1>
+            <p>최근 업데이트 기능들의 자동 검증 도구</p>
+        </div>
+
+        <div class="test-summary">
+            <div class="summary-item">
+                <div class="summary-number" id="totalTests">0</div>
+                <div>총 테스트</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number" id="passedTests" style="color: var(--success-color)">0</div>
+                <div>통과</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number" id="failedTests" style="color: var(--danger-color)">0</div>
+                <div>실패</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number" id="pendingTests" style="color: var(--warning-color)">0</div>
+                <div>대기중</div>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+
+        <div class="test-controls">
+            <button class="btn btn-primary" onclick="runAllTests()">🚀 모든 테스트 실행</button>
+            <button class="btn btn-success" onclick="runQuickTests()">⚡ 빠른 테스트</button>
+            <button class="btn btn-danger" onclick="clearResults()">🗑️ 결과 초기화</button>
+        </div>
+
+        <!-- v1.14.0 테스트 -->
+        <div class="test-section">
+            <h2>🆕 v1.14.0 - 이모지 모드 & 픽셀 크기 조정</h2>
+            
+            <div class="test-case">
+                <h4>이모지 모드 선택 및 표시 <span class="test-result result-pending" id="result-emoji-mode">대기중</span></h4>
+                <p>이모지 모드 선택 시 이모지 선택기가 표시되는지 확인</p>
+                <button class="btn btn-primary" onclick="testEmojiMode()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>픽셀 단위 크기 선택 <span class="test-result result-pending" id="result-pixel-size">대기중</span></h4>
+                <p>크기 선택기에 10px~70px 옵션이 있고 기본값이 20px인지 확인</p>
+                <button class="btn btn-primary" onclick="testPixelSizeOptions()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>이모지 배치 기능 <span class="test-result result-pending" id="result-emoji-placement">대기중</span></h4>
+                <p>이모지 모드에서 캔버스 클릭 시 이모지가 배치되는지 확인</p>
+                <button class="btn btn-primary" onclick="testEmojiPlacement()">테스트 실행</button>
+            </div>
+        </div>
+
+        <!-- 단축키 테스트 섹션 -->
+        <div class="test-section">
+            <h2>⌨️ 단축키 기능 테스트</h2>
+            
+            <div class="test-case">
+                <h4>Shift + 클릭 동일 숫자 <span class="test-result result-pending" id="result-shift-same-number">대기중</span></h4>
+                <p>Shift 키를 누른 상태에서 클릭할 때 같은 숫자가 반복되는지 확인</p>
+                <button class="btn btn-primary" onclick="testShiftSameNumber()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>H키 수평 좌표 고정 (영문) <span class="test-result result-pending" id="result-h-key-english">대기중</span></h4>
+                <p>영문 자판에서 H 키를 누른 상태로 클릭 시 Y좌표가 고정되는지 확인</p>
+                <button class="btn btn-primary" onclick="testHKeyEnglish()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>V키 수직 좌표 고정 (영문) <span class="test-result result-pending" id="result-v-key-english">대기중</span></h4>
+                <p>영문 자판에서 V 키를 누른 상태로 클릭 시 X좌표가 고정되는지 확인</p>
+                <button class="btn btn-primary" onclick="testVKeyEnglish()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>ㅗ키 수평 좌표 고정 (한글) <span class="test-result result-pending" id="result-h-key-korean">대기중</span></h4>
+                <p>한글 자판에서 ㅗ 키를 누른 상태로 클릭 시 Y좌표가 고정되는지 확인</p>
+                <button class="btn btn-primary" onclick="testHKeyKorean()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>ㅍ키 수직 좌표 고정 (한글) <span class="test-result result-pending" id="result-v-key-korean">대기중</span></h4>
+                <p>한글 자판에서 ㅍ 키를 누른 상태로 클릭 시 X좌표가 고정되는지 확인</p>
+                <button class="btn btn-primary" onclick="testVKeyKorean()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>KeyCode 기반 좌표 고정 <span class="test-result result-pending" id="result-keycode-lock">대기중</span></h4>
+                <p>언어 무관하게 KeyH, KeyV 코드로 좌표 고정이 동작하는지 확인</p>
+                <button class="btn btn-primary" onclick="testKeyCodeLock()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>숫자 키 입력 기능 <span class="test-result result-pending" id="result-number-key-input">대기중</span></h4>
+                <p>0~9 숫자 키 입력 후 클릭 시 해당 숫자부터 시작하는지 확인</p>
+                <button class="btn btn-primary" onclick="testNumberKeyInput()">테스트 실행</button>
+            </div>
+        </div>
+
+        <!-- v1.13.0 테스트 -->
+        <div class="test-section">
+            <h2>🔴 v1.13.0 - 원 그리기 개선</h2>
+            
+            <div class="test-case">
+                <h4>원 그리기 방식 <span class="test-result result-pending" id="result-circle-drawing">대기중</span></h4>
+                <p>도형 모드에서 원을 그릴 때 시작점-끝점이 지름이 되는지 확인</p>
+                <button class="btn btn-primary" onclick="testCircleDrawing()">테스트 실행</button>
+            </div>
+        </div>
+
+        <!-- v1.11.0 테스트 -->
+        <div class="test-section">
+            <h2>🖱️ v1.11.0 - 드래그 기능</h2>
+            
+            <div class="test-case">
+                <h4>객체 드래그 기능 <span class="test-result result-pending" id="result-drag-objects">대기중</span></h4>
+                <p>숫자, 텍스트, 이모지, 도형을 드래그로 이동할 수 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testDragObjects()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>마우스 커서 변경 <span class="test-result result-pending" id="result-cursor-change">대기중</span></h4>
+                <p>객체 위에 마우스를 올렸을 때 커서가 손모양으로 변경되는지 확인</p>
+                <button class="btn btn-primary" onclick="testCursorChange()">테스트 실행</button>
+            </div>
+        </div>
+
+        <!-- 테스트 캔버스 영역 -->
+        <div class="test-section">
+            <h2>📊 테스트 캔버스</h2>
+            <div class="test-canvas-container">
+                <canvas id="testCanvas" class="test-canvas" width="400" height="300"></canvas>
+            </div>
+        </div>
+
+        <!-- 테스트 로그 -->
+        <div class="test-log" id="testLog">
+            === AnnotateShot 자동화 테스트 로그 ===<br>
+            테스트 준비 완료. "모든 테스트 실행" 버튼을 클릭하여 시작하세요.<br>
+        </div>
+    </div>
+
+    <script src="./src/test-automation-v2.js"></script>
+</body>
+</html>
