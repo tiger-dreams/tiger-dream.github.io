@@ -183,19 +183,44 @@
                 <option value="#0000FF" data-lang-key="blue">파랑색</option>
             </select>
             <select class="btn" id="sizeSelector" aria-label="Select annotation size">
-                <option value="small" data-lang-key="small">작게</option>
-                <option value="medium" selected data-lang-key="medium">보통</option>
-                <option value="large" data-lang-key="large">크게</option>
+                <option value="10">10px</option>
+                <option value="15">15px</option>
+                <option value="20" selected>20px</option>
+                <option value="25">25px</option>
+                <option value="30">30px</option>
+                <option value="35">35px</option>
+                <option value="40">40px</option>
+                <option value="45">45px</option>
+                <option value="50">50px</option>
+                <option value="55">55px</option>
+                <option value="60">60px</option>
+                <option value="65">65px</option>
+                <option value="70">70px</option>
             </select>
             <select class="btn" id="modeSelector" aria-label="Select annotation mode">
                 <option value="number" data-lang-key="numberMode">숫자 입력 모드</option>
                 <option value="shape" data-lang-key="shapeMode">도형 모드</option>
                 <option value="text" data-lang-key="textMode">텍스트 모드</option>
+                <option value="emoji" data-lang-key="emojiMode">이모지 모드</option>
             </select>
             <select class="btn" id="shapeSelector" style="display: none;" aria-label="Select shape type">
                 <option value="rectangle" data-lang-key="rectangle">사각형</option>
                 <option value="circle" data-lang-key="circle">원</option>
                 <option value="arrow" data-lang-key="arrow">화살표</option>
+            </select>
+            <select class="btn" id="emojiSelector" style="display: none;" aria-label="Select emoji">
+                <option value="😀">😀 웃는 얼굴</option>
+                <option value="😍">😍 하트 눈</option>
+                <option value="🤔">🤔 생각하는 얼굴</option>
+                <option value="👍">👍 좋아요</option>
+                <option value="👎">👎 싫어요</option>
+                <option value="❤️">❤️ 하트</option>
+                <option value="⭐">⭐ 별</option>
+                <option value="🔥">🔥 불</option>
+                <option value="💯">💯 백점</option>
+                <option value="✅">✅ 체크</option>
+                <option value="❌">❌ X</option>
+                <option value="⚠️">⚠️ 경고</option>
             </select>
             <select class="btn" id="lineWidthSelector" aria-label="Select line width">
                 <option value="1" data-lang-key="thin">얇음</option>
@@ -218,17 +243,9 @@
             <canvas id="imageCanvas"></canvas>
         </section>
         <div id="message"></div>
-        <div id="shortcuts">
-            <h2>AnnotateShot 서비스 이용 방법</h2>
-            <ul>
-                <li>1. 번호, 도형, 텍스트를 입력해야하는 이미지를 불러오세요. 클립보드 이미지도 가능합니다.</li>
-                <li>2. 아무곳이나 클릭해보세요.</li>
-                <li>3. 저장이 필요하면 저장하기 버튼을 눌러서 로컬 PC로 저장할 수 있습니다. 혹은 이미지 우측 클릭 후 이미지 복사를 하셔도 괜찮습니다.</li>
-            </ul>
-        </div>
     </main>
     <footer>
-        <a href="changelog.html" target="_blank">View Release Notes (Last Updated: 2025-07-11)</a> |
+        <a href="changelog.html" target="_blank">View Release Notes (Last Updated: 2025-07-13)</a> |
         <a href="delcodelinenum.html">Code Line Number Remover</a>
     </footer>
 
