@@ -12,12 +12,13 @@
         const messageDiv = document.getElementById('message');
         const modeSelector = document.getElementById('modeSelector');
         const shapeSelector = document.getElementById('shapeSelector');
+        const emojiSelector = document.getElementById('emojiSelector');
         const lineWidthSelector = document.getElementById('lineWidthSelector');
         const resizeSelector = document.getElementById('resizeSelector');
 
         let currentImage = null;
         let currentColor = "#FF0000";
-        let currentSize = "medium";
+        let currentSize = "20";
         let currentMode = 'number';
         let currentShape = 'rectangle';
         let isDrawing = false;
@@ -82,11 +83,21 @@
             canvas.height = MAX_HEIGHT;
             ctx.fillStyle = '#f5f7fa'; // Light background color
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const text = translate('uploadImagePrompt');
+            const lines = text.split('\n');
+            
             ctx.fillStyle = '#888';
             ctx.font = '24px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(translate('uploadImagePrompt'), canvas.width / 2, canvas.height / 2);
+            
+            const lineHeight = 35;
+            const startY = canvas.height / 2 - (lines.length - 1) * lineHeight / 2;
+            
+            lines.forEach((line, index) => {
+                ctx.fillText(line, canvas.width / 2, startY + index * lineHeight);
+            });
         }
 
         function applyImageToCanvas() {
@@ -247,6 +258,8 @@
                     handleNumberClick(e); // Add a new number
                 } else if (currentMode === 'text') {
                     handleTextClick(e); // Add new text
+                } else if (currentMode === 'emoji') {
+                    handleEmojiClick(e); // Add new emoji
                 }
             }
         });
@@ -257,7 +270,7 @@
                 const [mouseX, mouseY] = getMousePos(canvas, e);
 
                 // Update object position based on type
-                if (draggedObject.type === 'number' || draggedObject.type === 'text') {
+                if (draggedObject.type === 'number' || draggedObject.type === 'text' || draggedObject.type === 'emoji') {
                     draggedObject.x = mouseX - dragOffsetX;
                     draggedObject.y = mouseY - dragOffsetY;
                 } else if (draggedObject.type === 'shape') {
@@ -389,6 +402,16 @@
             }
         }
 
+        function handleEmojiClick(e) {
+            let [x, y] = getMousePos(canvas, e);
+            const selectedEmoji = emojiSelector.value;
+            if (selectedEmoji) {
+                clicks.push({ type: 'emoji', x, y, emoji: selectedEmoji, size: currentSize });
+                redrawCanvas();
+                messageDiv.textContent = translate('emojiAdded', { emoji: selectedEmoji, x: Math.round(x), y: Math.round(y) });
+            }
+        }
+
 
         function undo() {
             if (clicks.length === 0) return;
@@ -432,10 +455,11 @@
                 canvas.width = canvas.width;
                 ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
             }
-            clicks.forEach((click, index) => {
-                if (click.type === 'number') drawNumber(click, index);
+            clicks.forEach((click) => {
+                if (click.type === 'number') drawNumber(click);
                 else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color);
                 else if (click.type === 'text') drawText(click);
+                else if (click.type === 'emoji') drawEmoji(click);
             });
         }
 
@@ -481,14 +505,14 @@
             ];
         }
 
-        function drawNumber(click, index) {
-            let circleSize = click.size === 'small' ? 10 : click.size === 'large' ? 20 : 15;
+        function drawNumber(click) {
+            const fontSize = parseInt(click.size) || 20;
+            const circleSize = fontSize;
             ctx.beginPath();
             ctx.arc(click.x, click.y, circleSize, 0, 2 * Math.PI);
             ctx.fillStyle = click.color;
             ctx.fill();
             ctx.fillStyle = 'white';
-            const fontSize = click.size === 'small' ? 10 : click.size === 'large' ? 20 : 15;
             ctx.font = `bold ${fontSize}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -497,10 +521,19 @@
 
         function drawText(click) {
             ctx.fillStyle = click.color;
-            ctx.font = `${click.size === 'small' ? 12 : click.size === 'large' ? 24 : 16}px Arial`;
+            const fontSize = parseInt(click.size) || 20;
+            ctx.font = `${fontSize}px Arial`;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
             ctx.fillText(click.text, click.x, click.y);
+        }
+
+        function drawEmoji(click) {
+            const fontSize = parseInt(click.size) || 20;
+            ctx.font = `${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(click.emoji, click.x, click.y);
         }
 
         function drawShape(x1, y1, x2, y2, shape, color) {
@@ -526,7 +559,7 @@
             for (let i = clicks.length - 1; i >= 0; i--) {
                 const click = clicks[i];
                 if (click.type === 'number') {
-                    const circleSize = (click.size === 'small' ? 10 : click.size === 'large' ? 20 : 15);
+                    const circleSize = parseInt(click.size) || 20;
                     const distance = Math.sqrt(Math.pow(mouseX - click.x, 2) + Math.pow(mouseY - click.y, 2));
                     if (distance <= circleSize) {
                         return click;
@@ -570,7 +603,7 @@
                     }
                 } else if (click.type === 'text') {
                     // 텍스트의 경우, 간단한 바운딩 박스 체크 (폰트 크기 고려)
-                    const fontSize = click.size === 'small' ? 12 : click.size === 'large' ? 24 : 16;
+                    const fontSize = parseInt(click.size) || 20;
                     // To get accurate text width, we need to set font and then use ctx.measureText.
                     // For simplicity, using a rough estimate or relying on the stored width if available.
                     // Assuming text is drawn from top-left (as per drawText function)
@@ -583,6 +616,16 @@
                     const textHeight = fontSize;
 
                     if (mouseX >= click.x && mouseX <= click.x + textWidth && mouseY >= click.y && mouseY <= click.y + textHeight) {
+                        return click;
+                    }
+                } else if (click.type === 'emoji') {
+                    // 이모지의 경우, 중앙 정렬된 이모지 주변 영역 체크
+                    const fontSize = parseInt(click.size) || 20;
+                    const emojiSize = fontSize; // 이모지 크기를 폰트 크기와 동일하게 가정
+                    const halfSize = emojiSize / 2;
+
+                    if (mouseX >= click.x - halfSize && mouseX <= click.x + halfSize && 
+                        mouseY >= click.y - halfSize && mouseY <= click.y + halfSize) {
                         return click;
                     }
                 }
@@ -690,7 +733,7 @@
                 'undoPerformedWithCount': '마지막 동작 취소됨. 현재 숫자 클릭 수: {clickCount}, 도형 수: {shapeCount}',
                 'allActionsUndone': '모든 동작이 취소되었습니다.',
                 'noMoreUndo': '취소할 동작이 없습니다.',
-                'uploadImagePrompt': '이미지를 업로드하거나 클립보드에서 붙여넣으세요.'
+                'uploadImagePrompt': 'AnnotateShot 서비스 이용 방법\n1. 번호, 도형, 텍스트를 입력해야하는 이미지를 불러오세요. 클립보드 이미지도 가능합니다.\n2. 아무곳이나 클릭해보세요.\n3. 저장이 필요하면 저장하기 버튼을 눌러서 로컬 PC로 저장할 수 있습니다. 혹은 이미지 우측 클릭 후 이미지 복사를 하셔도 괜찮습니다.'
             }
             // 'ja'와 'en' 생략
         };
@@ -739,11 +782,11 @@
             currentMode = settings.mode;
             modeSelector.value = currentMode;
             colorSelector.value = settings.color;
-            sizeSelector.value = settings.size;
+            sizeSelector.value = settings.size || "20";
             shapeSelector.value = settings.shape;
-            lineWidthSelector.value = settings.lineWidth || "2"; // 기본값 보장
+            lineWidthSelector.value = settings.lineWidth || "2";
             currentColor = settings.color;
-            currentSize = settings.size;
+            currentSize = settings.size || "20";
             currentShape = settings.shape;
             currentLineWidth = parseInt(settings.lineWidth) || 2;
             clicks = settings.clicks || [];
@@ -760,11 +803,11 @@
             currentMode = settings.mode;
             modeSelector.value = currentMode;
             colorSelector.value = settings.color;
-            sizeSelector.value = settings.size;
+            sizeSelector.value = settings.size || "20";
             shapeSelector.value = settings.shape;
-            lineWidthSelector.value = settings.lineWidth || "2"; // 기본값 보장
+            lineWidthSelector.value = settings.lineWidth || "2";
             currentColor = settings.color;
-            currentSize = settings.size;
+            currentSize = settings.size || "20";
             currentShape = settings.shape;
             currentLineWidth = parseInt(settings.lineWidth) || 2;
             // 이전 작업 내용은 로드하지 않음 - 깨끗한 상태 유지
@@ -779,11 +822,14 @@
             currentMode = mode;
             // Hide all mode-specific selectors first
             shapeSelector.style.display = 'none';
+            emojiSelector.style.display = 'none';
             lineWidthSelector.style.display = 'none';
 
             if (mode === 'shape') {
                 shapeSelector.style.display = 'inline-block';
                 lineWidthSelector.style.display = 'inline-block';
+            } else if (mode === 'emoji') {
+                emojiSelector.style.display = 'inline-block';
             }
         }
 
