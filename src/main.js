@@ -13,6 +13,7 @@
         const modeSelector = document.getElementById('modeSelector');
         const shapeSelector = document.getElementById('shapeSelector');
         const emojiSelector = document.getElementById('emojiSelector');
+        const fillSelector = document.getElementById('fillSelector');
         const lineWidthSelector = document.getElementById('lineWidthSelector');
         const resizeSelector = document.getElementById('resizeSelector');
 
@@ -21,6 +22,7 @@
         let currentSize = "20";
         let currentMode = 'number';
         let currentShape = 'rectangle';
+        let currentFill = 'none';
         let isDrawing = false;
         let startX, startY;
         let shapeCount = 0;
@@ -466,7 +468,7 @@
             }
             clicks.forEach((click) => {
                 if (click.type === 'number') drawNumber(click);
-                else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color);
+                else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color, click.fillType || 'none');
                 else if (click.type === 'text') drawText(click);
                 else if (click.type === 'emoji') drawEmoji(click);
             });
@@ -493,7 +495,7 @@
             isDrawing = false;
             const [mouseX, mouseY] = getAdjustedMousePos(canvas, e);
             shapeCount++;
-            clicks.push({ type: 'shape', shape: currentShape, startX, startY, endX: mouseX, endY: mouseY, color: currentColor, id: shapeCount });
+            clicks.push({ type: 'shape', shape: currentShape, startX, startY, endX: mouseX, endY: mouseY, color: currentColor, fillType: currentFill, id: shapeCount });
             
             redrawCanvas();
             saveUserSettings();
@@ -539,25 +541,197 @@
 
         function drawEmoji(click) {
             const fontSize = parseInt(click.size) || 20;
-            ctx.font = `${fontSize}px Arial`;
+            // 숫자 모드 원의 지름에 맞게 이모지 크기 조정 (반지름 × 2)
+            const emojiSize = fontSize * 2;
+            ctx.font = `${emojiSize}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(click.emoji, click.x, click.y);
         }
 
-        function drawShape(x1, y1, x2, y2, shape, color) {
+        function drawShape(x1, y1, x2, y2, shape, color, fillType = 'none') {
             ctx.strokeStyle = color || currentColor;
             ctx.lineWidth = currentLineWidth;
-            if (shape === 'arrow') drawArrow(ctx, x1, y1, x2, y2, color);
-            else if (shape === 'rectangle') ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-            else if (shape === 'circle') {
+            
+            if (shape === 'arrow') {
+                drawArrow(ctx, x1, y1, x2, y2, color);
+            } else if (shape === 'rectangle') {
+                drawRectangleWithFill(x1, y1, x2 - x1, y2 - y1, color, fillType);
+            } else if (shape === 'circle') {
                 // 시작점(x1, y1)에서 끝점(x2, y2)까지가 지름이 되도록 원을 그림
                 const centerX = (x1 + x2) / 2; // 중심점 X는 시작점과 끝점의 중점
                 const centerY = (y1 + y2) / 2; // 중심점 Y는 시작점과 끝점의 중점
                 const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)) / 2; // 반지름은 지름의 절반
+                drawCircleWithFill(centerX, centerY, radius, color, fillType);
+            }
+        }
+
+        function drawRectangleWithFill(x, y, width, height, color, fillType) {
+            ctx.strokeStyle = color || currentColor;
+            ctx.fillStyle = color || currentColor;
+            
+            if (fillType === 'solid') {
+                ctx.fillRect(x, y, width, height);
+                ctx.strokeRect(x, y, width, height);
+            } else if (fillType === 'blur') {
+                // 블러 효과: 반투명 채우기
+                ctx.save();
+                ctx.globalAlpha = 0.5;
+                ctx.filter = 'blur(3px)';
+                ctx.fillRect(x, y, width, height);
+                ctx.restore();
+                ctx.strokeRect(x, y, width, height);
+            } else if (fillType === 'mosaic') {
+                // 모자이크 효과: 작은 사각형들로 채우기
+                drawMosaicRect(x, y, width, height, color);
+                ctx.strokeRect(x, y, width, height);
+            } else {
+                // 테두리만
+                ctx.strokeRect(x, y, width, height);
+            }
+        }
+
+        function drawCircleWithFill(centerX, centerY, radius, color, fillType) {
+            ctx.strokeStyle = color || currentColor;
+            ctx.fillStyle = color || currentColor;
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            
+            if (fillType === 'solid') {
+                ctx.fill();
+                ctx.stroke();
+            } else if (fillType === 'blur') {
+                // 블러 효과: 반투명 채우기
+                ctx.save();
+                ctx.globalAlpha = 0.5;
+                ctx.filter = 'blur(3px)';
+                ctx.fill();
+                ctx.restore();
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
                 ctx.stroke();
+            } else if (fillType === 'mosaic') {
+                // 모자이크 효과: 원 영역에 작은 사각형들로 채우기
+                drawMosaicCircle(centerX, centerY, radius, color);
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.stroke();
+            } else {
+                // 테두리만
+                ctx.stroke();
+            }
+        }
+
+        function drawMosaicRect(x, y, width, height, color) {
+            const mosaicSize = 15; // 모자이크 블록 크기
+            
+            try {
+                // 현재 영역의 이미지 데이터 가져오기 (경계 확인)
+                const safeX = Math.max(0, Math.floor(x));
+                const safeY = Math.max(0, Math.floor(y));
+                const safeWidth = Math.min(Math.abs(width), canvas.width - safeX);
+                const safeHeight = Math.min(Math.abs(height), canvas.height - safeY);
+                
+                if (safeWidth <= 0 || safeHeight <= 0) return;
+                
+                const imageData = ctx.getImageData(safeX, safeY, safeWidth, safeHeight);
+                const pixels = imageData.data;
+                
+                // 모자이크 효과 적용
+                for (let blockY = 0; blockY < safeHeight; blockY += mosaicSize) {
+                    for (let blockX = 0; blockX < safeWidth; blockX += mosaicSize) {
+                        // 블록의 중앙 픽셀 색상 가져오기
+                        const centerX = Math.min(blockX + Math.floor(mosaicSize / 2), safeWidth - 1);
+                        const centerY = Math.min(blockY + Math.floor(mosaicSize / 2), safeHeight - 1);
+                        const centerIndex = (centerY * safeWidth + centerX) * 4;
+                        
+                        const r = pixels[centerIndex] !== undefined ? pixels[centerIndex] : 245;
+                        const g = pixels[centerIndex + 1] !== undefined ? pixels[centerIndex + 1] : 247;
+                        const b = pixels[centerIndex + 2] !== undefined ? pixels[centerIndex + 2] : 250;
+                        
+                        // 블록 전체를 중앙 픽셀 색상으로 채우기
+                        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                        ctx.fillRect(
+                            safeX + blockX, 
+                            safeY + blockY, 
+                            Math.min(mosaicSize, safeWidth - blockX), 
+                            Math.min(mosaicSize, safeHeight - blockY)
+                        );
+                    }
+                }
+            } catch (error) {
+                console.error('모자이크 처리 오류:', error);
+                // 오류 시 반투명 채우기로 대체
+                ctx.fillStyle = color || currentColor;
+                ctx.globalAlpha = 0.7;
+                ctx.fillRect(x, y, width, height);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function drawMosaicCircle(centerX, centerY, radius, color) {
+            const mosaicSize = 15; // 모자이크 블록 크기
+            
+            try {
+                // 원 영역의 이미지 데이터 처리
+                const startX = Math.max(0, Math.floor(centerX - radius));
+                const startY = Math.max(0, Math.floor(centerY - radius));
+                const endX = Math.min(canvas.width, Math.ceil(centerX + radius));
+                const endY = Math.min(canvas.height, Math.ceil(centerY + radius));
+                
+                if (endX <= startX || endY <= startY) return;
+                
+                const imageData = ctx.getImageData(startX, startY, endX - startX, endY - startY);
+                const pixels = imageData.data;
+                const imgWidth = endX - startX;
+                
+                // 모자이크 효과 적용 (원 영역만)
+                for (let blockY = 0; blockY < endY - startY; blockY += mosaicSize) {
+                    for (let blockX = 0; blockX < endX - startX; blockX += mosaicSize) {
+                        const actualX = startX + blockX + Math.floor(mosaicSize / 2);
+                        const actualY = startY + blockY + Math.floor(mosaicSize / 2);
+                        
+                        // 원 내부인지 확인 (블록 중심점 기준)
+                        const distance = Math.sqrt((actualX - centerX) ** 2 + (actualY - centerY) ** 2);
+                        if (distance <= radius) {
+                            // 블록의 중앙 픽셀 색상 가져오기
+                            const centerBlockX = Math.min(blockX + Math.floor(mosaicSize / 2), imgWidth - 1);
+                            const centerBlockY = Math.min(blockY + Math.floor(mosaicSize / 2), endY - startY - 1);
+                            const centerIndex = (centerBlockY * imgWidth + centerBlockX) * 4;
+                            
+                            const r = pixels[centerIndex] !== undefined ? pixels[centerIndex] : 128;
+                            const g = pixels[centerIndex + 1] !== undefined ? pixels[centerIndex + 1] : 128;
+                            const b = pixels[centerIndex + 2] !== undefined ? pixels[centerIndex + 2] : 128;
+                            
+                            // 블록 전체를 중앙 픽셀 색상으로 채우기 (원 영역만)
+                            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                            
+                            const blockEndX = Math.min(blockX + mosaicSize, endX - startX);
+                            const blockEndY = Math.min(blockY + mosaicSize, endY - startY);
+                            
+                            for (let py = blockY; py < blockEndY; py++) {
+                                for (let px = blockX; px < blockEndX; px++) {
+                                    const pixelX = startX + px;
+                                    const pixelY = startY + py;
+                                    const pixelDistance = Math.sqrt((pixelX - centerX) ** 2 + (pixelY - centerY) ** 2);
+                                    if (pixelDistance <= radius) {
+                                        ctx.fillRect(pixelX, pixelY, 1, 1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('원 모자이크 처리 오류:', error);
+                // 오류 시 반투명 채우기로 대체
+                ctx.fillStyle = color || currentColor;
+                ctx.globalAlpha = 0.7;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
             }
         }
 
@@ -630,7 +804,8 @@
                 } else if (click.type === 'emoji') {
                     // 이모지의 경우, 중앙 정렬된 이모지 주변 영역 체크
                     const fontSize = parseInt(click.size) || 20;
-                    const emojiSize = fontSize; // 이모지 크기를 폰트 크기와 동일하게 가정
+                    // 실제 이모지 크기는 fontSize * 2 (숫자 모드 원의 지름에 맞춤)
+                    const emojiSize = fontSize * 2;
                     const halfSize = emojiSize / 2;
 
                     if (mouseX >= click.x - halfSize && mouseX <= click.x + halfSize && 
@@ -664,7 +839,7 @@
 
         function drawShapePreview(x1, y1, x2, y2) {
             if (currentShape === 'arrow') drawArrow(ctx, x1, y1, x2, y2, currentColor);
-            else drawShape(x1, y1, x2, y2, currentShape, currentColor);
+            else drawShape(x1, y1, x2, y2, currentShape, currentColor, currentFill);
         }
 
         // 저장 함수
@@ -776,6 +951,7 @@
                 color: colorSelector.value,
                 size: sizeSelector.value,
                 shape: shapeSelector.value,
+                fillType: fillSelector.value,
                 lineWidth: lineWidthSelector.value,
                 clicks, // clicks array already contains emoji objects
                 clickCount,
@@ -793,10 +969,12 @@
             colorSelector.value = settings.color;
             sizeSelector.value = settings.size || "20";
             shapeSelector.value = settings.shape;
+            fillSelector.value = settings.fillType || 'none';
             lineWidthSelector.value = settings.lineWidth || "2";
             currentColor = settings.color;
             currentSize = settings.size || "20";
             currentShape = settings.shape;
+            currentFill = settings.fillType || 'none';
             currentLineWidth = parseInt(settings.lineWidth) || 2;
             clicks = settings.clicks || [];
             clickCount = settings.clickCount || 0;
@@ -814,10 +992,12 @@
             colorSelector.value = settings.color;
             sizeSelector.value = settings.size || "20";
             shapeSelector.value = settings.shape;
+            fillSelector.value = settings.fillType || 'none';
             lineWidthSelector.value = settings.lineWidth || "2";
             currentColor = settings.color;
             currentSize = settings.size || "20";
             currentShape = settings.shape;
+            currentFill = settings.fillType || 'none';
             currentLineWidth = parseInt(settings.lineWidth) || 2;
             // 이전 작업 내용은 로드하지 않음 - 깨끗한 상태 유지
             clicks = [];
@@ -832,13 +1012,25 @@
             // Hide all mode-specific selectors first
             shapeSelector.style.display = 'none';
             emojiSelector.style.display = 'none';
+            fillSelector.style.display = 'none';
             lineWidthSelector.style.display = 'none';
 
             if (mode === 'shape') {
                 shapeSelector.style.display = 'inline-block';
+                // fillSelector는 원과 사각형일 때만 표시
+                updateFillSelectorVisibility();
                 lineWidthSelector.style.display = 'inline-block';
             } else if (mode === 'emoji') {
                 emojiSelector.style.display = 'inline-block';
+            }
+        }
+
+        function updateFillSelectorVisibility() {
+            // 원과 사각형일 때만 채우기 옵션 표시 (화살표는 제외)
+            if (currentShape === 'rectangle' || currentShape === 'circle') {
+                fillSelector.style.display = 'inline-block';
+            } else {
+                fillSelector.style.display = 'none';
             }
         }
 
@@ -849,6 +1041,12 @@
 
         shapeSelector.addEventListener('change', () => {
             currentShape = shapeSelector.value;
+            updateFillSelectorVisibility();
+            saveUserSettings();
+        });
+
+        fillSelector.addEventListener('change', () => {
+            currentFill = fillSelector.value;
             saveUserSettings();
         });
 
