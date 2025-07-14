@@ -223,6 +223,35 @@
             <button class="btn btn-danger" onclick="clearResults()">🗑️ 결과 초기화</button>
         </div>
 
+        <!-- v1.15.0 테스트 -->
+        <div class="test-section">
+            <h2>🆕 v1.15.0 - 도형 채우기 옵션</h2>
+            
+            <div class="test-case">
+                <h4>도형 모드 채우기 선택기 표시 <span class="test-result result-pending" id="result-fill-selector">대기중</span></h4>
+                <p>도형 모드에서 원/사각형 선택 시 채우기 선택기가 표시되는지 확인</p>
+                <button class="btn btn-primary" onclick="testFillSelector()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>단색 채우기 기능 <span class="test-result result-pending" id="result-solid-fill">대기중</span></h4>
+                <p>단색 채우기 옵션이 정상 동작하는지 확인</p>
+                <button class="btn btn-primary" onclick="testSolidFill()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>흐림 효과 채우기 <span class="test-result result-pending" id="result-blur-fill">대기중</span></h4>
+                <p>흐림 효과 채우기 옵션이 정상 동작하는지 확인</p>
+                <button class="btn btn-primary" onclick="testBlurFill()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>모자이크 효과 채우기 <span class="test-result result-pending" id="result-mosaic-fill">대기중</span></h4>
+                <p>모자이크 효과 채우기 옵션이 정상 동작하는지 확인</p>
+                <button class="btn btn-primary" onclick="testMosaicFill()">테스트 실행</button>
+            </div>
+        </div>
+
         <!-- v1.14.0 테스트 -->
         <div class="test-section">
             <h2>🆕 v1.14.0 - 이모지 모드 & 픽셀 크기 조정</h2>

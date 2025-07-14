@@ -13,6 +13,10 @@ class AnnotateShotTesterV2 {
     initializeTests() {
         // 실제로 검증 가능한 테스트 케이스들로 재정의
         this.tests = [
+            { id: 'fill-selector', name: '채우기 선택기 UI', func: this.testFillSelectorUI.bind(this) },
+            { id: 'solid-fill', name: '단색 채우기 기능', func: this.testSolidFillFunction.bind(this) },
+            { id: 'blur-fill', name: '흐림 효과 기능', func: this.testBlurFillFunction.bind(this) },
+            { id: 'mosaic-fill', name: '모자이크 효과 기능', func: this.testMosaicFillFunction.bind(this) },
             { id: 'emoji-mode', name: '이모지 모드 UI 존재', func: this.testEmojiModeUI.bind(this) },
             { id: 'pixel-size', name: '픽셀 크기 옵션', func: this.testPixelSizeUI.bind(this) },
             { id: 'emoji-placement', name: '이모지 선택기 기능', func: this.testEmojiSelectorUI.bind(this) },
@@ -64,6 +68,89 @@ class AnnotateShotTesterV2 {
 
         const progress = (this.completedTests / this.totalTests) * 100;
         document.getElementById('progressFill').style.width = `${progress}%`;
+    }
+
+    // v1.15.0 테스트: 채우기 선택기 UI 확인
+    testFillSelectorUI() {
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const fillSelector = testWindow.document.getElementById('fillSelector');
+                    const passed = fillSelector !== null;
+                    
+                    this.updateTestResult('fill-selector', passed, 
+                        passed ? '채우기 선택기 UI 존재 확인됨' : '채우기 선택기 UI 누락');
+                    
+                    testWindow.close();
+                } catch (error) {
+                    this.updateTestResult('fill-selector', false, `UI 검증 실패: ${error.message}`);
+                    testWindow.close();
+                }
+            }, 1000);
+
+        } catch (error) {
+            this.updateTestResult('fill-selector', false, `테스트 실행 실패: ${error.message}`);
+        }
+    }
+
+    // 단색 채우기 함수 존재 확인
+    async testSolidFillFunction() {
+        try {
+            const response = await fetch('./src/main.js');
+            const jsContent = await response.text();
+            
+            const hasSolidFill = jsContent.includes("fillType === 'solid'");
+            const hasDrawRectWithFill = jsContent.includes('drawRectangleWithFill');
+            const hasDrawCircleWithFill = jsContent.includes('drawCircleWithFill');
+            
+            const passed = hasSolidFill && hasDrawRectWithFill && hasDrawCircleWithFill;
+            this.updateTestResult('solid-fill', passed, 
+                passed ? '단색 채우기 함수들 확인됨' : '단색 채우기 함수 누락');
+
+        } catch (error) {
+            this.updateTestResult('solid-fill', false, `코드 분석 실패: ${error.message}`);
+        }
+    }
+
+    // 흐림 효과 함수 존재 확인
+    async testBlurFillFunction() {
+        try {
+            const response = await fetch('./src/main.js');
+            const jsContent = await response.text();
+            
+            const hasBlurFill = jsContent.includes("fillType === 'blur'");
+            const hasBlurFilter = jsContent.includes("filter = 'blur");
+            const hasGlobalAlpha = jsContent.includes('globalAlpha');
+            
+            const passed = hasBlurFill && hasBlurFilter && hasGlobalAlpha;
+            this.updateTestResult('blur-fill', passed, 
+                passed ? '흐림 효과 함수들 확인됨' : '흐림 효과 함수 누락');
+
+        } catch (error) {
+            this.updateTestResult('blur-fill', false, `코드 분석 실패: ${error.message}`);
+        }
+    }
+
+    // 모자이크 효과 함수 존재 확인
+    async testMosaicFillFunction() {
+        try {
+            const response = await fetch('./src/main.js');
+            const jsContent = await response.text();
+            
+            const hasMosaicFill = jsContent.includes("fillType === 'mosaic'");
+            const hasDrawMosaicRect = jsContent.includes('drawMosaicRect');
+            const hasDrawMosaicCircle = jsContent.includes('drawMosaicCircle');
+            const hasGetImageData = jsContent.includes('getImageData');
+            
+            const passed = hasMosaicFill && hasDrawMosaicRect && hasDrawMosaicCircle && hasGetImageData;
+            this.updateTestResult('mosaic-fill', passed, 
+                passed ? '모자이크 효과 함수들 확인됨' : '모자이크 효과 함수 누락');
+
+        } catch (error) {
+            this.updateTestResult('mosaic-fill', false, `코드 분석 실패: ${error.message}`);
+        }
     }
 
     // DOM 기반 검증: 이모지 모드 UI 존재 확인
@@ -486,6 +573,23 @@ function testHKeyKorean() {
 
 function testVKeyKorean() {
     if (testerV2) testerV2.testVKeyKoreanHandler();
+}
+
+// v1.15.0 채우기 옵션 테스트 함수들
+function testFillSelector() {
+    if (testerV2) testerV2.testFillSelectorUI();
+}
+
+function testSolidFill() {
+    if (testerV2) testerV2.testSolidFillFunction();
+}
+
+function testBlurFill() {
+    if (testerV2) testerV2.testBlurFillFunction();
+}
+
+function testMosaicFill() {
+    if (testerV2) testerV2.testMosaicFillFunction();
 }
 
 function testKeyCodeLock() {
