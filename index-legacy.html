@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-adsense-account" content="ca-pub-3945001668113003">
+    <title>AnnotateShot: Effortless Screenshot Markup</title>
+    <meta name="description" content="AnnotateShot - 스크린샷에 쉽게 숫자와 도형을 추가하세요. 간편하고 효과적인 이미지 주석 도구.">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --hover-color: #0056b3;
+            --background-color: #f5f7fa;
+            --card-background: #ffffff;
+            --text-color: #333;
+            --success-color: #28a745;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --border-radius: 5px;
+            --padding: 15px;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+        }
+
+        #controls {
+            background: var(--card-background);
+            padding: var(--padding);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        input[type="file"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            background: #fff;
+            cursor: pointer;
+        }
+
+        button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+        }
+
+        button:hover {
+            background: var(--hover-color);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        select {
+            background: #fff;
+            color: var(--text-color);
+            border: 1px solid #ddd;
+        }
+
+        select:hover {
+            background: #f8f9fa;
+        }
+
+        label {
+            margin-left: 10px;
+            font-weight: 500;
+        }
+
+        #imageContainer {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            padding: var(--padding);
+            background: #e0e0e0; /* 적절한 회색으로 변경 */
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+        }
+
+        #imageCanvas {
+            border-radius: var(--border-radius);
+            max-width: 100%;
+        }
+
+        #message {
+            margin-top: var(--padding);
+            color: var(--success-color);
+            text-align: center;
+            font-size: 0.95em;
+        }
+
+        #shortcuts {
+            text-align: center;
+            margin-top: var(--padding);
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        #shortcuts ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #777;
+        }
+
+        footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        footer a:hover {
+            color: var(--hover-color);
+            text-decoration: underline;
+        }
+
+        .visitor-count {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            #controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            button, select, input[type="file"] {
+                width: 100%;
+                margin: 5px 0;
+            }
+
+            #imageContainer {
+                padding: 10px;
+            }
+        }
+    </style>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3945001668113003" crossorigin="anonymous"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-4JDFWP6MTQ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-4JDFWP6MTQ');
+    </script>
+</head>
+<body>
+    <header>
+        <h1 style="display: none;">AnnotateShot</h1>
+    </header>
+    <main>
+        <section id="controls">
+            <input type="file" id="imageLoader" accept="image/*" aria-label="Upload image file">
+            <button class="btn" id="clipboardButton" data-lang-key="clipboard" aria-label="Paste image from clipboard">클립보드에서 가져오기</button>
+            <button class="btn" id="saveButton" data-lang-key="save" aria-label="Save annotated image">저장하기</button>
+            <button class="btn" id="undoButton" data-lang-key="undo" aria-label="Undo last action">뒤로가기</button>
+            <select class="btn" id="colorSelector" aria-label="Select annotation color">
+                <option value="#FF0000" data-lang-key="red">빨간색</option>
+                <option value="#FF8000" data-lang-key="orange">주황색</option>
+                <option value="#00FF00" data-lang-key="green">녹색</option>
+                <option value="#0000FF" data-lang-key="blue">파랑색</option>
+            </select>
+            <select class="btn" id="sizeSelector" aria-label="Select annotation size">
+                <option value="10">10px</option>
+                <option value="15">15px</option>
+                <option value="20" selected>20px</option>
+                <option value="25">25px</option>
+                <option value="30">30px</option>
+                <option value="35">35px</option>
+                <option value="40">40px</option>
+                <option value="45">45px</option>
+                <option value="50">50px</option>
+                <option value="55">55px</option>
+                <option value="60">60px</option>
+                <option value="65">65px</option>
+                <option value="70">70px</option>
+            </select>
+            <select class="btn" id="modeSelector" aria-label="Select annotation mode">
+                <option value="number" data-lang-key="numberMode">숫자 입력 모드</option>
+                <option value="shape" data-lang-key="shapeMode">도형 모드</option>
+                <option value="text" data-lang-key="textMode">텍스트 모드</option>
+                <option value="emoji" data-lang-key="emojiMode">이모지 모드</option>
+            </select>
+            <select class="btn" id="shapeSelector" style="display: none;" aria-label="Select shape type">
+                <option value="rectangle" data-lang-key="rectangle">사각형</option>
+                <option value="circle" data-lang-key="circle">원</option>
+                <option value="arrow" data-lang-key="arrow">화살표</option>
+            </select>
+            <select class="btn" id="fillSelector" style="display: none;" aria-label="Select fill type">
+                <option value="none" data-lang-key="fillNone">테두리만</option>
+                <option value="solid" data-lang-key="fillSolid">단색 채우기</option>
+                <option value="blur" data-lang-key="fillBlur">흐림 효과</option>
+                <option value="mosaic" data-lang-key="fillMosaic">모자이크</option>
+            </select>
+            <select class="btn" id="emojiSelector" style="display: none;" aria-label="Select emoji">
+                <option value="😀">😀 웃는 얼굴</option>
+                <option value="😍">😍 하트 눈</option>
+                <option value="🤔">🤔 생각하는 얼굴</option>
+                <option value="👍">👍 좋아요</option>
+                <option value="👎">👎 싫어요</option>
+                <option value="❤️">❤️ 하트</option>
+                <option value="⭐">⭐ 별</option>
+                <option value="🔥">🔥 불</option>
+                <option value="💯">💯 백점</option>
+                <option value="✅">✅ 체크</option>
+                <option value="❌">❌ X</option>
+                <option value="⚠️">⚠️ 경고</option>
+            </select>
+            <select class="btn" id="lineWidthSelector" aria-label="Select line width">
+                <option value="1" data-lang-key="thin">얇음</option>
+                <option value="2" selected data-lang-key="normal">보통</option>
+                <option value="4" data-lang-key="thick">두꺼움</option>
+            </select>
+            <label for="resizeSelector">이미지 크기 옵션:</label>
+            <select class="btn" id="resizeSelector" aria-label="Select image resize option">
+                <option value="default">자동 리사이즈 (기본)</option>
+                <option value="original">원본</option>
+                <option value="300">너비 300</option>
+                <option value="600">너비 600</option>
+                <option value="900">너비 900</option>
+                <option value="scale30">원본 대비 30% 축소</option>
+                <option value="scale50">원본 대비 50% 축소</option>
+                <option value="scale70">원본 대비 70% 축소</option>
+            </select>
+        </section>
+        <section id="imageContainer">
+            <canvas id="imageCanvas"></canvas>
+        </section>
+        <div id="message"></div>
+    </main>
+    <footer>
+        <a href="changelog.html" target="_blank">View Release Notes (Last Updated: 2025-07-14)</a> |
+        <a href="delcodelinenum.html">Code Line Number Remover</a>
+    </footer>
+
+    <script src="./src/main.js"></script>
+</body>
+</html>
