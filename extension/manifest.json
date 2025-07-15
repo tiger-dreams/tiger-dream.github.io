@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "AnnotateShot Capture",
+  "version": "1.0.0",
+  "description": "웹페이지를 캡처하고 AnnotateShot으로 바로 편집할 수 있는 크롬 익스텐션",
+  
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  
+  "host_permissions": [
+    "http://127.0.0.1:5500/*",
+    "https://alllogo.net/*"
+  ],
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AnnotateShot Capture"
+  },
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  
+  "commands": {
+    "capture-visible": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+V",
+        "mac": "Command+Shift+V"
+      },
+      "description": "현재 화면 캡처"
+    },
+    "capture-full": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F",
+        "mac": "Command+Shift+F"
+      },
+      "description": "전체 페이지 캡처"
+    }
+  }
+}
