@@ -4,6 +4,7 @@
         const imageLoader = document.getElementById('imageLoader');
         const clipboardButton = document.getElementById('clipboardButton');
         const saveButton = document.getElementById('saveButton');
+        const copyToClipboardButton = document.getElementById('copyToClipboardButton');
         const undoButton = document.getElementById('undoButton');
         const colorSelector = document.getElementById('colorSelector');
         const sizeSelector = document.getElementById('sizeSelector');
@@ -167,10 +168,28 @@
             }
         }
 
+        // 확장 프로그램에서 캡처한 이미지 확인 및 로드
+        function loadCapturedImage() {
+            const capturedImage = localStorage.getItem('annotateshot_captured_image');
+            if (capturedImage) {
+                console.log('확장 프로그램에서 캡처한 이미지 발견');
+                loadImageFromDataUrl(capturedImage);
+                localStorage.removeItem('annotateshot_captured_image'); // 사용 후 정리
+                return true;
+            }
+            return false;
+        }
+
+        // 전역 함수로 내보내기 (확장 프로그램에서 호출 가능)
+        window.loadCapturedImage = loadCapturedImage;
+
         // 초기화 및 이벤트 설정
         window.onload = () => {
-            // 페이지 로드 완료 후 초기화: 설정 로드 없이 깨끗한 캔버스 표시
-            drawDefaultCanvasBackground();
+            // 확장 프로그램에서 캡처한 이미지가 있는지 먼저 확인
+            if (!loadCapturedImage()) {
+                // 캡처된 이미지가 없으면 기본 캔버스 표시
+                drawDefaultCanvasBackground();
+            }
             // 설정은 로드하되, 이전 작업 내용은 초기화
             loadUserSettingsWithoutHistory();
         };
@@ -212,6 +231,7 @@
         });
 
         saveButton.addEventListener('click', saveImage);
+        copyToClipboardButton.addEventListener('click', copyToClipboard);
         undoButton.addEventListener('click', undoLastClick);
         colorSelector.addEventListener('change', e => {
             currentColor = e.target.value;
@@ -859,6 +879,33 @@
             } catch (err) {
                 console.error("Save error:", err);
                 messageDiv.textContent = translate('saveImageError');
+            }
+        }
+
+        // 클립보드에 복사 함수
+        async function copyToClipboard() {
+            if (!currentImage) {
+                messageDiv.textContent = translate('noImageToSave') || '저장할 이미지가 없습니다.';
+                return;
+            }
+            
+            try {
+                const dataUrl = canvas.toDataURL('image/png');
+                const response = await fetch(dataUrl);
+                const blob = await response.blob();
+                
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'image/png': blob
+                    })
+                ]);
+                
+                messageDiv.textContent = '클립보드에 복사되었습니다!';
+                setTimeout(() => messageDiv.textContent = '', 3000);
+            } catch (error) {
+                console.error('클립보드 복사 실패:', error);
+                messageDiv.textContent = '클립보드 복사에 실패했습니다.';
+                setTimeout(() => messageDiv.textContent = '', 3000);
             }
         }
 
