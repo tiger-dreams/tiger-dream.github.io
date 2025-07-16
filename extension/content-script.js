@@ -11,6 +11,28 @@ let startX = 0;
 let startY = 0;
 let isSelecting = false;
 
+// 스크롤 완료 대기 함수
+async function waitForScrollComplete(targetY) {
+    return new Promise(resolve => {
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        const checkScroll = () => {
+            const currentY = window.scrollY;
+            attempts++;
+            
+            if (Math.abs(currentY - targetY) <= 5 || attempts >= maxAttempts) {
+                // 목표 위치에 도달하거나 최대 시도 횟수 초과
+                setTimeout(resolve, 200); // 추가 안정화 시간
+            } else {
+                setTimeout(checkScroll, 50); // 50ms 후 재확인
+            }
+        };
+        
+        setTimeout(checkScroll, 100); // 초기 대기 시간
+    });
+}
+
 // 백그라운드 스크립트로부터 메시지 수신
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'ping') {
@@ -36,7 +58,7 @@ async function startFullPageCapture() {
         isCapturing = true;
         console.log('전체 페이지 캡처 시작...');
         
-        // 페이지 전체 높이 계산
+        // 페이지 전체 높이 계산 (더 정확한 방법)
         const documentHeight = Math.max(
             document.body.scrollHeight || 0,
             document.body.offsetHeight || 0,
@@ -48,16 +70,34 @@ async function startFullPageCapture() {
         const viewportHeight = window.innerHeight;
         const originalScrollY = window.scrollY;
         
-        console.log('페이지 정보:', { documentHeight, viewportHeight, originalScrollY });
+        // 실제 스크롤 가능한 최대 높이 계산
+        const maxScrollY = documentHeight - viewportHeight;
+        
+        console.log('페이지 정보:', { 
+            documentHeight, 
+            viewportHeight, 
+            maxScrollY,
+            originalScrollY 
+        });
         
         // 스크롤 단위로 캡처할 이미지 데이터 배열
         const captures = [];
         
-        // 각 화면마다 캡처 (최대 20개 제한으로 무한루프 방지)
-        const maxCaptures = Math.min(Math.ceil(documentHeight / viewportHeight), 20);
+        // 더 정확한 캡처 횟수 계산 (최대 30개로 증가, 안전장치 유지)
+        const maxCaptures = Math.min(Math.ceil(maxScrollY / viewportHeight) + 1, 30);
         
         for (let i = 0; i < maxCaptures; i++) {
-            const y = i * viewportHeight;
+            let y = i * viewportHeight;
+            
+            // 마지막 캡처에서는 최대 스크롤 위치로 조정
+            if (i === maxCaptures - 1 && y < maxScrollY) {
+                y = maxScrollY;
+            }
+            
+            // 이미 캡처한 위치면 건너뛰기
+            if (i > 0 && y <= captures[captures.length - 1]?.scrollY) {
+                continue;
+            }
             
             // 스크롤 이동
             window.scrollTo({
@@ -67,8 +107,8 @@ async function startFullPageCapture() {
             
             console.log(`스크롤 위치: ${y} (${i + 1}/${maxCaptures})`);
             
-            // 스크롤 완료까지 대기
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // 스크롤 완료까지 대기 (더 안정적인 방법)
+            await waitForScrollComplete(y);
             
             try {
                 // 현재 화면 캡처 요청
@@ -127,17 +167,52 @@ async function startFullPageCapture() {
     }
 }
 
-// 이미지 세로 합성 함수
+// 고정 헤더 감지 함수
+function detectStickyHeaders() {
+    const stickyElements = [];
+    const elements = document.querySelectorAll('*');
+    
+    elements.forEach(el => {
+        const style = window.getComputedStyle(el);
+        const position = style.position;
+        
+        // position: fixed 또는 sticky인 요소들 중 상단에 있는 것들
+        if ((position === 'fixed' || position === 'sticky') && 
+            parseInt(style.top) <= 100) { // 상단 100px 이내
+            const rect = el.getBoundingClientRect();
+            if (rect.top <= 100 && rect.height > 10 && rect.width > 100) {
+                stickyElements.push({
+                    element: el,
+                    height: rect.height,
+                    top: rect.top
+                });
+            }
+        }
+    });
+    
+    // 높이순으로 정렬하여 가장 큰 고정 헤더 반환
+    stickyElements.sort((a, b) => b.height - a.height);
+    return stickyElements.length > 0 ? stickyElements[0] : null;
+}
+
+// 이미지 세로 합성 함수 (고정 헤더 처리 포함)
 async function mergeVerticalImages(captures, totalHeight, viewportHeight) {
     return new Promise((resolve, reject) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
+        // 고정 헤더 감지
+        const stickyHeader = detectStickyHeaders();
+        const headerHeight = stickyHeader ? stickyHeader.height : 0;
+        
+        console.log('고정 헤더 감지:', stickyHeader ? `높이 ${headerHeight}px` : '없음');
+        
         // 첫 번째 이미지로 캔버스 크기 설정
         const firstImage = new Image();
         firstImage.onload = () => {
             canvas.width = firstImage.width;
-            canvas.height = totalHeight;
+            // 고정 헤더만큼 높이 조정
+            canvas.height = totalHeight - (headerHeight * Math.max(0, captures.length - 1));
             
             let loadedCount = 0;
             const images = [];
@@ -150,18 +225,35 @@ async function mergeVerticalImages(captures, totalHeight, viewportHeight) {
                     
                     if (loadedCount === captures.length) {
                         // 모든 이미지 로드 완료, 합성 시작
-                        console.log('이미지 합성 시작...');
+                        console.log('이미지 합성 시작... (고정 헤더 제거 포함)');
                         
                         // 배경색으로 캔버스 초기화
                         ctx.fillStyle = '#ffffff';
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
                         
-                        // 순서대로 이미지 합성
-                        images.forEach(({ img, scrollY }) => {
-                            ctx.drawImage(img, 0, scrollY);
+                        // 순서대로 이미지 합성 (고정 헤더 겹침 방지)
+                        images.forEach(({ img, scrollY }, index) => {
+                            let drawY = scrollY;
+                            
+                            if (index > 0 && headerHeight > 0) {
+                                // 첫 번째 이미지가 아닌 경우, 고정 헤더 부분을 제거하고 그리기
+                                const srcY = headerHeight; // 소스에서 헤더 부분 제외
+                                const srcHeight = img.height - headerHeight; // 헤더 제외한 높이
+                                drawY = scrollY - (headerHeight * index); // 그릴 위치 조정
+                                
+                                // 고정 헤더 부분을 제외하고 그리기
+                                ctx.drawImage(
+                                    img,
+                                    0, srcY, img.width, srcHeight, // 소스 위치 및 크기
+                                    0, drawY, img.width, srcHeight  // 대상 위치 및 크기
+                                );
+                            } else {
+                                // 첫 번째 이미지는 전체 그리기
+                                ctx.drawImage(img, 0, drawY);
+                            }
                         });
                         
-                        console.log('이미지 합성 완료');
+                        console.log('이미지 합성 완료 (고정 헤더 처리됨)');
                         resolve(canvas.toDataURL('image/png'));
                     }
                 };

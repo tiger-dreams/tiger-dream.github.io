@@ -117,9 +117,8 @@ async function openAnnotateShot(imageDataUrl) {
     try {
         console.log('AnnotateShot 열기 시작...');
         
-        // 개발 환경에서는 로컬 서버 사용
-        const isDev = true; // 배포 시 false로 변경
-        const baseUrl = isDev ? 'http://127.0.0.1:5500' : 'https://alllogo.net';
+        // 운영 환경 URL 사용
+        const baseUrl = 'https://alllogo.net';
         
         // localStorage에 이미지 저장하고 새 탭 열기
         const annotateUrl = `${baseUrl}/index.html`;
