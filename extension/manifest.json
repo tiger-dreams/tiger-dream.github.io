@@ -11,13 +11,23 @@
   ],
   
   "host_permissions": [
-    "http://127.0.0.1:5500/*",
     "https://alllogo.net/*"
   ],
   
+  "icons": {
+    "16": "icon-16.svg",
+    "48": "icon-48.svg",
+    "128": "icon-128.svg"
+  },
+  
   "action": {
     "default_popup": "popup.html",
-    "default_title": "AnnotateShot Capture"
+    "default_title": "AnnotateShot Capture",
+    "default_icon": {
+      "16": "icon-16.svg",
+      "48": "icon-48.svg",
+      "128": "icon-128.svg"
+    }
   },
   
   "background": {
@@ -46,6 +56,13 @@
         "mac": "Command+Shift+F"
       },
       "description": "전체 페이지 캡처"
+    },
+    "capture-partial": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "부분 영역 캡처"
     }
   }
 }

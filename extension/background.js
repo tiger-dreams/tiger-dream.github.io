@@ -11,6 +11,8 @@ chrome.commands.onCommand.addListener((command) => {
         captureVisibleArea();
     } else if (command === 'capture-full') {
         captureFullPage();
+    } else if (command === 'capture-partial') {
+        capturePartialArea();
     }
 });
 
@@ -19,6 +21,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'captureVisible') {
         captureVisibleArea().then(sendResponse);
         return true; // 비동기 응답을 위해 필요
+    } else if (request.action === 'capturePartial') {
+        capturePartialArea().then(sendResponse);
+        return true;
     } else if (request.action === 'captureFullPage') {
         captureFullPage().then(sendResponse);
         return true;
@@ -35,6 +40,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     } else if (request.action === 'captureCompleted') {
         // content script에서 전체 페이지 캡처 완료 알림
+        openAnnotateShot(request.imageData)
+            .then(() => sendResponse({ success: true }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
+    } else if (request.action === 'partialCaptureCompleted') {
+        // content script에서 부분 캡처 완료 알림
         openAnnotateShot(request.imageData)
             .then(() => sendResponse({ success: true }))
             .catch(error => sendResponse({ success: false, error: error.message }));
@@ -106,9 +117,8 @@ async function openAnnotateShot(imageDataUrl) {
     try {
         console.log('AnnotateShot 열기 시작...');
         
-        // 개발 환경에서는 로컬 서버 사용
-        const isDev = true; // 배포 시 false로 변경
-        const baseUrl = isDev ? 'http://127.0.0.1:5500' : 'https://alllogo.net';
+        // 운영 환경 URL 사용
+        const baseUrl = 'https://alllogo.net';
         
         // localStorage에 이미지 저장하고 새 탭 열기
         const annotateUrl = `${baseUrl}/index.html`;
@@ -136,6 +146,7 @@ async function openAnnotateShot(imageDataUrl) {
                                 func: function(imageData) {
                                     console.log('이미지 데이터 localStorage에 저장 중...', imageData.substring(0, 50) + '...');
                                     localStorage.setItem('annotateshot_captured_image', imageData);
+                                    localStorage.setItem('annotateshot_image_source', 'extension');
                                     
                                     // 약간의 지연 후 로드 함수 호출
                                     setTimeout(() => {
@@ -167,5 +178,64 @@ async function openAnnotateShot(imageDataUrl) {
     } catch (error) {
         console.error('AnnotateShot 열기 실패:', error);
         throw error;
+    }
+}
+
+// 부분 영역 캡처
+async function capturePartialArea() {
+    try {
+        console.log('부분 영역 캡처 시작...');
+        
+        // 현재 활성 탭 가져오기
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        
+        if (!tab) {
+            throw new Error('활성 탭을 찾을 수 없습니다.');
+        }
+        
+        console.log('활성 탭 ID:', tab.id, 'URL:', tab.url);
+        
+        // 특정 URL에서는 content script가 작동하지 않음
+        if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('moz-extension://')) {
+            throw new Error('이 페이지에서는 캡처할 수 없습니다.');
+        }
+        
+        try {
+            // 먼저 content script가 준비되었는지 확인
+            await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
+        } catch (pingError) {
+            console.log('Content script가 준비되지 않음, 주입 시도...');
+            
+            // content script 수동 주입
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    files: ['content-script.js']
+                });
+                
+                // 잠시 대기
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (injectError) {
+                console.error('Content script 주입 실패:', injectError);
+                throw new Error('이 페이지에서는 캡처 기능을 사용할 수 없습니다.');
+            }
+        }
+        
+        // content script에 부분 캡처 시작 메시지 전송
+        const response = await chrome.tabs.sendMessage(tab.id, {
+            action: 'startPartialCapture'
+        });
+        
+        console.log('부분 캡처 응답:', response);
+        
+        if (response && response.success) {
+            return { success: true, message: '부분 캡처가 시작되었습니다.' };
+        } else {
+            throw new Error(response?.error || '부분 캡처 시작 실패');
+        }
+        
+    } catch (error) {
+        console.error('부분 캡처 오류:', error);
+        return { success: false, error: error.message };
     }
 }

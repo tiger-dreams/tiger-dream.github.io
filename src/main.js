@@ -171,13 +171,107 @@
         // 확장 프로그램에서 캡처한 이미지 확인 및 로드
         function loadCapturedImage() {
             const capturedImage = localStorage.getItem('annotateshot_captured_image');
+            const imageSource = localStorage.getItem('annotateshot_image_source');
+            
             if (capturedImage) {
                 console.log('확장 프로그램에서 캡처한 이미지 발견');
+                
+                // Extension에서 온 이미지인 경우 로딩 메시지 표시
+                if (imageSource === 'extension') {
+                    showExtensionLoadingMessage();
+                }
+                
                 loadImageFromDataUrl(capturedImage);
-                localStorage.removeItem('annotateshot_captured_image'); // 사용 후 정리
+                
+                // 사용 후 정리
+                localStorage.removeItem('annotateshot_captured_image');
+                localStorage.removeItem('annotateshot_image_source');
                 return true;
             }
             return false;
+        }
+
+        // Extension 이미지 로딩 메시지 표시
+        function showExtensionLoadingMessage() {
+            // 기존 메시지가 있으면 제거
+            const existingMessage = document.getElementById('extension-loading-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            // 로딩 메시지 요소 생성
+            const loadingMessage = document.createElement('div');
+            loadingMessage.id = 'extension-loading-message';
+            loadingMessage.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0, 0, 0, 0.9);
+                    color: white;
+                    padding: 30px 40px;
+                    border-radius: 12px;
+                    z-index: 10000;
+                    text-align: center;
+                    font-family: 'Inter', system-ui, sans-serif;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                    backdrop-filter: blur(10px);
+                ">
+                    <div style="
+                        width: 40px;
+                        height: 40px;
+                        border: 3px solid #3b82f6;
+                        border-top: 3px solid transparent;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                        margin: 0 auto 20px;
+                    "></div>
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">
+                        🖼️ ${translate('extensionImageLoading')}
+                    </div>
+                    <div style="font-size: 14px; color: #94a3b8;">
+                        ${translate('pleaseWait')}
+                    </div>
+                </div>
+                <style>
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
+            `;
+            
+            document.body.appendChild(loadingMessage);
+            
+            // 이미지 로드 완료 후 메시지 제거 (최대 10초 후 자동 제거)
+            const removeMessage = () => {
+                const message = document.getElementById('extension-loading-message');
+                if (message) {
+                    message.style.opacity = '0';
+                    message.style.transition = 'opacity 0.3s ease';
+                    setTimeout(() => {
+                        if (message.parentNode) {
+                            message.parentNode.removeChild(message);
+                        }
+                    }, 300);
+                }
+            };
+            
+            // 이미지 로드 완료 이벤트 감지
+            const checkImageLoaded = () => {
+                if (currentImage && currentImage.complete) {
+                    removeMessage();
+                } else {
+                    setTimeout(checkImageLoaded, 100);
+                }
+            };
+            
+            // 이미지 로드 체크 시작
+            setTimeout(checkImageLoaded, 500);
+            
+            // 최대 10초 후 강제 제거
+            setTimeout(removeMessage, 10000);
         }
 
         // 전역 함수로 내보내기 (확장 프로그램에서 호출 가능)
@@ -964,6 +1058,8 @@
                 'undoPerformedWithCount': '마지막 동작 취소됨. 현재 숫자 클릭 수: {clickCount}, 도형 수: {shapeCount}',
                 'allActionsUndone': '모든 동작이 취소되었습니다.',
                 'noMoreUndo': '취소할 동작이 없습니다.',
+                'extensionImageLoading': '캡처된 이미지를 로딩 중...',
+                'pleaseWait': '잠시만 기다려주세요',
                 'uploadImagePrompt': 'AnnotateShot 서비스 이용 방법\n1. 번호, 도형, 텍스트를 입력해야하는 이미지를 불러오세요. 클립보드 이미지도 가능합니다.\n2. 아무곳이나 클릭해보세요.\n3. 저장이 필요하면 저장하기 버튼을 눌러서 로컬 PC로 저장할 수 있습니다. 혹은 이미지 우측 클릭 후 이미지 복사를 하셔도 괜찮습니다.'
             }
             // 'ja'와 'en' 생략

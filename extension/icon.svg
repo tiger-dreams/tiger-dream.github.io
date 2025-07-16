@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- 배경 원형 -->
+  <circle cx="64" cy="64" r="56" fill="#3B82F6" stroke="#1E40AF" stroke-width="4"/>
+  
+  <!-- 스크린샷 프레임 -->
+  <rect x="24" y="32" width="80" height="64" rx="8" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+  
+  <!-- 이미지 내용 (산 모양) -->
+  <polygon points="32,80 48,64 56,72 72,56 96,80" fill="#10B981"/>
+  <circle cx="80" cy="48" r="6" fill="#F59E0B"/>
+  
+  <!-- 주석 요소들 -->
+  <!-- 숫자 1 -->
+  <circle cx="40" cy="48" r="8" fill="#EF4444"/>
+  <text x="40" y="53" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">1</text>
+  
+  <!-- 화살표 -->
+  <path d="M60 40 L75 45 L70 48 L75 51 L60 56 L65 48 Z" fill="#8B5CF6"/>
+  
+  <!-- 텍스트 표시선 -->
+  <line x1="85" y1="65" x2="100" y2="65" stroke="#F97316" stroke-width="2"/>
+  <text x="102" y="69" fill="#F97316" font-family="Arial, sans-serif" font-size="8" font-weight="bold">TEXT</text>
+  
+  <!-- 캡처 코너 표시 (선택 영역) -->
+  <path d="M20 28 L20 20 L28 20" stroke="#3B82F6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M100 20 L108 20 L108 28" stroke="#3B82F6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M108 100 L108 108 L100 108" stroke="#3B82F6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M28 108 L20 108 L20 100" stroke="#3B82F6" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>
