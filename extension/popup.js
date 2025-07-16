@@ -2,6 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     const captureBtn = document.getElementById('capture-visible');
+    const capturePartialBtn = document.getElementById('capture-partial');
     const captureFullBtn = document.getElementById('capture-full');
     const statusDiv = document.getElementById('status');
     
@@ -29,6 +30,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 showStatus('캡처 실패: ' + (response?.error || '알 수 없는 오류'));
             }
         });
+    });
+    
+    // 부분 영역 캡처 버튼 클릭
+    capturePartialBtn.addEventListener('click', () => {
+        showStatus('영역을 드래그하여 선택하세요.');
+        
+        // 백그라운드 스크립트에 부분 캡처 요청
+        chrome.runtime.sendMessage({
+            action: 'capturePartial'
+        }, (response) => {
+            if (response && response.success) {
+                showStatus('캡처 완료! 편집기로 이동합니다.');
+                setTimeout(() => window.close(), 500);
+            } else {
+                showStatus('캡처 실패: ' + (response?.error || '알 수 없는 오류'));
+            }
+        });
+        
+        // 팝업 닫기 (사용자가 영역을 선택할 수 있도록)
+        setTimeout(() => window.close(), 100);
     });
     
     // 전체 페이지 캡처 버튼 클릭

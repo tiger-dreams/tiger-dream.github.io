@@ -46,6 +46,13 @@
         "mac": "Command+Shift+F"
       },
       "description": "전체 페이지 캡처"
+    },
+    "capture-partial": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "부분 영역 캡처"
     }
   }
 }
