@@ -21,7 +21,93 @@ AnnotateShot is a web-based image annotation tool that allows users to add numbe
 ### Core Application Structure
 - **`index.html`**: Main application with embedded CSS and initialization scripts
 - **`src/main.js`**: Core application logic (1,000+ lines of vanilla JavaScript)
+- **`extension/`**: Chrome extension for webpage capture functionality
 - **Static hosting**: No backend, all processing client-side
+
+## Chrome Extension Architecture
+
+### File Structure
+```
+extension/
+├── manifest.json       # Extension configuration
+├── popup.html         # Extension UI
+├── popup.js          # UI event handling
+├── background.js     # Service worker (background tasks)
+└── content-script.js # Web page interaction
+```
+
+### Key Components
+
+#### Manifest Configuration (manifest.json)
+- **Manifest V3** for Chrome extensions
+- **Permissions**: activeTab, tabs, scripting for capture functionality
+- **Keyboard shortcuts**: 
+  - Ctrl+Shift+V: Current view capture
+  - Ctrl+Shift+S: Partial area capture  
+  - Ctrl+Shift+F: Full page capture
+- **Content Security Policy**: Ensures secure script execution
+
+#### Background Script (background.js)
+**Core Functions:**
+- `captureVisibleArea()`: Captures current viewport using chrome.tabs.captureVisibleTab
+- `captureFullPage()`: Coordinates scrolling capture with content script
+- `capturePartialArea()`: Initiates drag-to-select functionality
+- `openAnnotateShot()`: Opens editor with captured image data
+
+**Key Features:**
+- Service worker architecture for persistent background tasks
+- Automatic content script injection with ping/pong verification
+- Cross-tab communication using chrome.runtime.sendMessage
+- localStorage-based image transfer to editor
+- Error handling for restricted pages (chrome://, extension pages)
+
+#### Content Script (content-script.js)
+**Partial Capture Implementation:**
+- Creates overlay with semi-transparent background (rgba(0,0,0,0.3))
+- Implements drag-to-select with visual selection box
+- Real-time selection rectangle updates during mouse movement
+- Device pixel ratio consideration for high-DPI displays
+- ESC key cancellation support
+
+**Full Page Capture Implementation:**
+- Calculates total document height vs viewport height
+- Performs incremental scrolling with 300ms delays
+- Captures each viewport section using background script
+- Vertically stitches images using HTML5 Canvas
+- Restores original scroll position after completion
+
+**Image Processing:**
+- `cropImage()`: Extracts selected area from full screenshot
+- `mergeVerticalImages()`: Combines multiple screenshots into single image
+- Canvas-based image manipulation with proper scaling
+
+#### Popup Interface (popup.html + popup.js)
+**UI Components:**
+- Three capture buttons with icons and descriptions
+- Real-time status messages with auto-hide functionality
+- Platform-specific keyboard shortcut display (Ctrl vs Cmd)
+- Responsive design with hover states and transitions
+
+**User Experience:**
+- Immediate feedback for all capture operations
+- Automatic popup closure after successful captures
+- Error handling with user-friendly messages
+
+### Extension Integration with Main App
+
+#### Loading Message System
+- Extension-captured images detected via localStorage flag
+- `showExtensionLoadingMessage()` displays user-friendly loading indicator
+- Automatic message removal when image loading completes
+- Multilingual support for loading messages
+
+#### Communication Flow
+1. **User triggers capture** (keyboard shortcut or popup button)
+2. **Background script** coordinates capture type
+3. **Content script** handles UI overlay and image processing
+4. **Background script** opens AnnotateShot with captured data
+5. **Main app** detects extension source and shows loading message
+6. **Image loads** and editing begins normally
 
 ### Key Technical Concepts
 
