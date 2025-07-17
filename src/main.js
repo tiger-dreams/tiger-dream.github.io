@@ -670,7 +670,12 @@
             if (shape === 'arrow') {
                 drawArrow(ctx, x1, y1, x2, y2, color);
             } else if (shape === 'rectangle') {
-                drawRectangleWithFill(x1, y1, x2 - x1, y2 - y1, color, fillType);
+                // 드래그 방향에 관계없이 올바른 좌표 계산
+                const rectX = Math.min(x1, x2);
+                const rectY = Math.min(y1, y2);
+                const rectWidth = Math.abs(x2 - x1);
+                const rectHeight = Math.abs(y2 - y1);
+                drawRectangleWithFill(rectX, rectY, rectWidth, rectHeight, color, fillType);
             } else if (shape === 'circle') {
                 // 시작점(x1, y1)에서 끝점(x2, y2)까지가 지름이 되도록 원을 그림
                 const centerX = (x1 + x2) / 2; // 중심점 X는 시작점과 끝점의 중점
