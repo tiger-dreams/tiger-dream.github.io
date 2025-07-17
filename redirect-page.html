@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnnotateShot - 새 주소로 이전되었습니다</title>
+    <meta http-equiv="refresh" content="5;url=https://annotateshot.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 50%, #7C3AED 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 60px 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #FFFFFF, #E0E7FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        .new-domain {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px 30px;
+            border-radius: 16px;
+            margin: 30px 0;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .countdown-container {
+            margin: 40px 0;
+        }
+        
+        .countdown-label {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            opacity: 0.8;
+        }
+        
+        .countdown {
+            font-size: 4rem;
+            font-weight: 700;
+            margin: 10px 0;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .manual-link {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.9);
+            color: #1E40AF;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .manual-link:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+        }
+        
+        .features {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .features-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .features-list {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .feature-item {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px;
+                padding: 40px 20px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .countdown {
+                font-size: 3rem;
+            }
+            
+            .features-list {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #60A5FA, #FFFFFF);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">📸</div>
+        <h1 class="title">AnnotateShot</h1>
+        <p class="subtitle">
+            더 나은 서비스 제공을 위해<br>
+            <strong>새로운 주소로 이전</strong>되었습니다!
+        </p>
+        
+        <div class="new-domain">
+            🌟 <strong>annotateshot.com</strong>
+        </div>
+        
+        <div class="countdown-container">
+            <div class="countdown-label">자동 이동까지</div>
+            <div class="countdown" id="countdown">5</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+        
+        <a href="https://annotateshot.com" class="manual-link" id="manualLink">
+            지금 바로 이동하기 →
+        </a>
+        
+        <div class="features">
+            <div class="features-title">✨ 더욱 강력해진 기능들</div>
+            <div class="features-list">
+                <div class="feature-item">🚀 Chrome Extension</div>
+                <div class="feature-item">🎨 고급 편집 도구</div>
+                <div class="feature-item">📱 모바일 최적화</div>
+                <div class="feature-item">🌐 다국어 지원</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let count = 5;
+        const countdownElement = document.getElementById('countdown');
+        const progressFill = document.getElementById('progressFill');
+        const manualLink = document.getElementById('manualLink');
+        
+        // 클릭 이벤트로 즉시 이동
+        manualLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            redirectToNewSite();
+        });
+        
+        // 카운트다운 및 프로그레스 바
+        const timer = setInterval(() => {
+            count--;
+            countdownElement.textContent = count;
+            
+            // 프로그레스 바 업데이트 (5초 기준)
+            const progress = ((5 - count) / 5) * 100;
+            progressFill.style.width = progress + '%';
+            
+            if (count <= 0) {
+                clearInterval(timer);
+                redirectToNewSite();
+            }
+        }, 1000);
+        
+        function redirectToNewSite() {
+            // 현재 경로와 쿼리 파라미터 유지
+            const currentPath = window.location.pathname === '/' ? '' : window.location.pathname;
+            const currentSearch = window.location.search;
+            const currentHash = window.location.hash;
+            
+            // 방문 기록 저장
+            localStorage.setItem('alllogo_redirected', Date.now().toString());
+            
+            // www 서브도메인을 통한 포워딩 활용 (hosting.kr 포워딩 설정 시)
+            if (window.location.hostname === 'alllogo.net') {
+                // hosting.kr에서 www.alllogo.net → annotateshot.com 포워딩이 설정된 경우
+                window.location.href = `https://www.alllogo.net${currentPath}${currentSearch}${currentHash}`;
+            } else {
+                // 직접 새 사이트로 이동
+                window.location.href = `https://annotateshot.com${currentPath}${currentSearch}${currentHash}`;
+            }
+        }
+        
+        // 페이지 로드 시 이전 리다이렉트 기록 확인
+        const lastRedirect = localStorage.getItem('alllogo_redirected');
+        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+        
+        // 24시간 이내에 리다이렉트된 기록이 있으면 즉시 이동
+        if (lastRedirect && parseInt(lastRedirect) > oneDayAgo) {
+            redirectToNewSite();
+        }
+        
+        // Extension에서 온 경우 즉시 리다이렉트
+        if (localStorage.getItem('annotateshot_image_source') === 'extension') {
+            redirectToNewSite();
+        }
+    </script>
+</body>
+</html>
