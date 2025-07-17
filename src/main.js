@@ -84,6 +84,7 @@
         function drawDefaultCanvasBackground() {
             canvas.width = MAX_WIDTH; // Set a default size for the blank canvas
             canvas.height = MAX_HEIGHT;
+            canvas.classList.add('default-canvas'); // Add class for responsive styling
             ctx.fillStyle = '#f5f7fa'; // Light background color
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
@@ -119,21 +120,39 @@
 
         function calculateImageDimensions(width, height) {
             switch (resizeSelector.value) {
-                case "original": return { width, height };
-                case "300": return { width: 300, height: Math.floor(height * (300 / width)) };
-                case "600": return { width: 600, height: Math.floor(height * (600 / width)) };
-                case "900": return { width: 900, height: Math.floor(height * (900 / width)) };
-                case "scale30": return { width: Math.floor(width * 0.3), height: Math.floor(height * 0.3) };
-                case "scale50": return { width: Math.floor(width * 0.5), height: Math.floor(height * 0.5) };
-                case "scale70": return { width: Math.floor(width * 0.7), height: Math.floor(height * 0.7) };
+                case "original": 
+                    return { width, height };
+                case "300": 
+                    return { width: 300, height: Math.floor(height * (300 / width)) };
+                case "600": 
+                    return { width: 600, height: Math.floor(height * (600 / width)) };
+                case "900": 
+                    return { width: 900, height: Math.floor(height * (900 / width)) };
+                case "scale30": 
+                    return { width: Math.floor(width * 0.3), height: Math.floor(height * 0.3) };
+                case "scale50": 
+                    return { width: Math.floor(width * 0.5), height: Math.floor(height * 0.5) };
+                case "scale70": 
+                    return { width: Math.floor(width * 0.7), height: Math.floor(height * 0.7) };
                 default:
-                    const scale = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+                    // Auto-resize: fit to viewport while maintaining aspect ratio
+                    const availableWidth = window.innerWidth - 320; // Subtract sidebar width
+                    const availableHeight = window.innerHeight - 100; // Subtract header and padding
+                    
+                    // Use the smaller of MAX dimensions or available viewport space
+                    const maxWidth = Math.min(MAX_WIDTH, Math.max(400, availableWidth));
+                    const maxHeight = Math.min(MAX_HEIGHT, Math.max(300, availableHeight));
+                    
+                    const scale = Math.min(maxWidth / width, maxHeight / height, 1); // Don't scale up
                     return { width: Math.floor(width * scale), height: Math.floor(height * scale) };
             }
         }
 
         function applyCanvasDimensions(width, height) {
             const dpr = window.devicePixelRatio || 1;
+            
+            // Remove default canvas class when loading an actual image
+            canvas.classList.remove('default-canvas');
             
             // Set the internal canvas resolution (drawing buffer size)
             canvas.width = width * dpr;
@@ -150,7 +169,8 @@
             // are still done in terms of CSS pixels.
             ctx.scale(dpr, dpr);
 
-            ctx.drawImage(currentImage, 0, 0, width, height); // Draw at original logical size
+            // Draw the image at the exact calculated dimensions
+            ctx.drawImage(currentImage, 0, 0, width, height);
             messageDiv.textContent = translate('imageLoaded', { width, height });
         }
 
