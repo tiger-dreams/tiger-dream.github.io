@@ -223,6 +223,41 @@
             <button class="btn btn-danger" onclick="clearResults()">🗑️ 결과 초기화</button>
         </div>
 
+        <!-- v2.0.2 테스트 -->
+        <div class="test-section">
+            <h2>🆕 v2.0.2 - 모드별 스타일 컨트롤 표시</h2>
+            
+            <div class="test-case">
+                <h4>숫자 모드 스타일 컨트롤 <span class="test-result result-pending" id="result-number-mode-controls">대기중</span></h4>
+                <p>숫자 모드에서 색상, 크기 컨트롤만 표시되고 도형/이모지 관련 컨트롤은 숨겨지는지 확인</p>
+                <button class="btn btn-primary" onclick="testNumberModeControls()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>도형 모드 스타일 컨트롤 <span class="test-result result-pending" id="result-shape-mode-controls">대기중</span></h4>
+                <p>도형 모드에서 도형, 색상, 굵기, 채우기 컨트롤만 표시되고 크기 컨트롤은 숨겨지는지 확인</p>
+                <button class="btn btn-primary" onclick="testShapeModeControls()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>텍스트 모드 스타일 컨트롤 <span class="test-result result-pending" id="result-text-mode-controls">대기중</span></h4>
+                <p>텍스트 모드에서 색상, 크기 컨트롤만 표시되고 도형/이모지 관련 컨트롤은 숨겨지는지 확인</p>
+                <button class="btn btn-primary" onclick="testTextModeControls()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>이모지 모드 스타일 컨트롤 <span class="test-result result-pending" id="result-emoji-mode-controls">대기중</span></h4>
+                <p>이모지 모드에서 이모지, 크기 컨트롤만 표시되고 색상/도형 관련 컨트롤은 숨겨지는지 확인</p>
+                <button class="btn btn-primary" onclick="testEmojiModeControls()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>모드 변경 시 설정 유지 <span class="test-result result-pending" id="result-mode-settings-persistence">대기중</span></h4>
+                <p>모드 변경 후 새로고침해도 선택한 모드와 해당 모드의 스타일 컨트롤이 올바르게 표시되는지 확인</p>
+                <button class="btn btn-primary" onclick="testModeSettingsPersistence()">테스트 실행</button>
+            </div>
+        </div>
+
         <!-- v1.15.0 테스트 -->
         <div class="test-section">
             <h2>🆕 v1.15.0 - 도형 채우기 옵션</h2>
