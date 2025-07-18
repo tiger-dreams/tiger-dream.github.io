@@ -13,6 +13,14 @@ class AnnotateShotTesterV2 {
     initializeTests() {
         // 실제로 검증 가능한 테스트 케이스들로 재정의
         this.tests = [
+            // v2.0.2 테스트 - 모드별 스타일 컨트롤
+            { id: 'number-mode-controls', name: '숫자 모드 스타일 컨트롤', func: this.testNumberModeControls.bind(this) },
+            { id: 'shape-mode-controls', name: '도형 모드 스타일 컨트롤', func: this.testShapeModeControls.bind(this) },
+            { id: 'text-mode-controls', name: '텍스트 모드 스타일 컨트롤', func: this.testTextModeControls.bind(this) },
+            { id: 'emoji-mode-controls', name: '이모지 모드 스타일 컨트롤', func: this.testEmojiModeControls.bind(this) },
+            { id: 'mode-settings-persistence', name: '모드 설정 유지', func: this.testModeSettingsPersistence.bind(this) },
+            
+            // 기존 테스트들
             { id: 'fill-selector', name: '채우기 선택기 UI', func: this.testFillSelectorUI.bind(this) },
             { id: 'solid-fill', name: '단색 채우기 기능', func: this.testSolidFillFunction.bind(this) },
             { id: 'blur-fill', name: '흐림 효과 기능', func: this.testBlurFillFunction.bind(this) },
@@ -437,6 +445,241 @@ class AnnotateShotTesterV2 {
         }
     }
 
+    // v2.0.2 테스트: 숫자 모드 스타일 컨트롤
+    testNumberModeControls() {
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const doc = testWindow.document;
+                    const modeSelector = doc.getElementById('modeSelector');
+                    const colorSection = doc.getElementById('colorSection');
+                    const sizeSection = doc.getElementById('sizeSection');
+                    const shapeSection = doc.getElementById('shapeSection');
+                    const emojiSection = doc.getElementById('emojiSection');
+                    
+                    // 숫자 모드로 변경
+                    if (modeSelector) {
+                        modeSelector.value = 'number';
+                        modeSelector.dispatchEvent(new Event('change'));
+                    }
+                    
+                    setTimeout(() => {
+                        const colorVisible = colorSection && colorSection.style.display !== 'none';
+                        const sizeVisible = sizeSection && sizeSection.style.display !== 'none';
+                        const shapeHidden = !shapeSection || shapeSection.style.display === 'none';
+                        const emojiHidden = !emojiSection || emojiSection.style.display === 'none';
+                        
+                        const passed = colorVisible && sizeVisible && shapeHidden && emojiHidden;
+                        
+                        this.log(`[숫자 모드] ${passed ? '통과' : '실패'}: 색상(${colorVisible}), 크기(${sizeVisible}), 도형숨김(${shapeHidden}), 이모지숨김(${emojiHidden})`);
+                        this.updateTestResult('number-mode-controls', passed);
+                        this.completedTests++;
+                        this.updateSummary();
+                        
+                        testWindow.close();
+                    }, 500);
+                } catch (error) {
+                    this.log(`[숫자 모드] 실패: ${error.message}`);
+                    this.updateTestResult('number-mode-controls', false);
+                    this.completedTests++;
+                    this.updateSummary();
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.log(`[숫자 모드] 실패: ${error.message}`);
+            this.updateTestResult('number-mode-controls', false);
+            this.completedTests++;
+            this.updateSummary();
+        }
+    }
+
+    // v2.0.2 테스트: 도형 모드 스타일 컨트롤
+    testShapeModeControls() {
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const doc = testWindow.document;
+                    const modeSelector = doc.getElementById('modeSelector');
+                    const colorSection = doc.getElementById('colorSection');
+                    const sizeSection = doc.getElementById('sizeSection');
+                    const shapeSection = doc.getElementById('shapeSection');
+                    const lineWidthSection = doc.getElementById('lineWidthSection');
+                    
+                    // 도형 모드로 변경
+                    if (modeSelector) {
+                        modeSelector.value = 'shape';
+                        modeSelector.dispatchEvent(new Event('change'));
+                    }
+                    
+                    setTimeout(() => {
+                        const colorVisible = colorSection && colorSection.style.display !== 'none';
+                        const sizeHidden = !sizeSection || sizeSection.style.display === 'none';
+                        const shapeVisible = shapeSection && shapeSection.style.display !== 'none';
+                        const lineWidthVisible = lineWidthSection && lineWidthSection.style.display !== 'none';
+                        
+                        const passed = colorVisible && sizeHidden && shapeVisible && lineWidthVisible;
+                        
+                        this.log(`[도형 모드] ${passed ? '통과' : '실패'}: 색상(${colorVisible}), 크기숨김(${sizeHidden}), 도형(${shapeVisible}), 굵기(${lineWidthVisible})`);
+                        this.updateTestResult('shape-mode-controls', passed);
+                        this.completedTests++;
+                        this.updateSummary();
+                        
+                        testWindow.close();
+                    }, 500);
+                } catch (error) {
+                    this.log(`[도형 모드] 실패: ${error.message}`);
+                    this.updateTestResult('shape-mode-controls', false);
+                    this.completedTests++;
+                    this.updateSummary();
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.log(`[도형 모드] 실패: ${error.message}`);
+            this.updateTestResult('shape-mode-controls', false);
+            this.completedTests++;
+            this.updateSummary();
+        }
+    }
+
+    // v2.0.2 테스트: 텍스트 모드 스타일 컨트롤
+    testTextModeControls() {
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const doc = testWindow.document;
+                    const modeSelector = doc.getElementById('modeSelector');
+                    const colorSection = doc.getElementById('colorSection');
+                    const sizeSection = doc.getElementById('sizeSection');
+                    const shapeSection = doc.getElementById('shapeSection');
+                    const emojiSection = doc.getElementById('emojiSection');
+                    
+                    // 텍스트 모드로 변경
+                    if (modeSelector) {
+                        modeSelector.value = 'text';
+                        modeSelector.dispatchEvent(new Event('change'));
+                    }
+                    
+                    setTimeout(() => {
+                        const colorVisible = colorSection && colorSection.style.display !== 'none';
+                        const sizeVisible = sizeSection && sizeSection.style.display !== 'none';
+                        const shapeHidden = !shapeSection || shapeSection.style.display === 'none';
+                        const emojiHidden = !emojiSection || emojiSection.style.display === 'none';
+                        
+                        const passed = colorVisible && sizeVisible && shapeHidden && emojiHidden;
+                        
+                        this.log(`[텍스트 모드] ${passed ? '통과' : '실패'}: 색상(${colorVisible}), 크기(${sizeVisible}), 도형숨김(${shapeHidden}), 이모지숨김(${emojiHidden})`);
+                        this.updateTestResult('text-mode-controls', passed);
+                        this.completedTests++;
+                        this.updateSummary();
+                        
+                        testWindow.close();
+                    }, 500);
+                } catch (error) {
+                    this.log(`[텍스트 모드] 실패: ${error.message}`);
+                    this.updateTestResult('text-mode-controls', false);
+                    this.completedTests++;
+                    this.updateSummary();
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.log(`[텍스트 모드] 실패: ${error.message}`);
+            this.updateTestResult('text-mode-controls', false);
+            this.completedTests++;
+            this.updateSummary();
+        }
+    }
+
+    // v2.0.2 테스트: 이모지 모드 스타일 컨트롤
+    testEmojiModeControls() {
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const doc = testWindow.document;
+                    const modeSelector = doc.getElementById('modeSelector');
+                    const colorSection = doc.getElementById('colorSection');
+                    const sizeSection = doc.getElementById('sizeSection');
+                    const shapeSection = doc.getElementById('shapeSection');
+                    const emojiSection = doc.getElementById('emojiSection');
+                    
+                    // 이모지 모드로 변경
+                    if (modeSelector) {
+                        modeSelector.value = 'emoji';
+                        modeSelector.dispatchEvent(new Event('change'));
+                    }
+                    
+                    setTimeout(() => {
+                        const colorHidden = !colorSection || colorSection.style.display === 'none';
+                        const sizeVisible = sizeSection && sizeSection.style.display !== 'none';
+                        const shapeHidden = !shapeSection || shapeSection.style.display === 'none';
+                        const emojiVisible = emojiSection && emojiSection.style.display !== 'none';
+                        
+                        const passed = colorHidden && sizeVisible && shapeHidden && emojiVisible;
+                        
+                        this.log(`[이모지 모드] ${passed ? '통과' : '실패'}: 색상숨김(${colorHidden}), 크기(${sizeVisible}), 도형숨김(${shapeHidden}), 이모지(${emojiVisible})`);
+                        this.updateTestResult('emoji-mode-controls', passed);
+                        this.completedTests++;
+                        this.updateSummary();
+                        
+                        testWindow.close();
+                    }, 500);
+                } catch (error) {
+                    this.log(`[이모지 모드] 실패: ${error.message}`);
+                    this.updateTestResult('emoji-mode-controls', false);
+                    this.completedTests++;
+                    this.updateSummary();
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.log(`[이모지 모드] 실패: ${error.message}`);
+            this.updateTestResult('emoji-mode-controls', false);
+            this.completedTests++;
+            this.updateSummary();
+        }
+    }
+
+    // v2.0.2 테스트: 모드 설정 유지
+    async testModeSettingsPersistence() {
+        try {
+            // localStorage에서 현재 모드 확인
+            const currentSettings = localStorage.getItem('userSettings');
+            let testPassed = false;
+            
+            if (currentSettings) {
+                const settings = JSON.parse(currentSettings);
+                const hasMode = settings.hasOwnProperty('mode');
+                const hasColor = settings.hasOwnProperty('color');
+                const hasSize = settings.hasOwnProperty('size');
+                
+                testPassed = hasMode && hasColor && hasSize;
+                
+                this.log(`[설정 유지] ${testPassed ? '통과' : '실패'}: localStorage에서 모드(${hasMode}), 색상(${hasColor}), 크기(${hasSize}) 설정 확인`);
+            } else {
+                this.log(`[설정 유지] 실패: localStorage에 userSettings 없음`);
+            }
+            
+            this.updateTestResult('mode-settings-persistence', testPassed);
+            this.completedTests++;
+            this.updateSummary();
+        } catch (error) {
+            this.log(`[설정 유지] 실패: ${error.message}`);
+            this.updateTestResult('mode-settings-persistence', false);
+            this.completedTests++;
+            this.updateSummary();
+        }
+    }
+
     wait(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -598,4 +841,25 @@ function testKeyCodeLock() {
 
 function testNumberKeyInput() {
     if (testerV2) testerV2.testNumberKeyHandler();
+}
+
+// v2.0.2 모드별 스타일 컨트롤 테스트 함수들
+function testNumberModeControls() {
+    if (testerV2) testerV2.testNumberModeControls();
+}
+
+function testShapeModeControls() {
+    if (testerV2) testerV2.testShapeModeControls();
+}
+
+function testTextModeControls() {
+    if (testerV2) testerV2.testTextModeControls();
+}
+
+function testEmojiModeControls() {
+    if (testerV2) testerV2.testEmojiModeControls();
+}
+
+function testModeSettingsPersistence() {
+    if (testerV2) testerV2.testModeSettingsPersistence();
 }
