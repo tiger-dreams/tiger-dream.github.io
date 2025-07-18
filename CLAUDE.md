@@ -10,6 +10,7 @@ AnnotateShot is a web-based image annotation tool that allows users to add numbe
 
 ### Testing
 - Open `test.html` in browser for automated feature testing
+- Use VS Code Live Server (Go Live) extension for local testing
 - No build process required - static files served directly
 
 ### Deployment

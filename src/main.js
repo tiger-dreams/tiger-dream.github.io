@@ -45,6 +45,15 @@
         let dragOffsetX = 0;
         let dragOffsetY = 0;
 
+        // 크롭 관련 변수
+        let isCropping = false;
+        let cropStartX = 0;
+        let cropStartY = 0;
+        let cropEndX = 0;
+        let cropEndY = 0;
+        let currentCropStyle = 'basic';
+        let cropPreviewMode = false;
+
         // 디바운싱 유틸리티 함수
         function debounce(func, wait) {
             let timeout;
@@ -396,6 +405,8 @@
                     handleTextClick(e); // Add new text
                 } else if (currentMode === 'emoji') {
                     handleEmojiClick(e); // Add new emoji
+                } else if (currentMode === 'crop') {
+                    startCropping(e); // Start crop selection
                 }
             }
         });
@@ -429,6 +440,8 @@
                 // Handle shape drawing preview (only if currently drawing a new shape)
                 if (currentMode === 'shape' && isDrawing) {
                     debounce(draw, 16)(e);
+                } else if (currentMode === 'crop' && isCropping) {
+                    updateCropPreview(e);
                 }
             }
         });
@@ -440,6 +453,8 @@
                 saveUserSettings(); // Save state after dragging
             } else if (currentMode === 'shape' && isDrawing) { // Only stop drawing if currently drawing a new shape
                 stopDrawing(e); // Finalize drawing a new shape
+            } else if (currentMode === 'crop' && isCropping) {
+                finishCropping(e); // Finish crop selection
             }
         });
         canvas.addEventListener('mouseout', e => {
@@ -557,30 +572,378 @@
             }
         }
 
-
-        function undo() {
-            if (clicks.length === 0) return;
-            const removedClick = clicks.pop();
-            undoStack.push(removedClick);
-            redrawCanvas();
-            maxClickCount = clicks.length > 0 ? Math.max(...clicks.map(click => click.displayNumber)) : 0;
+        // 크롭 관련 함수들
+        function startCropping(e) {
+            if (currentMode !== 'crop') return;
+            isCropping = true;
+            cropPreviewMode = true;
+            [cropStartX, cropStartY] = getMousePos(canvas, e);
+            cropEndX = cropStartX;
+            cropEndY = cropStartY;
+            canvas.style.cursor = 'crosshair';
         }
 
-        function undoLastClick() {
+        function updateCropPreview(e) {
+            if (!isCropping || currentMode !== 'crop') return;
+            [cropEndX, cropEndY] = getMousePos(canvas, e);
+            redrawCanvas();
+            drawCropOverlay();
+        }
+
+        function finishCropping(e) {
+            if (!isCropping || currentMode !== 'crop') return;
+            [cropEndX, cropEndY] = getMousePos(canvas, e);
+            isCropping = false;
+            canvas.style.cursor = 'default';
+            
+            // 최소 크기 체크 (10x10 픽셀)
+            const width = Math.abs(cropEndX - cropStartX);
+            const height = Math.abs(cropEndY - cropStartY);
+            if (width < 10 || height < 10) {
+                cropPreviewMode = false;
+                redrawCanvas();
+                updateCropButtonStates();
+                messageDiv.textContent = translate('cropTooSmall');
+                return;
+            }
+            
+            // 크롭 영역이 선택되었으므로 미리보기 상태로 전환
+            redrawCanvas();
+            drawCropOverlay();
+            updateCropButtonStates();
+            messageDiv.textContent = translate('cropSelected');
+        }
+
+        function drawCropOverlay() {
+            if (!cropPreviewMode) return;
+            
+            const minX = Math.min(cropStartX, cropEndX);
+            const minY = Math.min(cropStartY, cropEndY);
+            const maxX = Math.max(cropStartX, cropEndX);
+            const maxY = Math.max(cropStartY, cropEndY);
+            
+            // 반투명 어두운 오버레이 (선택 영역 외부)
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            
+            // 상단
+            ctx.fillRect(0, 0, canvas.width, minY);
+            // 하단
+            ctx.fillRect(0, maxY, canvas.width, canvas.height - maxY);
+            // 좌측
+            ctx.fillRect(0, minY, minX, maxY - minY);
+            // 우측
+            ctx.fillRect(maxX, minY, canvas.width - maxX, maxY - minY);
+            
+            // 선택 영역 테두리
+            ctx.strokeStyle = '#0066cc';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+            
+            // 크기 정보 표시
+            const width = Math.round(maxX - minX);
+            const height = Math.round(maxY - minY);
+            ctx.fillStyle = '#0066cc';
+            ctx.font = '14px Arial';
+            ctx.fillText(`${width} × ${height}`, minX + 5, minY - 5);
+            
+            ctx.restore();
+        }
+
+        function applyCrop() {
+            if (!cropPreviewMode) return;
+            
+            // Undo 스택에 현재 상태 저장 (리사이즈 설정 포함)
+            undoStack.push({
+                image: currentImage,
+                clicks: [...clicks],
+                clickCount: clickCount,
+                shapeCount: shapeCount,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height,
+                resizeOption: resizeSelector ? resizeSelector.value : 'auto'
+            });
+            
+            const minX = Math.min(cropStartX, cropEndX);
+            const minY = Math.min(cropStartY, cropEndY);
+            const maxX = Math.max(cropStartX, cropEndX);
+            const maxY = Math.max(cropStartY, cropEndY);
+            const width = maxX - minX;
+            const height = maxY - minY;
+            
+            // 크롭된 이미지만 추출
+            const croppedCanvas = document.createElement('canvas');
+            const croppedCtx = croppedCanvas.getContext('2d');
+            
+            // 기본 크롭 먼저 수행
+            if (currentImage) {
+                // 이미지 크기와 캔버스 크기 비율 계산
+                const scaleX = currentImage.width / canvas.width;
+                const scaleY = currentImage.height / canvas.height;
+                
+                // 실제 이미지 좌표로 변환
+                const sourceX = minX * scaleX;
+                const sourceY = minY * scaleY;
+                const sourceWidth = width * scaleX;
+                const sourceHeight = height * scaleY;
+                
+                // 캔버스 크기 설정 (찢어진 종이 효과의 경우 그림자 공간 추가)
+                let canvasWidth = width;
+                let canvasHeight = height;
+                let imageOffsetX = 0;
+                let imageOffsetY = 0;
+                
+                if (currentCropStyle === 'torn') {
+                    const shadowOffset = 16;
+                    canvasWidth = width + shadowOffset;
+                    canvasHeight = height + shadowOffset;
+                    imageOffsetX = 0;
+                    imageOffsetY = 0;
+                }
+                
+                croppedCanvas.width = canvasWidth;
+                croppedCanvas.height = canvasHeight;
+                
+                // 찢어진 종이 효과의 경우 그림자 먼저 그리기
+                if (currentCropStyle === 'torn') {
+                    // 그림자 효과 (좌측 상단에서 빛이 와서 우측 하단에 그림자)
+                    croppedCtx.save();
+                    croppedCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    croppedCtx.translate(4, 4); // 그림자 위치 조정
+                    
+                    // 그림자용 클리핑 패스 생성
+                    applyCropStyle(croppedCtx, width, height, imageOffsetX, imageOffsetY);
+                    croppedCtx.fill();
+                    croppedCtx.restore();
+                }
+                
+                // 스타일별 클리핑 적용
+                applyCropStyle(croppedCtx, width, height, imageOffsetX, imageOffsetY);
+                
+                // 원본 이미지 그리기
+                croppedCtx.drawImage(currentImage, sourceX, sourceY, sourceWidth, sourceHeight, imageOffsetX, imageOffsetY, width, height);
+                
+                if (currentCropStyle === 'torn') {
+                    croppedCtx.restore();
+                }
+                
+                // 찢어진 종이에 검정 테두리 추가
+                if (currentCropStyle === 'torn') {
+                    croppedCtx.save();
+                    
+                    // 테두리 스타일 설정
+                    croppedCtx.strokeStyle = '#000000';
+                    croppedCtx.lineWidth = 1;
+                    croppedCtx.globalCompositeOperation = 'source-over';
+                    
+                    // 시드 기반 랜덤 함수 (동일한 패턴 생성)
+                    function seededRandom(seed) {
+                        const x = Math.sin(seed) * 10000;
+                        return x - Math.floor(x);
+                    }
+                    
+                    // 찢어진 테두리 다시 그리기 (스트로크용)
+                    croppedCtx.beginPath();
+                    croppedCtx.moveTo(imageOffsetX, imageOffsetY);
+                    
+                    // 상단 가장자리 (직선)
+                    croppedCtx.lineTo(imageOffsetX + width, imageOffsetY);
+                    
+                    // 우측 가장자리 (AWS 스타일 자연스러운 찢어진 효과)
+                    const edgeDepth = Math.min(width * 0.008, 4); // 미묘한 깊이 (최대 4px)
+                    for (let y = 0; y <= height; y += 2) {
+                        const normalizedY = y / height;
+                        const seed1 = y * 0.03;
+                        const seed2 = y * 0.17;
+                        
+                        // 자연스러운 찢어진 패턴 (지역적 변화)
+                        const baseNoise = seededRandom(seed1) * 0.7;
+                        const detailNoise = seededRandom(seed2) * 0.3;
+                        const regionVariation = Math.sin(normalizedY * Math.PI * 2.3) * 0.4;
+                        
+                        const wobble = (baseNoise + detailNoise + regionVariation) * edgeDepth;
+                        croppedCtx.lineTo(imageOffsetX + width - wobble, imageOffsetY + y);
+                    }
+                    
+                    // 하단 가장자리 (AWS 스타일 자연스러운 찢어진 효과)
+                    for (let x = width; x >= 0; x -= 2) {
+                        const normalizedX = x / width;
+                        const seed1 = x * 0.03;
+                        const seed2 = x * 0.17;
+                        
+                        // 자연스러운 찢어진 패턴 (지역적 변화)
+                        const baseNoise = seededRandom(seed1) * 0.7;
+                        const detailNoise = seededRandom(seed2) * 0.3;
+                        const regionVariation = Math.sin(normalizedX * Math.PI * 1.7) * 0.4;
+                        
+                        const wobble = (baseNoise + detailNoise + regionVariation) * edgeDepth;
+                        croppedCtx.lineTo(imageOffsetX + x, imageOffsetY + height - wobble);
+                    }
+                    
+                    // 좌측 가장자리 (직선)
+                    croppedCtx.lineTo(imageOffsetX, imageOffsetY);
+                    croppedCtx.closePath();
+                    croppedCtx.stroke();
+                    croppedCtx.restore();
+                }
+            }
+            
+            // 새 이미지로 교체
+            const newImage = new Image();
+            newImage.onload = () => {
+                currentImage = newImage;
+                
+                // 자동 리사이즈 재적용 (기존 applyImageToCanvas 로직 사용)
+                const { width, height } = calculateImageDimensions(newImage.width, newImage.height);
+                applyCanvasDimensions(width, height);
+                
+                // 크롭 모드 해제
+                cropPreviewMode = false;
+                isCropping = false;
+                
+                // 기존 주석들은 모두 제거 (크롭으로 위치가 변경되므로)
+                clicks = [];
+                clickCount = 0;
+                shapeCount = 0;
+                
+                updateCropButtonStates();
+                messageDiv.textContent = translate('cropApplied');
+                saveUserSettings();
+            };
+            newImage.src = croppedCanvas.toDataURL();
+        }
+
+        function applyCropStyle(ctx, width, height, offsetX = 0, offsetY = 0) {
+            const style = currentCropStyle;
+            
+            switch(style) {
+                case 'torn':
+                    // SVG 기반 찢어진 종이 효과 (오른쪽, 하단, 우하단 모서리만)
+                    ctx.save();
+                    
+                    // 시드 기반 랜덤 함수 (일관된 패턴 생성)
+                    function seededRandom(seed) {
+                        const x = Math.sin(seed) * 10000;
+                        return x - Math.floor(x);
+                    }
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(offsetX, offsetY);
+                    
+                    // 상단 가장자리 (직선)
+                    ctx.lineTo(offsetX + width, offsetY);
+                    
+                    // 우측 가장자리 (AWS 스타일 자연스러운 찢어진 효과)
+                    const edgeDepth = Math.min(width * 0.008, 4); // 미묘한 깊이 (최대 4px)
+                    for (let y = 0; y <= height; y += 2) {
+                        const normalizedY = y / height;
+                        const seed1 = y * 0.03;
+                        const seed2 = y * 0.17;
+                        
+                        // 자연스러운 찢어진 패턴 (지역적 변화)
+                        const baseNoise = seededRandom(seed1) * 0.7;
+                        const detailNoise = seededRandom(seed2) * 0.3;
+                        const regionVariation = Math.sin(normalizedY * Math.PI * 2.3) * 0.4;
+                        
+                        const wobble = (baseNoise + detailNoise + regionVariation) * edgeDepth;
+                        ctx.lineTo(offsetX + width - wobble, offsetY + y);
+                    }
+                    
+                    // 하단 가장자리 (AWS 스타일 자연스러운 찢어진 효과)
+                    for (let x = width; x >= 0; x -= 2) {
+                        const normalizedX = x / width;
+                        const seed1 = x * 0.03;
+                        const seed2 = x * 0.17;
+                        
+                        // 자연스러운 찢어진 패턴 (지역적 변화)
+                        const baseNoise = seededRandom(seed1) * 0.7;
+                        const detailNoise = seededRandom(seed2) * 0.3;
+                        const regionVariation = Math.sin(normalizedX * Math.PI * 1.7) * 0.4;
+                        
+                        const wobble = (baseNoise + detailNoise + regionVariation) * edgeDepth;
+                        ctx.lineTo(offsetX + x, offsetY + height - wobble);
+                    }
+                    
+                    // 좌측 가장자리 (직선)
+                    ctx.lineTo(offsetX, offsetY);
+                    ctx.closePath();
+                    ctx.clip();
+                    break;
+                    
+                case 'basic':
+                default:
+                    // 기본 크롭 - 추가 스타일 없음
+                    break;
+            }
+        }
+
+        function cancelCrop() {
+            cropPreviewMode = false;
+            isCropping = false;
+            redrawCanvas();
+            updateCropButtonStates();
+            messageDiv.textContent = translate('cropCancelled');
+        }
+
+
+        function undo() {
+            // 크롭 미리보기 모드인 경우 크롭을 취소
+            if (cropPreviewMode) {
+                cancelCrop();
+                return;
+            }
+            
+            // undoStack에서 이전 상태 복원
+            if (undoStack.length > 0) {
+                const previousState = undoStack.pop();
+                
+                // 이미지가 있는 경우 이미지 복원
+                if (previousState.image) {
+                    currentImage = previousState.image;
+                    
+                    // 리사이즈 설정 복원
+                    if (previousState.resizeOption && resizeSelector) {
+                        resizeSelector.value = previousState.resizeOption;
+                    }
+                    
+                    // 이전 이미지 크기로 캔버스 복원
+                    canvas.width = previousState.canvasWidth;
+                    canvas.height = previousState.canvasHeight;
+                    ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+                }
+                
+                // 주석 상태 복원
+                clicks = previousState.clicks;
+                clickCount = previousState.clickCount;
+                shapeCount = previousState.shapeCount;
+                maxClickCount = clicks.filter(c => c.type === 'number').reduce((max, c) => Math.max(max, c.displayNumber || 0), 0);
+                
+                redrawCanvas();
+                messageDiv.textContent = translate('undoPerformed');
+                saveUserSettings();
+                return;
+            }
+            
+            // 일반 주석 요소 undo
             if (clicks.length === 0) {
                 messageDiv.textContent = translate('noMoreUndo');
                 return;
             }
-            clicks.pop(); // Simply remove the last item
-
+            
+            const removedClick = clicks.pop();
+            
             // Recalculate maxClickCount and shapeCount based on remaining clicks
-            maxClickCount = clicks.filter(c => c.type === 'number').reduce((max, c) => Math.max(max, c.displayNumber), 0);
+            maxClickCount = clicks.filter(c => c.type === 'number').reduce((max, c) => Math.max(max, c.displayNumber || 0), 0);
             shapeCount = clicks.filter(c => c.type === 'shape').length;
 
             redrawCanvas();
-            messageDiv.textContent = clicks.length > 0 // Update message with current counts
-                ? translate('undoPerformedWithCount', { clickCount, shapeCount })
-                : translate('allActionsUndone');
+            messageDiv.textContent = translate('undoPerformed');
+            saveUserSettings();
+        }
+
+        function undoLastClick() {
+            undo(); // 통합된 undo 함수 사용
         }
 
         function resetDrawingState() {
@@ -1121,6 +1484,7 @@
                 shape: shapeSelector.value,
                 fillType: fillSelector.value,
                 lineWidth: lineWidthSelector.value,
+                cropStyle: currentCropStyle,
                 clicks, // clicks array already contains emoji objects
                 clickCount,
                 shapeCount
@@ -1144,6 +1508,10 @@
             currentShape = settings.shape;
             currentFill = settings.fillType || 'none';
             currentLineWidth = parseInt(settings.lineWidth) || 2;
+            currentCropStyle = settings.cropStyle || 'basic';
+            if (document.getElementById('cropStyleSelector')) {
+                document.getElementById('cropStyleSelector').value = currentCropStyle;
+            }
             clicks = settings.clicks || [];
             clickCount = settings.clickCount || 0;
             shapeCount = settings.shapeCount || 0;
@@ -1167,6 +1535,10 @@
             currentShape = settings.shape;
             currentFill = settings.fillType || 'none';
             currentLineWidth = parseInt(settings.lineWidth) || 2;
+            currentCropStyle = settings.cropStyle || 'basic';
+            if (document.getElementById('cropStyleSelector')) {
+                document.getElementById('cropStyleSelector').value = currentCropStyle;
+            }
             // 이전 작업 내용은 로드하지 않음 - 깨끗한 상태 유지
             clicks = [];
             clickCount = 0;
@@ -1218,6 +1590,11 @@
         }
 
         modeSelector.addEventListener('change', () => {
+            // 크롭 모드에서 다른 모드로 변경 시 크롭 미리보기 해제
+            if (currentMode === 'crop' && cropPreviewMode) {
+                cropPreviewMode = false;
+                redrawCanvas();
+            }
             updateUIForMode(modeSelector.value);
             saveUserSettings();
         });
@@ -1232,6 +1609,48 @@
             currentFill = fillSelector.value;
             saveUserSettings();
         });
+
+        // 크롭 관련 이벤트 리스너들
+        const cropStyleSelector = document.getElementById('cropStyleSelector');
+        const applyCropButton = document.getElementById('applyCropButton');
+        const cropInfo = document.getElementById('cropInfo');
+
+        if (cropStyleSelector) {
+            cropStyleSelector.addEventListener('change', () => {
+                currentCropStyle = cropStyleSelector.value;
+                saveUserSettings();
+                if (cropPreviewMode) {
+                    redrawCanvas();
+                    drawCropOverlay();
+                }
+            });
+        }
+
+        if (applyCropButton) {
+            applyCropButton.addEventListener('click', () => {
+                if (cropPreviewMode) {
+                    applyCrop();
+                }
+            });
+        }
+
+        // 크롭 버튼 상태 업데이트 함수
+        function updateCropButtonStates() {
+            if (applyCropButton && cropInfo) {
+                if (currentMode === 'crop') {
+                    if (cropPreviewMode) {
+                        applyCropButton.disabled = false;
+                        cropInfo.style.display = 'none';
+                    } else {
+                        applyCropButton.disabled = true;
+                        cropInfo.style.display = 'block';
+                    }
+                } else {
+                    applyCropButton.disabled = true;
+                    cropInfo.style.display = 'none';
+                }
+            }
+        }
 
         window.addEventListener('DOMContentLoaded', () => {
             applyLanguage();
