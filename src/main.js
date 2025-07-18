@@ -1177,28 +1177,43 @@
 
         function updateUIForMode(mode) {
             currentMode = mode;
-            // Hide all mode-specific selectors first
-            shapeSelector.style.display = 'none';
-            emojiSelector.style.display = 'none';
-            fillSelector.style.display = 'none';
-            lineWidthSelector.style.display = 'none';
+            // HTML의 updateControlsVisibility 함수를 호출하여 모드별 컨트롤 관리
+            if (typeof updateControlsVisibility === 'function') {
+                updateControlsVisibility();
+            } else {
+                // 기존 로직 유지 (fallback)
+                const shapeSection = document.getElementById('shapeSection');
+                const emojiSection = document.getElementById('emojiSection');
+                const fillSection = document.getElementById('fillSection');
+                const lineWidthSection = document.getElementById('lineWidthSection');
+                const sizeSection = document.getElementById('sizeSection');
+                
+                if (shapeSection) shapeSection.style.display = 'none';
+                if (emojiSection) emojiSection.style.display = 'none';
+                if (fillSection) fillSection.style.display = 'none';
+                if (lineWidthSection) lineWidthSection.style.display = 'none';
+                if (sizeSection && mode === 'shape') sizeSection.style.display = 'none';
 
-            if (mode === 'shape') {
-                shapeSelector.style.display = 'inline-block';
-                // fillSelector는 원과 사각형일 때만 표시
-                updateFillSelectorVisibility();
-                lineWidthSelector.style.display = 'inline-block';
-            } else if (mode === 'emoji') {
-                emojiSelector.style.display = 'inline-block';
+                if (mode === 'shape') {
+                    if (shapeSection) shapeSection.style.display = 'block';
+                    if (lineWidthSection) lineWidthSection.style.display = 'block';
+                    updateFillSelectorVisibility();
+                } else if (mode === 'emoji') {
+                    if (emojiSection) emojiSection.style.display = 'block';
+                    if (sizeSection) sizeSection.style.display = 'block';
+                }
             }
         }
 
         function updateFillSelectorVisibility() {
             // 원과 사각형일 때만 채우기 옵션 표시 (화살표는 제외)
-            if (currentShape === 'rectangle' || currentShape === 'circle') {
-                fillSelector.style.display = 'inline-block';
-            } else {
-                fillSelector.style.display = 'none';
+            const fillSection = document.getElementById('fillSection');
+            if (fillSection) {
+                if (currentShape === 'rectangle' || currentShape === 'circle') {
+                    fillSection.style.display = 'block';
+                } else {
+                    fillSection.style.display = 'none';
+                }
             }
         }
 
