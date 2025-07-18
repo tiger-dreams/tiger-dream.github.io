@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AnnotateShot Capture",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "웹페이지를 캡처하고 AnnotateShot으로 바로 편집할 수 있는 크롬 익스텐션",
   
   "permissions": [
@@ -15,18 +15,18 @@
   ],
   
   "icons": {
-    "16": "icon-16.svg",
-    "48": "icon-48.svg",
-    "128": "icon-128.svg"
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
   },
   
   "action": {
     "default_popup": "popup.html",
     "default_title": "AnnotateShot Capture",
     "default_icon": {
-      "16": "icon-16.svg",
-      "48": "icon-48.svg",
-      "128": "icon-128.svg"
+      "16": "icon-16.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
     }
   },
   
