@@ -592,6 +592,7 @@
                             <option value="shape" data-lang-key="shapeMode">도형 모드</option>
                             <option value="text" data-lang-key="textMode">텍스트 모드</option>
                             <option value="emoji" data-lang-key="emojiMode">이모지 모드</option>
+                            <option value="crop" data-lang-key="cropMode">크롭 모드</option>
                         </select>
                     </div>
                 </div>
@@ -682,6 +683,26 @@
                             <option value="❌">❌</option>
                             <option value="⚠️">⚠️</option>
                         </select>
+                    </div>
+
+                    <!-- Crop Section (Crop mode only) -->
+                    <div class="style-section" id="cropSection" style="display: none;">
+                        <div class="style-subtitle" data-lang-key="cropStyle">크롭 스타일</div>
+                        <select id="cropStyleSelector" aria-label="Select crop style">
+                            <option value="basic" data-lang-key="cropBasic">기본 크롭</option>
+                            <option value="torn" data-lang-key="cropTorn">찢어진 종이</option>
+                        </select>
+                    </div>
+
+                    <!-- Crop Controls Section -->
+                    <div class="style-section" id="cropControlsSection" style="display: none;">
+                        <div class="style-subtitle" data-lang-key="cropControls">크롭 컨트롤</div>
+                        <div class="btn-group">
+                            <button id="applyCropButton" class="btn btn-primary" data-lang-key="applyCrop" disabled>크롭 적용</button>
+                        </div>
+                        <div class="crop-info" id="cropInfo" style="display: none; margin-top: 8px; font-size: 12px; color: #666;">
+                            <span data-lang-key="cropInstruction">드래그하여 크롭 영역을 선택하세요</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -850,6 +871,8 @@
             const shapeSection = document.getElementById('shapeSection');
             const fillSection = document.getElementById('fillSection');
             const emojiSection = document.getElementById('emojiSection');
+            const cropSection = document.getElementById('cropSection');
+            const cropControlsSection = document.getElementById('cropControlsSection');
             const shapeSelector = document.getElementById('shapeSelector');
             const stylePanel = document.querySelector('.tool-panel:has(#colorSection)');
             
@@ -862,6 +885,8 @@
             shapeSection.style.display = 'none';
             fillSection.style.display = 'none';
             emojiSection.style.display = 'none';
+            cropSection.style.display = 'none';
+            cropControlsSection.style.display = 'none';
             
             // Reorder and show sections based on current mode
             switch(currentMode) {
@@ -905,6 +930,19 @@
                     stylePanel.appendChild(sizeSection);
                     emojiSection.style.display = 'block';
                     sizeSection.style.display = 'block';
+                    break;
+                    
+                case 'crop':
+                    // 크롭 모드: 크롭 스타일, 컨트롤
+                    stylePanel.appendChild(cropSection);
+                    stylePanel.appendChild(cropControlsSection);
+                    cropSection.style.display = 'block';
+                    cropControlsSection.style.display = 'block';
+                    
+                    // 크롭 버튼 상태 업데이트
+                    if (typeof updateCropButtonStates === 'function') {
+                        updateCropButtonStates();
+                    }
                     break;
             }
         }
@@ -1098,6 +1136,7 @@
                     'shapeMode': '도형 모드',
                     'textMode': '텍스트 모드',
                     'emojiMode': '이모지 모드',
+                    'cropMode': '크롭 모드',
                     'style': '스타일',
                     'color': '색상',
                     'red': '빨간색',
@@ -1119,6 +1158,16 @@
                     'fillBlur': '흐림 효과',
                     'fillMosaic': '모자이크',
                     'emojiType': '이모지 종류',
+                    'cropStyle': '크롭 스타일',
+                    'cropBasic': '기본 크롭',
+                    'cropShadow': '그림자 효과',
+                    'cropRounded': '둥근 모서리',
+                    'cropTorn': '찢어진 종이',
+                    'cropCurtain': '극장 커튼',
+                    'cropControls': '크롭 컨트롤',
+                    'applyCrop': '크롭 적용',
+                    'cancelCrop': '크롭 취소',
+                    'cropInstruction': '드래그하여 크롭 영역을 선택하세요',
                     'undo': '실행 취소',
                     'save': '저장하기',
                     'toggleTheme': '테마 변경',
@@ -1147,7 +1196,14 @@
                     'statusColorChanged': '색상 변경: {colorName}',
                     'statusImageSaved': '이미지 저장됨',
                     'statusUndo': '실행 취소됨',
-                    'statusAdded': '{modeName} 추가됨: ({x}, {y})'
+                    'statusAdded': '{modeName} 추가됨: ({x}, {y})',
+                    'cropTooSmall': '크롭 영역이 너무 작습니다 (최소 10×10 픽셀)',
+                    'cropSelected': '크롭 영역이 선택되었습니다. 스타일을 선택하고 적용 버튼을 눌러주세요.',
+                    'cropApplied': '크롭이 적용되었습니다',
+                    'cropCancelled': '크롭이 취소되었습니다',
+                    'enterText': '텍스트를 입력하세요',
+                    'textAdded': '텍스트 "{text}" 추가됨: ({x}, {y})',
+                    'emojiAdded': '이모지 {emoji} 추가됨: ({x}, {y})'
                 },
                 'en': {
                     'fileOperations': 'File Operations',
@@ -1157,6 +1213,7 @@
                     'shapeMode': 'Shape Mode',
                     'textMode': 'Text Mode',
                     'emojiMode': 'Emoji Mode',
+                    'cropMode': 'Crop Mode',
                     'style': 'Style',
                     'color': 'Color',
                     'red': 'Red',
@@ -1178,6 +1235,16 @@
                     'fillBlur': 'Blur Effect',
                     'fillMosaic': 'Mosaic',
                     'emojiType': 'Emoji Type',
+                    'cropStyle': 'Crop Style',
+                    'cropBasic': 'Basic Crop',
+                    'cropShadow': 'Shadow Effect',
+                    'cropRounded': 'Rounded Corners',
+                    'cropTorn': 'Torn Paper',
+                    'cropCurtain': 'Theater Curtain',
+                    'cropControls': 'Crop Controls',
+                    'applyCrop': 'Apply Crop',
+                    'cancelCrop': 'Cancel Crop',
+                    'cropInstruction': 'Drag to select crop area',
                     'undo': 'Undo',
                     'redo': 'Redo',
                     'save': 'Save',
@@ -1207,7 +1274,14 @@
                     'statusColorChanged': 'Color changed: {colorName}',
                     'statusImageSaved': 'Image saved',
                     'statusUndo': 'Action undone',
-                    'statusAdded': '{modeName} added at: ({x}, {y})'
+                    'statusAdded': '{modeName} added at: ({x}, {y})',
+                    'cropTooSmall': 'Crop area is too small (minimum 10×10 pixels)',
+                    'cropSelected': 'Crop area selected. Choose a style and click Apply.',
+                    'cropApplied': 'Crop has been applied',
+                    'cropCancelled': 'Crop has been cancelled',
+                    'enterText': 'Enter text',
+                    'textAdded': 'Text "{text}" added at: ({x}, {y})',
+                    'emojiAdded': 'Emoji {emoji} added at: ({x}, {y})'
                 }
             };
 
