@@ -171,20 +171,25 @@
                 return;
             }
 
-            // 새로운 포토샵 스타일: 캔버스 크기를 이미지에 맞춰 설정
-            const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
-            applyCanvasDimensions(width, height);
-            
-            // 이미지를 이미지 레이어로 추가 (기존 이미지 레이어들은 제거)
-            imageLayers = [];
-            
-            // 이미지를 캔버스에 꽉 차게 배치
-            const imageLayer = createImageLayer(
-                currentImage, 
-                0, 0,  
-                width, height
-            );
-            imageLayers.push(imageLayer);
+            if (imageLayers.length === 0) {
+                // 첫 번째 이미지: 캔버스 크기를 이미지에 맞춰 설정
+                const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
+                applyCanvasDimensions(width, height);
+                
+                // 첫 번째 이미지 레이어 추가
+                const imageLayer = createImageLayer(
+                    currentImage, 
+                    0, 0,  
+                    width, height
+                );
+                imageLayers.push(imageLayer);
+                
+                messageDiv.textContent = translate('imageLoaded', { width, height });
+            } else {
+                // 추가 이미지들: 캔버스 크기 유지, 이미지를 캔버스에 맞게 리사이즈하여 추가
+                addImageAsNewLayer();
+                return;
+            }
             
             // 레이어 시스템에도 추가 (UI 호환성 위해)
             createBackgroundImageLayer();
@@ -201,7 +206,57 @@
             }
             
             resetDrawingState();
-            messageDiv.textContent = translate('imageLoaded', { width, height });
+        }
+
+        function addImageAsNewLayer() {
+            // 새 이미지를 캔버스 크기에 맞게 리사이즈
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            
+            // 이미지 비율을 유지하면서 캔버스에 맞는 크기 계산
+            const imageAspectRatio = currentImage.width / currentImage.height;
+            const canvasAspectRatio = canvasWidth / canvasHeight;
+            
+            let newWidth, newHeight, x, y;
+            
+            if (imageAspectRatio > canvasAspectRatio) {
+                // 이미지가 캔버스보다 가로로 길 경우
+                newWidth = Math.min(canvasWidth * 0.8, currentImage.width); // 캔버스의 80% 크기로 제한
+                newHeight = newWidth / imageAspectRatio;
+            } else {
+                // 이미지가 캔버스보다 세로로 길거나 비슷한 경우
+                newHeight = Math.min(canvasHeight * 0.8, currentImage.height);
+                newWidth = newHeight * imageAspectRatio;
+            }
+            
+            // 중앙에 배치
+            x = (canvasWidth - newWidth) / 2;
+            y = (canvasHeight - newHeight) / 2;
+            
+            // 새 이미지 레이어 생성
+            const newImageLayer = createImageLayer(
+                currentImage,
+                x, y,
+                newWidth, newHeight
+            );
+            imageLayers.push(newImageLayer);
+            
+            // 전역 업데이트
+            window.imageLayers = imageLayers;
+            
+            // 레이어 UI 업데이트
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+            
+            // 캔버스 다시 그리기
+            redrawCanvas();
+            
+            messageDiv.textContent = translate('imageLayerAdded', { 
+                layerNumber: imageLayers.length,
+                width: Math.round(newWidth), 
+                height: Math.round(newHeight) 
+            });
         }
 
         // Create background image layer (레이어 UI용)
