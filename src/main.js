@@ -19,6 +19,8 @@
         const resizeSelector = document.getElementById('resizeSelector');
 
         let currentImage = null;
+        let layers = []; // New layer system: [{ type, data, visible, id }, ...]
+        let layerIdCounter = 0;
         let currentColor = "#FF0000";
         let currentSize = "20";
         let currentMode = 'number';
@@ -123,8 +125,105 @@
 
             const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
             applyCanvasDimensions(width, height);
+            
+            // Create or update background image layer
+            createBackgroundImageLayer();
+            
             resetDrawingState();
             messageDiv.textContent = translate('imageLoaded', { width, height });
+        }
+
+        // Create background image layer
+        function createBackgroundImageLayer() {
+            createBackgroundImageLayerWithSize(canvas.width, canvas.height);
+        }
+
+        // Create background image layer with specific size (for undo functionality)
+        function createBackgroundImageLayerWithSize(width, height) {
+            // Remove existing background layer if any
+            layers = layers.filter(layer => layer.type !== 'background');
+            
+            // Add new background layer
+            const backgroundLayer = {
+                id: layerIdCounter++,
+                type: 'background',
+                data: {
+                    image: currentImage,
+                    width: width,
+                    height: height
+                },
+                visible: true,
+                name: 'Background Image'
+            };
+            
+            // Background layer should be at the bottom
+            layers.unshift(backgroundLayer);
+            
+            // Update global reference
+            window.layers = layers;
+            
+            // Debug log
+            console.log('Created background layer with size:', width, height);
+            console.log('Total layers after background:', layers.length);
+            
+            // Update layer list in UI
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+        }
+
+        // Add annotation to layer system
+        function addAnnotationLayer(type, data) {
+            const layer = {
+                id: layerIdCounter++,
+                type: type,
+                data: data,
+                visible: true,
+                name: getLayerName(type, layers.filter(l => l.type === type).length + 1)
+            };
+            
+            // Add to end (top of stack)
+            layers.push(layer);
+            
+            // Update global reference
+            window.layers = layers;
+            
+            // Debug log
+            console.log('Added layer:', layer);
+            console.log('Total layers:', layers.length);
+        }
+
+        // Get layer name based on type
+        function getLayerName(type, index) {
+            const typeNames = {
+                'background': 'Background Image',
+                'number': '숫자',
+                'shape': '도형',
+                'text': '텍스트',
+                'emoji': '이모지'
+            };
+            return type === 'background' ? typeNames[type] : `${typeNames[type]} ${index}`;
+        }
+
+        // Rebuild layer system from clicks array (for undo functionality)
+        function rebuildLayersFromClicks() {
+            // Remove all annotation layers, keep only background
+            layers = layers.filter(layer => layer.type === 'background');
+            
+            // Rebuild layers from clicks array
+            clicks.forEach(click => {
+                const layer = {
+                    id: layerIdCounter++,
+                    type: click.type,
+                    data: click,
+                    visible: true,
+                    name: getLayerName(click.type, layers.filter(l => l.type === click.type).length + 1)
+                };
+                layers.push(layer);
+            });
+            
+            // Update global reference
+            window.layers = layers;
         }
 
         // Function to trigger canvas resize (exposed globally for sidebar interactions)
@@ -134,8 +233,44 @@
             }
         }
         
-        // Expose function globally
+        // Clear all annotations function (exposed globally for UI)
+        function clearAllAnnotations() {
+            console.log('Clearing all annotations from main.js');
+            console.log('Clicks before:', clicks.length);
+            console.log('Layers before:', layers.length);
+            
+            // Clear clicks array completely
+            clicks.splice(0);
+            clickCount = 0;
+            maxClickCount = 0;
+            
+            // Clear layers except background
+            layers = layers.filter(layer => layer.type === 'background');
+            
+            // Update global references
+            window.clicks = clicks;
+            window.layers = layers;
+            window.clickCount = clickCount;
+            
+            console.log('Clicks after:', clicks.length);
+            console.log('Layers after:', layers.length);
+            
+            redrawCanvas();
+            
+            // Update layer list
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+            
+            saveUserSettings();
+        }
+
+        // Expose functions and data globally
         window.triggerCanvasResize = triggerCanvasResize;
+        window.layers = layers;
+        window.clicks = clicks;
+        window.redrawCanvas = redrawCanvas;
+        window.clearAllAnnotations = clearAllAnnotations;
 
         // Helper functions to calculate sidebar widths
         function getSidebarWidth() {
@@ -577,7 +712,11 @@
             if (!e.shiftKey) {
                 maxClickCount = Math.max(maxClickCount, displayNumber);
             }
-            clicks.push({ type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize });
+            const numberAnnotation = { type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize };
+            clicks.push(numberAnnotation);
+            
+            // Also add to layer system
+            addAnnotationLayer('number', numberAnnotation);
             
             // Update layer list
             if (typeof window.updateLayerList === 'function') {
@@ -598,7 +737,11 @@
             let y = e.clientY - rect.top;
             const text = prompt(translate('enterText'));
             if (text) {
-                clicks.push({ type: 'text', x, y, text, color: currentColor, size: currentSize });
+                const textAnnotation = { type: 'text', x, y, text, color: currentColor, size: currentSize };
+                clicks.push(textAnnotation);
+                
+                // Also add to layer system
+                addAnnotationLayer('text', textAnnotation);
                 
                 // Update layer list
                 if (typeof window.updateLayerList === 'function') {
@@ -613,7 +756,11 @@
             let [x, y] = getMousePos(canvas, e);
             const selectedEmoji = emojiSelector.value;
             if (selectedEmoji) {
-                clicks.push({ type: 'emoji', x, y, emoji: selectedEmoji, size: currentSize });
+                const emojiAnnotation = { type: 'emoji', x, y, emoji: selectedEmoji, size: currentSize };
+                clicks.push(emojiAnnotation);
+                
+                // Also add to layer system
+                addAnnotationLayer('emoji', emojiAnnotation);
                 
                 // Update layer list
                 if (typeof window.updateLayerList === 'function') {
@@ -714,7 +861,7 @@
                 shapeCount: shapeCount,
                 canvasWidth: canvas.width,
                 canvasHeight: canvas.height,
-                resizeOption: resizeSelector ? resizeSelector.value : 'auto'
+                resizeOption: resizeSelector ? resizeSelector.value : 'default'
             });
             
             const minX = Math.min(cropStartX, cropEndX);
@@ -959,10 +1106,23 @@
                         resizeSelector.value = previousState.resizeOption;
                     }
                     
-                    // 이전 이미지 크기로 캔버스 복원
+                    // 이전 이미지 크기로 캔버스 복원 (CSS 스타일 포함)
+                    const dpr = window.devicePixelRatio || 1;
+                    const displayWidth = previousState.canvasWidth / dpr;
+                    const displayHeight = previousState.canvasHeight / dpr;
+                    
                     canvas.width = previousState.canvasWidth;
                     canvas.height = previousState.canvasHeight;
-                    ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+                    canvas.style.width = `${displayWidth}px`;
+                    canvas.style.height = `${displayHeight}px`;
+                    
+                    // Context scaling 복원
+                    ctx.scale(dpr, dpr);
+                    
+                    ctx.drawImage(currentImage, 0, 0, displayWidth, displayHeight);
+                    
+                    // 배경 이미지 레이어 재생성 (복원된 크기 사용)
+                    createBackgroundImageLayerWithSize(previousState.canvasWidth, previousState.canvasHeight);
                 }
                 
                 // 주석 상태 복원
@@ -971,7 +1131,20 @@
                 shapeCount = previousState.shapeCount;
                 maxClickCount = clicks.filter(c => c.type === 'number').reduce((max, c) => Math.max(max, c.displayNumber || 0), 0);
                 
+                // 레이어 시스템 재구축
+                rebuildLayersFromClicks();
+                
+                // 전역 참조 업데이트
+                window.clicks = clicks;
+                window.layers = layers;
+                
                 redrawCanvas();
+                
+                // 레이어 UI 업데이트
+                if (typeof window.updateLayerList === 'function') {
+                    window.updateLayerList();
+                }
+                
                 messageDiv.textContent = translate('undoPerformed');
                 saveUserSettings();
                 return;
@@ -985,11 +1158,27 @@
             
             const removedClick = clicks.pop();
             
+            // Also remove from layer system
+            const layerIndex = layers.findIndex(layer => layer.data === removedClick);
+            if (layerIndex !== -1) {
+                layers.splice(layerIndex, 1);
+            }
+            
+            // Update global references
+            window.clicks = clicks;
+            window.layers = layers;
+            
             // Recalculate maxClickCount and shapeCount based on remaining clicks
             maxClickCount = clicks.filter(c => c.type === 'number').reduce((max, c) => Math.max(max, c.displayNumber || 0), 0);
             shapeCount = clicks.filter(c => c.type === 'shape').length;
 
             redrawCanvas();
+            
+            // Update layer list
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+            
             messageDiv.textContent = translate('undoPerformed');
             saveUserSettings();
         }
@@ -1000,22 +1189,56 @@
 
         function resetDrawingState() {
             clicks = [];
+            layers = layers.filter(layer => layer.type === 'background'); // Keep only background layer
             undoStack = [];
             clickCount = 0;
             maxClickCount = 0;
             initialX = null;
             initialY = null;
+            
+            // Update global references
+            window.clicks = clicks;
+            window.layers = layers;
+            
             redrawCanvas();
         }
 
         function redrawCanvas() {
-            if (!currentImage) {
-                drawDefaultCanvasBackground();
-            } else {
-                canvas.width = canvas.width;
-                ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
-            }
+            // Clear canvas
+            canvas.width = canvas.width;
+            
+            // Debug log
+            console.log('Redrawing canvas with layers:', layers.length);
+            
+            // Draw all layers in order (bottom to top)
+            layers.forEach((layer, index) => {
+                console.log(`Drawing layer ${index}:`, layer.type, 'visible:', layer.visible);
+                
+                // Skip hidden layers
+                if (layer.visible === false) return;
+                
+                if (layer.type === 'background') {
+                    // Draw background image
+                    if (layer.data.image) {
+                        ctx.drawImage(layer.data.image, 0, 0, canvas.width, canvas.height);
+                        console.log('Drew background image');
+                    }
+                } else {
+                    // Draw annotation layer
+                    const data = layer.data;
+                    console.log('Drawing annotation layer:', data);
+                    if (data.type === 'number') drawNumber(data);
+                    else if (data.type === 'shape') drawShape(data.startX, data.startY, data.endX, data.endY, data.shape, data.color, data.fillType || 'none');
+                    else if (data.type === 'text') drawText(data);
+                    else if (data.type === 'emoji') drawEmoji(data);
+                }
+            });
+            
+            // Legacy support: also draw from clicks array for backward compatibility
             clicks.forEach((click) => {
+                // Skip if already drawn via layer system
+                if (layers.some(layer => layer.data === click)) return;
+                
                 // Skip hidden layers (default visible if not set)
                 if (click.visible === false) return;
                 
@@ -1047,7 +1270,11 @@
             isDrawing = false;
             const [mouseX, mouseY] = getAdjustedMousePos(canvas, e);
             shapeCount++;
-            clicks.push({ type: 'shape', shape: currentShape, startX, startY, endX: mouseX, endY: mouseY, color: currentColor, fillType: currentFill, id: shapeCount });
+            const shapeAnnotation = { type: 'shape', shape: currentShape, startX, startY, endX: mouseX, endY: mouseY, color: currentColor, fillType: currentFill, id: shapeCount };
+            clicks.push(shapeAnnotation);
+            
+            // Also add to layer system
+            addAnnotationLayer('shape', shapeAnnotation);
             
             // Update layer list
             if (typeof window.updateLayerList === 'function') {
