@@ -192,6 +192,9 @@
             // 캔버스 다시 그리기
             redrawCanvas();
             
+            // 전역 imageLayers 업데이트
+            window.imageLayers = imageLayers;
+            
             // 레이어 UI 업데이트
             if (typeof window.updateLayerList === 'function') {
                 window.updateLayerList();
@@ -669,7 +672,14 @@
                 const [mouseX, mouseY] = getMousePos(canvas, e);
 
                 // Update object position based on type
-                if (draggedObject.type === 'number' || draggedObject.type === 'text' || draggedObject.type === 'emoji') {
+                if (draggedObject.image) {
+                    // This is an image layer
+                    draggedObject.x = mouseX - dragOffsetX;
+                    draggedObject.y = mouseY - dragOffsetY;
+                    
+                    // Update global imageLayers reference
+                    window.imageLayers = imageLayers;
+                } else if (draggedObject.type === 'number' || draggedObject.type === 'text' || draggedObject.type === 'emoji') {
                     draggedObject.x = mouseX - dragOffsetX;
                     draggedObject.y = mouseY - dragOffsetY;
                 } else if (draggedObject.type === 'shape') {
@@ -1613,6 +1623,19 @@
             // Get mouse coordinates in canvas's internal pixel space
             const [mouseX, mouseY] = getMousePos(canvas, e);
 
+            // Check image layers first (they should be on top of background but below annotations)
+            for (let i = imageLayers.length - 1; i >= 0; i--) {
+                const imageLayer = imageLayers[i];
+                if (!imageLayer.visible) continue;
+                
+                // Check if mouse is over this image layer
+                if (mouseX >= imageLayer.x && mouseX <= imageLayer.x + imageLayer.width &&
+                    mouseY >= imageLayer.y && mouseY <= imageLayer.y + imageLayer.height) {
+                    return imageLayer;
+                }
+            }
+
+            // Check annotation objects
             for (let i = clicks.length - 1; i >= 0; i--) {
                 const click = clicks[i];
                 if (click.type === 'number') {
