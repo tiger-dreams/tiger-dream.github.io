@@ -978,9 +978,6 @@
                 <div class="layer-sidebar-header-content">
                     <span class="material-icons">layers</span>
                     <h3 data-lang-key="layers">레이어</h3>
-                    <button class="btn btn-icon layer-sidebar-collapse" id="layerSidebarCollapse" aria-label="Collapse layer panel">
-                        <span class="material-icons">chevron_right</span>
-                    </button>
                 </div>
             </div>
             
@@ -1083,75 +1080,93 @@
         // Layer Sidebar Functionality
         function initializeLayerSidebar() {
             const layerSidebar = document.getElementById('layerSidebar');
-            const layerSidebarCollapse = document.getElementById('layerSidebarCollapse');
             const layerList = document.getElementById('layerList');
             const clearAllLayersBtn = document.getElementById('clearAllLayers');
             
-            // Collapse/Expand functionality
-            layerSidebarCollapse.addEventListener('click', () => {
-                layerSidebar.classList.toggle('collapsed');
-                
-                // Trigger canvas resize if auto-resize is selected
-                if (typeof window.triggerCanvasResize === 'function') {
-                    setTimeout(() => {
-                        window.triggerCanvasResize();
-                    }, 300); // Wait for CSS transition to complete
-                }
-            });
+            // Initialize background layer visibility toggle
+            const backgroundLayerToggle = layerList.querySelector('.background-layer .layer-visibility-toggle');
+            if (backgroundLayerToggle) {
+                backgroundLayerToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleBackgroundLayerVisibility();
+                });
+            }
             
             // Clear all layers functionality
             clearAllLayersBtn.addEventListener('click', () => {
                 if (confirm('모든 주석을 삭제하시겠습니까?')) {
-                    clearAllAnnotations();
-                    updateLayerList();
+                    if (typeof window.clearAllAnnotations === 'function') {
+                        window.clearAllAnnotations();
+                    } else {
+                        console.error('clearAllAnnotations function not available');
+                    }
                 }
             });
             
-            // Update layer list based on current annotations
+            // Update layer list based on new layer system
             function updateLayerList() {
-                const annotationLayers = layerList.querySelector('.annotation-layers');
-                if (annotationLayers) {
-                    annotationLayers.remove();
+                console.log('Updating layer list...');
+                
+                // Clear existing layers
+                const existingLayers = layerList.querySelectorAll('.layer-item:not(.background-layer)');
+                existingLayers.forEach(item => item.remove());
+                
+                // Get layers from main.js
+                const layers = window.layers || [];
+                console.log('Layers from window.layers:', layers);
+                
+                // Update background layer visibility
+                const backgroundLayerElement = layerList.querySelector('.background-layer');
+                const backgroundLayer = layers.find(layer => layer.type === 'background');
+                console.log('Background layer found:', backgroundLayer);
+                
+                if (backgroundLayerElement && backgroundLayer) {
+                    const visibilityToggle = backgroundLayerElement.querySelector('.layer-visibility-toggle');
+                    visibilityToggle.classList.toggle('hidden', backgroundLayer.visible === false);
+                    const icon = visibilityToggle.querySelector('.material-icons');
+                    icon.textContent = backgroundLayer.visible === false ? 'visibility_off' : 'visibility';
+                    console.log('Updated background layer visibility:', backgroundLayer.visible);
                 }
                 
-                if (clicks.length > 0) {
-                    const annotationContainer = document.createElement('div');
-                    annotationContainer.className = 'annotation-layers';
-                    
-                    clicks.forEach((click, index) => {
-                        const layerItem = createLayerItem(click, index);
-                        annotationContainer.appendChild(layerItem);
-                    });
-                    
-                    layerList.appendChild(annotationContainer);
-                }
+                // Add annotation layers (reverse order to show top layers first)
+                const annotationLayers = layers.filter(layer => layer.type !== 'background').reverse();
+                console.log('Annotation layers to display:', annotationLayers);
+                
+                annotationLayers.forEach((layer, index) => {
+                    const layerItem = createLayerItem(layer, index);
+                    layerList.appendChild(layerItem);
+                });
             }
             
-            function createLayerItem(annotation, index) {
+            function createLayerItem(layer, displayIndex) {
                 const layerItem = document.createElement('div');
                 layerItem.className = 'layer-item annotation-layer';
-                layerItem.dataset.index = index;
+                layerItem.dataset.layerId = layer.id;
                 
                 const layerInfo = document.createElement('div');
                 layerInfo.className = 'layer-info';
                 
                 const icon = document.createElement('span');
                 icon.className = 'material-icons layer-icon';
-                icon.textContent = getLayerIcon(annotation.type);
+                icon.textContent = getLayerIcon(layer.type);
                 
                 const name = document.createElement('span');
                 name.className = 'layer-name';
-                name.textContent = getLayerName(annotation, index);
+                name.textContent = layer.name || getLayerName(layer, displayIndex);
                 
                 const controls = document.createElement('div');
                 controls.className = 'layer-controls';
                 
                 const visibilityToggle = document.createElement('button');
                 visibilityToggle.className = 'layer-visibility-toggle';
-                visibilityToggle.innerHTML = '<span class="material-icons">visibility</span>';
+                if (layer.visible === false) {
+                    visibilityToggle.classList.add('hidden');
+                }
+                const visibilityIcon = layer.visible === false ? 'visibility_off' : 'visibility';
+                visibilityToggle.innerHTML = `<span class="material-icons">${visibilityIcon}</span>`;
                 visibilityToggle.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    toggleAnnotationVisibility(index);
+                    toggleLayerVisibility(layer.id);
                 });
                 
                 const deleteBtn = document.createElement('button');
@@ -1159,7 +1174,7 @@
                 deleteBtn.innerHTML = '<span class="material-icons">delete</span>';
                 deleteBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    deleteAnnotation(index);
+                    deleteLayer(layer.id);
                 });
                 
                 layerInfo.appendChild(icon);
@@ -1171,7 +1186,7 @@
                 
                 // Layer click to select
                 layerItem.addEventListener('click', () => {
-                    selectLayer(index);
+                    selectLayerById(layer.id);
                 });
                 
                 return layerItem;
@@ -1227,10 +1242,82 @@
                 }
             }
             
-            function clearAllAnnotations() {
-                clicks = [];
-                clickCount = 0;
-                redrawCanvas();
+            
+            // Background layer visibility toggle
+            function toggleBackgroundLayerVisibility() {
+                console.log('Toggling background layer visibility');
+                if (window.layers) {
+                    const backgroundLayer = window.layers.find(layer => layer.type === 'background');
+                    console.log('Found background layer:', backgroundLayer);
+                    if (backgroundLayer) {
+                        backgroundLayer.visible = !backgroundLayer.visible;
+                        console.log('New visibility state:', backgroundLayer.visible);
+                        if (typeof window.redrawCanvas === 'function') {
+                            window.redrawCanvas();
+                        }
+                        updateLayerList();
+                    }
+                }
+            }
+            
+            // Layer visibility toggle by ID
+            function toggleLayerVisibility(layerId) {
+                if (window.layers) {
+                    const layer = window.layers.find(l => l.id === layerId);
+                    if (layer) {
+                        layer.visible = !layer.visible;
+                        if (typeof window.redrawCanvas === 'function') {
+                            window.redrawCanvas();
+                        }
+                        updateLayerList();
+                    }
+                }
+            }
+            
+            // Delete layer by ID
+            function deleteLayer(layerId) {
+                console.log('Deleting layer with ID:', layerId);
+                if (window.layers) {
+                    const layerIndex = window.layers.findIndex(l => l.id === layerId);
+                    console.log('Found layer at index:', layerIndex);
+                    if (layerIndex !== -1) {
+                        const layer = window.layers[layerIndex];
+                        console.log('Layer to delete:', layer);
+                        
+                        // Also remove from clicks array
+                        const clickIndex = window.clicks.findIndex(click => click === layer.data);
+                        console.log('Found corresponding click at index:', clickIndex);
+                        console.log('Clicks array before:', window.clicks.length);
+                        
+                        if (clickIndex !== -1) {
+                            window.clicks.splice(clickIndex, 1);
+                        }
+                        
+                        console.log('Clicks array after:', window.clicks.length);
+                        
+                        window.layers.splice(layerIndex, 1);
+                        console.log('Layers array after:', window.layers.length);
+                        
+                        if (typeof window.redrawCanvas === 'function') {
+                            window.redrawCanvas();
+                        }
+                        updateLayerList();
+                    }
+                }
+            }
+            
+            // Select layer by ID
+            function selectLayerById(layerId) {
+                // Remove previous selection
+                document.querySelectorAll('.layer-item.selected').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // Select new layer
+                const layerItem = document.querySelector(`[data-layer-id="${layerId}"]`);
+                if (layerItem) {
+                    layerItem.classList.add('selected');
+                }
             }
             
             // Expose updateLayerList globally for main.js to call

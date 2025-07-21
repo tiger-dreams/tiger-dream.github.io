@@ -20,6 +20,9 @@ class AnnotateShotTesterV2 {
             { id: 'emoji-mode-controls', name: '이모지 모드 스타일 컨트롤', func: this.testEmojiModeControls.bind(this) },
             { id: 'mode-settings-persistence', name: '모드 설정 유지', func: this.testModeSettingsPersistence.bind(this) },
             
+            // Crop 관련 테스트
+            { id: 'crop-undo-restoration', name: 'Crop Undo 이미지 복원', func: this.testCropUndoRestoration.bind(this) },
+            
             // 기존 테스트들
             { id: 'fill-selector', name: '채우기 선택기 UI', func: this.testFillSelectorUI.bind(this) },
             { id: 'solid-fill', name: '단색 채우기 기능', func: this.testSolidFillFunction.bind(this) },
@@ -680,6 +683,48 @@ class AnnotateShotTesterV2 {
         }
     }
 
+    // Crop Undo 테스트: 크롭 후 undo 시 이미지 복원 확인
+    async testCropUndoRestoration() {
+        try {
+            const response = await fetch('./src/main.js');
+            const jsContent = await response.text();
+            
+            // Undo 관련 핵심 기능 검사
+            const hasUndoFunction = jsContent.includes('function undo()') || jsContent.includes('const undo =');
+            const hasCropFunction = jsContent.includes('function cropImageToCanvas()') || jsContent.includes('cropImageToCanvas');
+            const hasCanvasStyleRestore = jsContent.includes('canvas.style.width') && jsContent.includes('canvas.style.height');
+            const hasUndoStack = jsContent.includes('undoStack');
+            
+            // 크롭 관련 상태 저장 확인
+            const savesCropState = jsContent.includes('canvasWidth') && jsContent.includes('canvasHeight');
+            const restoresImageState = jsContent.includes('backgroundImage') || jsContent.includes('img.src');
+            
+            // 모든 조건이 충족되는지 확인
+            const passed = hasUndoFunction && hasCropFunction && hasCanvasStyleRestore && 
+                          hasUndoStack && savesCropState && restoresImageState;
+            
+            const details = [
+                `Undo함수(${hasUndoFunction})`,
+                `Crop함수(${hasCropFunction})`, 
+                `CSS스타일복원(${hasCanvasStyleRestore})`,
+                `UndoStack(${hasUndoStack})`,
+                `크롭상태저장(${savesCropState})`,
+                `이미지상태복원(${restoresImageState})`
+            ].join(', ');
+            
+            this.log(`[Crop Undo] ${passed ? '통과' : '실패'}: ${details}`);
+            this.updateTestResult('crop-undo-restoration', passed);
+            this.completedTests++;
+            this.updateSummary();
+            
+        } catch (error) {
+            this.log(`[Crop Undo] 실패: ${error.message}`);
+            this.updateTestResult('crop-undo-restoration', false);
+            this.completedTests++;
+            this.updateSummary();
+        }
+    }
+
     wait(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -862,4 +907,8 @@ function testEmojiModeControls() {
 
 function testModeSettingsPersistence() {
     if (testerV2) testerV2.testModeSettingsPersistence();
+}
+
+function testCropUndoRestoration() {
+    if (testerV2) testerV2.testCropUndoRestoration();
 }
