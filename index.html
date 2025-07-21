@@ -449,6 +449,180 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        /* Layer Sidebar Styles */
+        .layer-sidebar {
+            background-color: var(--card);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.1), -2px 0 4px -1px rgba(0, 0, 0, 0.06);
+            z-index: 20;
+            width: 280px;
+            transition: width 0.3s ease;
+        }
+
+        .layer-sidebar.collapsed {
+            width: 50px;
+        }
+
+        .layer-sidebar-header {
+            background-color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem;
+            min-height: 74px;
+            display: flex;
+            align-items: center;
+        }
+
+        .layer-sidebar-header-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+        }
+
+        .layer-sidebar-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--foreground);
+            margin: 0;
+            flex: 1;
+        }
+
+        .layer-sidebar-collapse {
+            padding: 0.375rem;
+            background: transparent;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+        }
+
+        .layer-sidebar-collapse:hover {
+            background-color: var(--accent);
+            color: var(--accent-foreground);
+        }
+
+        .layer-sidebar.collapsed .layer-sidebar-collapse .material-icons {
+            transform: rotate(180deg);
+        }
+
+        .layer-sidebar-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .layer-sidebar.collapsed .layer-sidebar-content {
+            display: none;
+        }
+
+        .layer-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--background);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .layer-item:hover {
+            background-color: var(--accent);
+            border-color: var(--primary);
+        }
+
+        .layer-item.selected {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border-color: var(--primary);
+        }
+
+        .layer-item.background-layer {
+            opacity: 0.8;
+        }
+
+        .layer-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        .layer-icon {
+            font-size: 1.25rem;
+            color: var(--muted-foreground);
+        }
+
+        .layer-item.selected .layer-icon {
+            color: var(--primary-foreground);
+        }
+
+        .layer-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--foreground);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .layer-item.selected .layer-name {
+            color: var(--primary-foreground);
+        }
+
+        .layer-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .layer-visibility-toggle {
+            padding: 0.25rem;
+            background: transparent;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .layer-visibility-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .layer-visibility-toggle.hidden .material-icons {
+            opacity: 0.3;
+        }
+
+        .layer-item.selected .layer-visibility-toggle {
+            color: var(--primary-foreground);
+        }
+
+        .layer-actions {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .layer-actions .btn {
+            width: 100%;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -468,6 +642,21 @@
 
             .main-content {
                 width: 100%;
+            }
+
+            .layer-sidebar {
+                position: fixed;
+                right: -280px;
+                height: 100vh;
+                z-index: 30;
+            }
+
+            .layer-sidebar.mobile-open {
+                right: 0;
+            }
+
+            .layer-sidebar.collapsed {
+                right: -50px;
             }
 
             .mobile-overlay {
@@ -782,6 +971,42 @@
                 </div>
             </footer>
         </main>
+
+        <!-- Right Layer Sidebar -->
+        <aside class="layer-sidebar" id="layerSidebar">
+            <div class="layer-sidebar-header">
+                <div class="layer-sidebar-header-content">
+                    <span class="material-icons">layers</span>
+                    <h3 data-lang-key="layers">레이어</h3>
+                    <button class="btn btn-icon layer-sidebar-collapse" id="layerSidebarCollapse" aria-label="Collapse layer panel">
+                        <span class="material-icons">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="layer-sidebar-content">
+                <div class="layer-list" id="layerList">
+                    <div class="layer-item background-layer">
+                        <div class="layer-info">
+                            <span class="material-icons layer-icon">image</span>
+                            <span class="layer-name" data-lang-key="backgroundLayer">배경 이미지</span>
+                        </div>
+                        <div class="layer-controls">
+                            <button class="layer-visibility-toggle" aria-label="Toggle visibility">
+                                <span class="material-icons">visibility</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="layer-actions">
+                    <button class="btn btn-sm" id="clearAllLayers" data-lang-key="clearAllLayers">
+                        <span class="material-icons">clear_all</span>
+                        모든 레이어 지우기
+                    </button>
+                </div>
+            </div>
+        </aside>
     </div>
 
     <!-- Message -->
@@ -841,8 +1066,175 @@
                 mobileOverlay.classList.remove('show');
             });
             
-            window.addEventListener('resize', checkMobile);
+            window.addEventListener('resize', () => {
+                checkMobile();
+                
+                // Also trigger canvas resize if auto-resize is selected
+                if (typeof window.triggerCanvasResize === 'function') {
+                    clearTimeout(window.resizeTimeout);
+                    window.resizeTimeout = setTimeout(() => {
+                        window.triggerCanvasResize();
+                    }, 100); // Debounce resize events
+                }
+            });
             checkMobile();
+        }
+
+        // Layer Sidebar Functionality
+        function initializeLayerSidebar() {
+            const layerSidebar = document.getElementById('layerSidebar');
+            const layerSidebarCollapse = document.getElementById('layerSidebarCollapse');
+            const layerList = document.getElementById('layerList');
+            const clearAllLayersBtn = document.getElementById('clearAllLayers');
+            
+            // Collapse/Expand functionality
+            layerSidebarCollapse.addEventListener('click', () => {
+                layerSidebar.classList.toggle('collapsed');
+                
+                // Trigger canvas resize if auto-resize is selected
+                if (typeof window.triggerCanvasResize === 'function') {
+                    setTimeout(() => {
+                        window.triggerCanvasResize();
+                    }, 300); // Wait for CSS transition to complete
+                }
+            });
+            
+            // Clear all layers functionality
+            clearAllLayersBtn.addEventListener('click', () => {
+                if (confirm('모든 주석을 삭제하시겠습니까?')) {
+                    clearAllAnnotations();
+                    updateLayerList();
+                }
+            });
+            
+            // Update layer list based on current annotations
+            function updateLayerList() {
+                const annotationLayers = layerList.querySelector('.annotation-layers');
+                if (annotationLayers) {
+                    annotationLayers.remove();
+                }
+                
+                if (clicks.length > 0) {
+                    const annotationContainer = document.createElement('div');
+                    annotationContainer.className = 'annotation-layers';
+                    
+                    clicks.forEach((click, index) => {
+                        const layerItem = createLayerItem(click, index);
+                        annotationContainer.appendChild(layerItem);
+                    });
+                    
+                    layerList.appendChild(annotationContainer);
+                }
+            }
+            
+            function createLayerItem(annotation, index) {
+                const layerItem = document.createElement('div');
+                layerItem.className = 'layer-item annotation-layer';
+                layerItem.dataset.index = index;
+                
+                const layerInfo = document.createElement('div');
+                layerInfo.className = 'layer-info';
+                
+                const icon = document.createElement('span');
+                icon.className = 'material-icons layer-icon';
+                icon.textContent = getLayerIcon(annotation.type);
+                
+                const name = document.createElement('span');
+                name.className = 'layer-name';
+                name.textContent = getLayerName(annotation, index);
+                
+                const controls = document.createElement('div');
+                controls.className = 'layer-controls';
+                
+                const visibilityToggle = document.createElement('button');
+                visibilityToggle.className = 'layer-visibility-toggle';
+                visibilityToggle.innerHTML = '<span class="material-icons">visibility</span>';
+                visibilityToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleAnnotationVisibility(index);
+                });
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'layer-visibility-toggle';
+                deleteBtn.innerHTML = '<span class="material-icons">delete</span>';
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteAnnotation(index);
+                });
+                
+                layerInfo.appendChild(icon);
+                layerInfo.appendChild(name);
+                controls.appendChild(visibilityToggle);
+                controls.appendChild(deleteBtn);
+                layerItem.appendChild(layerInfo);
+                layerItem.appendChild(controls);
+                
+                // Layer click to select
+                layerItem.addEventListener('click', () => {
+                    selectLayer(index);
+                });
+                
+                return layerItem;
+            }
+            
+            function getLayerIcon(type) {
+                const icons = {
+                    number: 'looks_one',
+                    shape: 'crop_square',
+                    text: 'text_fields',
+                    emoji: 'emoji_emotions'
+                };
+                return icons[type] || 'layers';
+            }
+            
+            function getLayerName(annotation, index) {
+                const typeNames = {
+                    number: '숫자',
+                    shape: '도형',
+                    text: '텍스트',
+                    emoji: '이모지'
+                };
+                const baseName = typeNames[annotation.type] || '요소';
+                return `${baseName} ${index + 1}`;
+            }
+            
+            function selectLayer(index) {
+                // Remove previous selection
+                document.querySelectorAll('.layer-item.selected').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // Select new layer
+                const layerItem = document.querySelector(`[data-index="${index}"]`);
+                if (layerItem) {
+                    layerItem.classList.add('selected');
+                }
+            }
+            
+            function toggleAnnotationVisibility(index) {
+                if (clicks[index]) {
+                    clicks[index].visible = clicks[index].visible !== false ? false : true;
+                    redrawCanvas();
+                    updateLayerList();
+                }
+            }
+            
+            function deleteAnnotation(index) {
+                if (clicks[index]) {
+                    clicks.splice(index, 1);
+                    redrawCanvas();
+                    updateLayerList();
+                }
+            }
+            
+            function clearAllAnnotations() {
+                clicks = [];
+                clickCount = 0;
+                redrawCanvas();
+            }
+            
+            // Expose updateLayerList globally for main.js to call
+            window.updateLayerList = updateLayerList;
         }
 
         // Canvas Container State Management
@@ -1167,6 +1559,9 @@
                     'cropControls': '크롭 컨트롤',
                     'applyCrop': '크롭 적용',
                     'cancelCrop': '크롭 취소',
+                    'layers': '레이어',
+                    'backgroundLayer': '배경 이미지',
+                    'clearAllLayers': '모든 레이어 지우기',
                     'cropInstruction': '드래그하여 크롭 영역을 선택하세요',
                     'undo': '실행 취소',
                     'save': '저장하기',
@@ -1244,6 +1639,9 @@
                     'cropControls': 'Crop Controls',
                     'applyCrop': 'Apply Crop',
                     'cancelCrop': 'Cancel Crop',
+                    'layers': 'Layers',
+                    'backgroundLayer': 'Background Image',
+                    'clearAllLayers': 'Clear All Layers',
                     'cropInstruction': 'Drag to select crop area',
                     'undo': 'Undo',
                     'redo': 'Redo',
@@ -1341,6 +1739,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initializeTheme();
             initializeSidebar();
+            initializeLayerSidebar();
             initializeModeControls();
             initializeStatusLogging();
             updateCanvasContainer();

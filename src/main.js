@@ -127,6 +127,41 @@
             messageDiv.textContent = translate('imageLoaded', { width, height });
         }
 
+        // Function to trigger canvas resize (exposed globally for sidebar interactions)
+        function triggerCanvasResize() {
+            if (currentImage && resizeSelector.value === 'default') {
+                applyImageToCanvas();
+            }
+        }
+        
+        // Expose function globally
+        window.triggerCanvasResize = triggerCanvasResize;
+
+        // Helper functions to calculate sidebar widths
+        function getSidebarWidth() {
+            const sidebar = document.getElementById('sidebar');
+            if (!sidebar) return 0;
+            
+            // Mobile: sidebar is hidden by default
+            if (window.innerWidth <= 768) return 0;
+            
+            // Desktop: check if collapsed
+            if (sidebar.classList.contains('collapsed')) return 60;
+            return 280;
+        }
+
+        function getLayerSidebarWidth() {
+            const layerSidebar = document.getElementById('layerSidebar');
+            if (!layerSidebar) return 0;
+            
+            // Mobile: layer sidebar is hidden by default
+            if (window.innerWidth <= 768) return 0;
+            
+            // Desktop: check if collapsed
+            if (layerSidebar.classList.contains('collapsed')) return 50;
+            return 280;
+        }
+
         function calculateImageDimensions(width, height) {
             switch (resizeSelector.value) {
                 case "original": 
@@ -145,7 +180,9 @@
                     return { width: Math.floor(width * 0.7), height: Math.floor(height * 0.7) };
                 default:
                     // Auto-resize: fit to viewport while maintaining aspect ratio
-                    const availableWidth = window.innerWidth - 320; // Subtract sidebar width
+                    const sidebarWidth = getSidebarWidth();
+                    const layerSidebarWidth = getLayerSidebarWidth();
+                    const availableWidth = window.innerWidth - sidebarWidth - layerSidebarWidth - 64; // Subtract sidebars + padding
                     const availableHeight = window.innerHeight - 100; // Subtract header and padding
                     
                     // Use the smaller of MAX dimensions or available viewport space
@@ -541,6 +578,11 @@
                 maxClickCount = Math.max(maxClickCount, displayNumber);
             }
             clicks.push({ type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize });
+            
+            // Update layer list
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
 
             redrawCanvas();
             messageDiv.textContent = translate('clickAdded', { number: displayNumber, x: Math.round(x), y: Math.round(y) });
@@ -557,6 +599,11 @@
             const text = prompt(translate('enterText'));
             if (text) {
                 clicks.push({ type: 'text', x, y, text, color: currentColor, size: currentSize });
+                
+                // Update layer list
+                if (typeof window.updateLayerList === 'function') {
+                    window.updateLayerList();
+                }
                 redrawCanvas();
                 messageDiv.textContent = translate('textAdded', { text, x: Math.round(x), y: Math.round(y) });
             }
@@ -567,6 +614,11 @@
             const selectedEmoji = emojiSelector.value;
             if (selectedEmoji) {
                 clicks.push({ type: 'emoji', x, y, emoji: selectedEmoji, size: currentSize });
+                
+                // Update layer list
+                if (typeof window.updateLayerList === 'function') {
+                    window.updateLayerList();
+                }
                 redrawCanvas();
                 messageDiv.textContent = translate('emojiAdded', { emoji: selectedEmoji, x: Math.round(x), y: Math.round(y) });
             }
@@ -964,6 +1016,9 @@
                 ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
             }
             clicks.forEach((click) => {
+                // Skip hidden layers (default visible if not set)
+                if (click.visible === false) return;
+                
                 if (click.type === 'number') drawNumber(click);
                 else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color, click.fillType || 'none');
                 else if (click.type === 'text') drawText(click);
@@ -993,6 +1048,11 @@
             const [mouseX, mouseY] = getAdjustedMousePos(canvas, e);
             shapeCount++;
             clicks.push({ type: 'shape', shape: currentShape, startX, startY, endX: mouseX, endY: mouseY, color: currentColor, fillType: currentFill, id: shapeCount });
+            
+            // Update layer list
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
             
             redrawCanvas();
             saveUserSettings();
