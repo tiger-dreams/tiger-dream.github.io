@@ -192,6 +192,11 @@
             // 캔버스 다시 그리기
             redrawCanvas();
             
+            // 레이어 UI 업데이트
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+            
             resetDrawingState();
             messageDiv.textContent = translate('imageLoaded', { width, height });
         }
@@ -250,6 +255,11 @@
             
             // Update global reference
             window.layers = layers;
+            
+            // Update layer UI
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
             
             // Debug log
             console.log('Added layer:', layer);
@@ -332,6 +342,7 @@
         window.triggerCanvasResize = triggerCanvasResize;
         window.layers = layers;
         window.clicks = clicks;
+        window.imageLayers = imageLayers;
         window.redrawCanvas = redrawCanvas;
         window.clearAllAnnotations = clearAllAnnotations;
 

@@ -1126,34 +1126,123 @@
                 console.log('Updating layer list...');
                 
                 // Clear existing layers
-                const existingLayers = layerList.querySelectorAll('.layer-item:not(.background-layer)');
+                const existingLayers = layerList.querySelectorAll('.layer-item');
                 existingLayers.forEach(item => item.remove());
                 
-                // Get layers from main.js
+                // Get data from main.js
                 const layers = window.layers || [];
-                console.log('Layers from window.layers:', layers);
+                const imageLayers = window.imageLayers || [];
+                console.log('Layers:', layers.length, 'ImageLayers:', imageLayers.length);
                 
-                // Update background layer visibility
-                const backgroundLayerElement = layerList.querySelector('.background-layer');
-                const backgroundLayer = layers.find(layer => layer.type === 'background');
-                console.log('Background layer found:', backgroundLayer);
+                // 1. Add background layer (solid color)
+                addBackgroundLayer();
                 
-                if (backgroundLayerElement && backgroundLayer) {
-                    const visibilityToggle = backgroundLayerElement.querySelector('.layer-visibility-toggle');
-                    visibilityToggle.classList.toggle('hidden', backgroundLayer.visible === false);
-                    const icon = visibilityToggle.querySelector('.material-icons');
-                    icon.textContent = backgroundLayer.visible === false ? 'visibility_off' : 'visibility';
-                    console.log('Updated background layer visibility:', backgroundLayer.visible);
+                // 2. Add image layers
+                imageLayers.forEach((imageLayer, index) => {
+                    addImageLayerToUI(imageLayer, index);
+                });
+                
+                // 3. Add annotation layers in reverse order (top layer first in UI)
+                const annotationLayers = layers.filter(layer => layer.type !== 'background');
+                for (let i = annotationLayers.length - 1; i >= 0; i--) {
+                    const layer = annotationLayers[i];
+                    addAnnotationLayerToUI(layer, i);
                 }
                 
-                // Add annotation layers (reverse order to show top layers first)
-                const annotationLayers = layers.filter(layer => layer.type !== 'background').reverse();
-                console.log('Annotation layers to display:', annotationLayers);
+                console.log('Layer list updated successfully');
+            }
+            
+            function addBackgroundLayer() {
+                const backgroundItem = document.createElement('div');
+                backgroundItem.className = 'layer-item background-layer';
+                backgroundItem.setAttribute('data-layer-type', 'background');
                 
-                annotationLayers.forEach((layer, index) => {
-                    const layerItem = createLayerItem(layer, index);
-                    layerList.appendChild(layerItem);
-                });
+                const layerContent = document.createElement('div');
+                layerContent.className = 'layer-info';
+                
+                const icon = document.createElement('span');
+                icon.className = 'material-icons layer-icon';
+                icon.textContent = 'layers';
+                
+                const name = document.createElement('span');
+                name.className = 'layer-name';
+                name.textContent = '배경';
+                
+                const controls = document.createElement('div');
+                controls.className = 'layer-controls';
+                
+                // 배경 레이어는 항상 보임, 삭제 불가
+                const visibilityBtn = document.createElement('button');
+                visibilityBtn.className = 'layer-visibility-toggle';
+                visibilityBtn.innerHTML = '<span class="material-icons">visibility</span>';
+                visibilityBtn.disabled = true;
+                visibilityBtn.style.opacity = '0.3';
+                
+                controls.appendChild(visibilityBtn);
+                
+                layerContent.appendChild(icon);
+                layerContent.appendChild(name);
+                backgroundItem.appendChild(layerContent);
+                backgroundItem.appendChild(controls);
+                
+                layerList.appendChild(backgroundItem);
+            }
+            
+            function addImageLayerToUI(imageLayer, index) {
+                const layerItem = document.createElement('div');
+                layerItem.className = 'layer-item image-layer';
+                layerItem.setAttribute('data-image-layer-id', imageLayer.id);
+                
+                const layerContent = document.createElement('div');
+                layerContent.className = 'layer-info';
+                
+                const icon = document.createElement('span');
+                icon.className = 'material-icons layer-icon';
+                icon.textContent = 'image';
+                
+                const name = document.createElement('span');
+                name.className = 'layer-name';
+                name.textContent = `이미지 레이어 ${index + 1}`;
+                
+                const controls = document.createElement('div');
+                controls.className = 'layer-controls';
+                
+                // Visibility toggle
+                const visibilityBtn = document.createElement('button');
+                visibilityBtn.className = 'layer-visibility-toggle';
+                const visibilityIcon = imageLayer.visible !== false ? 'visibility' : 'visibility_off';
+                visibilityBtn.innerHTML = `<span class="material-icons">${visibilityIcon}</span>`;
+                if (imageLayer.visible === false) {
+                    visibilityBtn.classList.add('hidden');
+                }
+                visibilityBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleImageLayerVisibility(imageLayer.id);
+                };
+                
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'layer-visibility-toggle';
+                deleteBtn.innerHTML = '<span class="material-icons">delete</span>';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteImageLayer(imageLayer.id);
+                };
+                
+                controls.appendChild(visibilityBtn);
+                controls.appendChild(deleteBtn);
+                
+                layerContent.appendChild(icon);
+                layerContent.appendChild(name);
+                layerItem.appendChild(layerContent);
+                layerItem.appendChild(controls);
+                
+                layerList.appendChild(layerItem);
+            }
+            
+            function addAnnotationLayerToUI(layer, index) {
+                const layerItem = createLayerItem(layer, index);
+                layerList.appendChild(layerItem);
             }
             
             function createLayerItem(layer, displayIndex) {
@@ -1315,6 +1404,42 @@
                         
                         window.layers.splice(layerIndex, 1);
                         console.log('Layers array after:', window.layers.length);
+                        
+                        if (typeof window.redrawCanvas === 'function') {
+                            window.redrawCanvas();
+                        }
+                        updateLayerList();
+                    }
+                }
+            }
+            
+            // Image layer control functions
+            function toggleImageLayerVisibility(imageLayerId) {
+                if (window.imageLayers) {
+                    const imageLayer = window.imageLayers.find(layer => layer.id === imageLayerId);
+                    if (imageLayer) {
+                        imageLayer.visible = !imageLayer.visible;
+                        if (typeof window.redrawCanvas === 'function') {
+                            window.redrawCanvas();
+                        }
+                        updateLayerList();
+                    }
+                }
+            }
+            
+            function deleteImageLayer(imageLayerId) {
+                if (window.imageLayers) {
+                    const layerIndex = window.imageLayers.findIndex(layer => layer.id === imageLayerId);
+                    if (layerIndex !== -1) {
+                        window.imageLayers.splice(layerIndex, 1);
+                        
+                        // Also remove from legacy layers system
+                        if (window.layers) {
+                            const legacyIndex = window.layers.findIndex(l => l.type === 'background');
+                            if (legacyIndex !== -1) {
+                                window.layers.splice(legacyIndex, 1);
+                            }
+                        }
                         
                         if (typeof window.redrawCanvas === 'function') {
                             window.redrawCanvas();
