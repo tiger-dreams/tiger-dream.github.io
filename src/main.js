@@ -17,8 +17,12 @@
         const fillSelector = document.getElementById('fillSelector');
         const lineWidthSelector = document.getElementById('lineWidthSelector');
         const resizeSelector = document.getElementById('resizeSelector');
+        const backgroundColorSelector = document.getElementById('backgroundColorSelector');
 
-        let currentImage = null;
+        // 새로운 배경/이미지 레이어 시스템
+        let canvasBackgroundColor = 'white'; // 무지 배경색
+        let imageLayers = []; // 이미지 레이어들: [{ image, x, y, width, height, visible }, ...]
+        let currentImage = null; // 호환성을 위해 유지
         let layers = []; // New layer system: [{ type, data, visible, id }, ...]
         let layerIdCounter = 0;
         let currentColor = "#FF0000";
@@ -92,12 +96,44 @@
             currentImage.src = dataUrl;
         }
 
-        function drawDefaultCanvasBackground() {
-            canvas.width = MAX_WIDTH; // Set a default size for the blank canvas
-            canvas.height = MAX_HEIGHT;
-            canvas.classList.add('default-canvas'); // Add class for responsive styling
-            ctx.fillStyle = '#f5f7fa'; // Light background color
+        function drawCanvasBackground() {
+            // 배경색에 따라 캔버스 배경 그리기
+            if (canvasBackgroundColor === 'transparent') {
+                // 투명 배경의 경우 체크무늬 패턴 그리기
+                drawTransparencyPattern();
+            } else {
+                const colorMap = {
+                    'white': '#ffffff',
+                    'light-gray': '#f5f7fa', 
+                    'gray': '#e0e0e0',
+                    'dark-gray': '#808080'
+                };
+                ctx.fillStyle = colorMap[canvasBackgroundColor] || '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function drawTransparencyPattern() {
+            const patternSize = 20;
+            ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#f0f0f0';
+            for (let x = 0; x < canvas.width; x += patternSize) {
+                for (let y = 0; y < canvas.height; y += patternSize) {
+                    if ((Math.floor(x / patternSize) + Math.floor(y / patternSize)) % 2 === 1) {
+                        ctx.fillRect(x, y, patternSize, patternSize);
+                    }
+                }
+            }
+        }
+
+        function drawDefaultCanvasBackground() {
+            canvas.width = MAX_WIDTH;
+            canvas.height = MAX_HEIGHT;
+            canvas.classList.add('default-canvas');
+            
+            drawCanvasBackground();
             
             const text = translate('uploadImagePrompt');
             const lines = text.split('\n');
@@ -115,6 +151,18 @@
             });
         }
 
+        function createImageLayer(image, x = 0, y = 0, width = null, height = null) {
+            return {
+                id: layerIdCounter++,
+                image: image,
+                x: x,
+                y: y,
+                width: width || image.width,
+                height: height || image.height,
+                visible: true
+            };
+        }
+
         function applyImageToCanvas() {
             if (!currentImage) {
                 drawDefaultCanvasBackground();
@@ -123,17 +171,32 @@
                 return;
             }
 
+            // 새로운 포토샵 스타일: 캔버스 크기를 이미지에 맞춰 설정
             const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
             applyCanvasDimensions(width, height);
             
-            // Create or update background image layer
+            // 이미지를 이미지 레이어로 추가 (기존 이미지 레이어들은 제거)
+            imageLayers = [];
+            
+            // 이미지를 캔버스에 꽉 차게 배치
+            const imageLayer = createImageLayer(
+                currentImage, 
+                0, 0,  
+                width, height
+            );
+            imageLayers.push(imageLayer);
+            
+            // 레이어 시스템에도 추가 (UI 호환성 위해)
             createBackgroundImageLayer();
+            
+            // 캔버스 다시 그리기
+            redrawCanvas();
             
             resetDrawingState();
             messageDiv.textContent = translate('imageLoaded', { width, height });
         }
 
-        // Create background image layer
+        // Create background image layer (레이어 UI용)
         function createBackgroundImageLayer() {
             createBackgroundImageLayerWithSize(canvas.width, canvas.height);
         }
@@ -523,6 +586,12 @@
 
         resizeSelector.addEventListener('change', () => {
             if (currentImage) loadImageFromDataUrl(currentImage.src);
+        });
+        
+        backgroundColorSelector.addEventListener('change', (e) => {
+            canvasBackgroundColor = e.target.value;
+            saveUserSettings();
+            redrawCanvas();
         });
 
         saveButton.addEventListener('click', saveImage);
@@ -1190,6 +1259,7 @@
         function resetDrawingState() {
             clicks = [];
             layers = layers.filter(layer => layer.type === 'background'); // Keep only background layer
+            // imageLayers는 유지 - 이미지 레이어는 주석과 별개
             undoStack = [];
             clickCount = 0;
             maxClickCount = 0;
@@ -1207,26 +1277,30 @@
             // Clear canvas
             canvas.width = canvas.width;
             
-            // Debug log
-            console.log('Redrawing canvas with layers:', layers.length);
+            // Step 1: Draw solid background
+            drawCanvasBackground();
             
-            // Draw all layers in order (bottom to top)
-            layers.forEach((layer, index) => {
-                console.log(`Drawing layer ${index}:`, layer.type, 'visible:', layer.visible);
-                
+            // Step 2: Draw image layers
+            imageLayers.forEach((imageLayer) => {
+                if (imageLayer.visible === false) return;
+                ctx.drawImage(
+                    imageLayer.image,
+                    imageLayer.x, imageLayer.y,
+                    imageLayer.width, imageLayer.height
+                );
+            });
+            
+            // Step 3: Draw annotation layers
+            layers.forEach((layer) => {
                 // Skip hidden layers
                 if (layer.visible === false) return;
                 
                 if (layer.type === 'background') {
-                    // Draw background image
-                    if (layer.data.image) {
-                        ctx.drawImage(layer.data.image, 0, 0, canvas.width, canvas.height);
-                        console.log('Drew background image');
-                    }
+                    // 배경 이미지는 이미 imageLayers에서 처리됨 - 스킵
+                    return;
                 } else {
                     // Draw annotation layer
                     const data = layer.data;
-                    console.log('Drawing annotation layer:', data);
                     if (data.type === 'number') drawNumber(data);
                     else if (data.type === 'shape') drawShape(data.startX, data.startY, data.endX, data.endY, data.shape, data.color, data.fillType || 'none');
                     else if (data.type === 'text') drawText(data);
@@ -1772,6 +1846,7 @@
                 fillType: fillSelector.value,
                 lineWidth: lineWidthSelector.value,
                 cropStyle: currentCropStyle,
+                backgroundColor: canvasBackgroundColor,
                 clicks, // clicks array already contains emoji objects
                 clickCount,
                 shapeCount
@@ -1799,6 +1874,8 @@
             if (document.getElementById('cropStyleSelector')) {
                 document.getElementById('cropStyleSelector').value = currentCropStyle;
             }
+            canvasBackgroundColor = settings.backgroundColor || 'white';
+            backgroundColorSelector.value = canvasBackgroundColor;
             clicks = settings.clicks || [];
             clickCount = settings.clickCount || 0;
             shapeCount = settings.shapeCount || 0;
