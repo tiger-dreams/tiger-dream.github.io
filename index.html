@@ -332,26 +332,23 @@
             transform: translateY(0);
         }
 
-        /* 모바일에서는 텍스트 숨김 */
-        @media (max-width: 768px) {
-            .chrome-extension-text {
-                display: none;
-            }
-            
-            .chrome-extension-link {
-                margin-right: 0.5rem !important;
-                padding: 0.5rem !important;
-                min-width: auto !important;
-            }
-            
-            .top-bar-actions {
-                gap: 0.25rem;
-            }
-            
-            /* 모바일에서는 라벨을 더 간결하게 */
-            .top-bar-actions label {
-                font-size: 0.75rem !important;
-            }
+        /* 모바일 전용 UI - User Agent 기반 */
+        .mobile-device .chrome-extension-text {
+            display: none;
+        }
+        
+        .mobile-device .chrome-extension-link {
+            margin-right: 0.5rem !important;
+            padding: 0.5rem !important;
+            min-width: auto !important;
+        }
+        
+        .mobile-device .top-bar-actions {
+            gap: 0.25rem;
+        }
+        
+        .mobile-device .top-bar-actions label {
+            font-size: 0.75rem !important;
         }
 
         .top-resize-selector {
@@ -666,73 +663,296 @@
             font-size: 0.875rem;
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                left: -280px;
-                height: 100vh;
-                z-index: 30;
-            }
+        /* 모바일 전용 레이아웃 - User Agent 기반 */
+        .mobile-device .sidebar {
+            position: fixed;
+            left: -280px;
+            height: 100vh;
+            z-index: 30;
+            transition: left 0.3s ease;
+        }
 
-            .sidebar.mobile-open {
-                left: 0;
-            }
+        .mobile-device .sidebar.mobile-open {
+            left: 0;
+        }
 
-            .sidebar.collapsed {
-                left: -60px;
-            }
+        .mobile-device .sidebar.collapsed {
+            left: -60px;
+        }
 
-            .main-content {
-                width: 100%;
-            }
+        .mobile-device .main-content {
+            width: 100%;
+        }
 
-            .layer-sidebar {
-                position: fixed;
-                right: -280px;
-                height: 100vh;
-                z-index: 30;
-            }
+        .mobile-device .layer-sidebar {
+            position: fixed;
+            right: -280px;
+            height: 100vh;
+            z-index: 30;
+            transition: right 0.3s ease;
+        }
 
-            .layer-sidebar.mobile-open {
-                right: 0;
-            }
+        .mobile-device .layer-sidebar.mobile-open {
+            right: 0;
+        }
 
-            .layer-sidebar.collapsed {
-                right: -50px;
-            }
+        .mobile-device .layer-sidebar.collapsed {
+            right: -50px;
+        }
 
-            .mobile-overlay {
-                position: fixed;
-                inset: 0;
-                background-color: rgba(0, 0, 0, 0.5);
-                z-index: 25;
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity 0.3s;
-            }
+        .mobile-device .mobile-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 25;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
 
-            .mobile-overlay.show {
-                opacity: 1;
-                pointer-events: auto;
-            }
+        .mobile-device .mobile-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
 
-            .top-bar {
-                padding-left: 3rem;
-            }
+        .mobile-device .top-bar {
+            padding-left: 3rem;
+        }
 
-            .mobile-menu-btn {
-                position: fixed;
-                top: 1rem;
-                left: 1rem;
-                z-index: 35;
-                background-color: var(--primary);
-                color: var(--primary-foreground);
-                border: none;
-                padding: 0.5rem;
-                border-radius: var(--radius);
-                cursor: pointer;
-            }
+        .mobile-device .mobile-menu-btn {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 35;
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            padding: 0.75rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: block !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .mobile-device .mobile-menu-btn:hover {
+            background-color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        .mobile-device .mobile-menu-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 데스크톱에서는 모바일 요소들 숨기기 */
+        .desktop-device .mobile-menu-btn {
+            display: none !important;
+        }
+
+        .desktop-device .mobile-overlay {
+            display: none;
+        }
+
+        /* 모바일 터치 최적화 */
+        .mobile-device button, 
+        .mobile-device select, 
+        .mobile-device input[type="range"],
+        .mobile-device .button {
+            min-height: 44px !important;
+            min-width: 44px !important;
+            font-size: 16px !important; /* iOS 줌 방지 */
+            padding: 0.75rem 1rem !important;
+        }
+
+        .mobile-device .control-group button {
+            padding: 0.875rem 1.25rem !important;
+            font-size: 0.9rem !important;
+            border-radius: 8px !important;
+        }
+
+        .mobile-device .color-option {
+            width: 48px !important;
+            height: 48px !important;
+            border-radius: 50% !important;
+            border: 3px solid var(--border) !important;
+            margin: 0.25rem !important;
+        }
+
+        .mobile-device .size-display,
+        .mobile-device .number-count {
+            font-size: 1.1rem !important;
+            padding: 0.75rem !important;
+            min-height: 44px !important;
+        }
+
+        /* 모바일 전용 플로팅 버튼 */
+        .mobile-device .floating-action-buttons {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .mobile-device .fab {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .mobile-device .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .mobile-device .fab:active {
+            transform: scale(0.95);
+        }
+
+        .mobile-device .fab.save {
+            background-color: var(--success-color);
+        }
+
+        .mobile-device .fab.undo {
+            background-color: var(--muted);
+            color: var(--muted-foreground);
+        }
+
+        /* 모바일에서 캔버스 터치 동작 최적화 */
+        .mobile-device .canvas-container {
+            touch-action: none; /* 브라우저 기본 터치 동작 방지 */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .mobile-device #imageCanvas {
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+        }
+
+        /* 모바일 전용 하단 툴바 */
+        .mobile-device .mobile-toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 1rem;
+            z-index: 30;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .mobile-device .mobile-toolbar .toolbar-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem;
+            border: none;
+            background: transparent;
+            color: var(--muted-foreground);
+            font-size: 0.75rem;
+            cursor: pointer;
+            min-width: 44px;
+            min-height: 44px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .mobile-device .mobile-toolbar .toolbar-button.active {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+        }
+
+        .mobile-device .mobile-toolbar .toolbar-button:hover {
+            background-color: var(--muted);
+            color: var(--foreground);
+        }
+
+        /* 모바일에서 메인 콘텐츠 하단 패딩 (하단 툴바 공간 확보) */
+        .mobile-device .main-content {
+            padding-bottom: 120px !important;
+        }
+
+        /* 모바일 전용 모드 선택 패널 */
+        .mobile-device .mobile-mode-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            z-index: 50;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .mobile-device .mobile-mode-panel.show {
+            display: block;
+        }
+
+        .mobile-device .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .mobile-device .mode-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 100px;
+            background-color: var(--background);
+        }
+
+        .mobile-device .mode-card:hover,
+        .mobile-device .mode-card.active {
+            border-color: var(--primary);
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+        }
+
+        .mobile-device .mode-card .material-icons {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .mobile-device .mode-card .mode-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: center;
         }
 
         /* Hide elements initially if no image */
@@ -1132,46 +1352,57 @@
             });
         }
 
-        // Mobile Sidebar Functionality (simplified)
+        // Mobile Sidebar Functionality - User Agent 기반
         function initializeSidebar() {
             const sidebar = document.getElementById('sidebar');
             const mobileMenuBtn = document.getElementById('mobileMenuBtn');
             const mobileOverlay = document.getElementById('mobileOverlay');
             
-            // Mobile functionality only
-            function checkMobile() {
-                const isMobile = window.innerWidth <= 768;
-                if (isMobile) {
-                    mobileMenuBtn.style.display = 'block';
-                } else {
-                    mobileMenuBtn.style.display = 'none';
-                    sidebar.classList.remove('mobile-open');
-                    mobileOverlay.classList.remove('show');
-                }
+            // User Agent 기반 모바일 감지 (main.js에서 이미 설정됨)
+            function isMobileDevice() {
+                const userAgent = navigator.userAgent.toLowerCase();
+                const mobileKeywords = [
+                    'android', 'webos', 'iphone', 'ipad', 'ipod', 
+                    'blackberry', 'windows phone', 'mobile', 'opera mini'
+                ];
+                return mobileKeywords.some(keyword => userAgent.includes(keyword));
             }
             
-            mobileMenuBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('mobile-open');
-                mobileOverlay.classList.toggle('show');
-            });
+            const isMobile = isMobileDevice();
             
-            mobileOverlay.addEventListener('click', () => {
-                sidebar.classList.remove('mobile-open');
-                mobileOverlay.classList.remove('show');
-            });
-            
-            window.addEventListener('resize', () => {
-                checkMobile();
+            // 모바일 기기에서만 모바일 UI 활성화
+            if (isMobile) {
+                console.log('모바일 UI 활성화 - 사이드바 기능 초기화');
                 
-                // Also trigger canvas resize if auto-resize is selected
+                mobileMenuBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('mobile-open');
+                    mobileOverlay.classList.toggle('show');
+                });
+                
+                mobileOverlay.addEventListener('click', () => {
+                    sidebar.classList.remove('mobile-open');
+                    mobileOverlay.classList.remove('show');
+                });
+                
+                // 모바일에서 뒤로가기 버튼으로 사이드바 닫기
+                window.addEventListener('popstate', () => {
+                    sidebar.classList.remove('mobile-open');
+                    mobileOverlay.classList.remove('show');
+                });
+            } else {
+                console.log('데스크톱 UI - 모바일 기능 비활성화');
+            }
+            
+            // 캔버스 리사이즈는 모든 기기에서 동작 (브라우저 크기 변경 시)
+            window.addEventListener('resize', () => {
+                // Canvas resize trigger는 유지
                 if (typeof window.triggerCanvasResize === 'function') {
                     clearTimeout(window.resizeTimeout);
                     window.resizeTimeout = setTimeout(() => {
                         window.triggerCanvasResize();
-                    }, 100); // Debounce resize events
+                    }, 100);
                 }
             });
-            checkMobile();
         }
 
         // Layer Sidebar Functionality
@@ -2118,6 +2349,160 @@
             const observer = new MutationObserver(updateCanvasContainer);
             observer.observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
         });
+
+        // 모바일 전용 UI 초기화
+        function initializeMobileUI() {
+            if (!isMobileDevice()) return; // 모바일이 아니면 실행하지 않음
+            
+            console.log('모바일 전용 UI 초기화 중...');
+            
+            // 플로팅 액션 버튼 이벤트
+            const fabSave = document.getElementById('fabSave');
+            const fabUndo = document.getElementById('fabUndo');
+            const fabMode = document.getElementById('fabMode');
+            
+            if (fabSave) fabSave.addEventListener('click', () => document.getElementById('saveButton').click());
+            if (fabUndo) fabUndo.addEventListener('click', () => document.getElementById('undoButton').click());
+            if (fabMode) fabMode.addEventListener('click', showMobileModePanel);
+            
+            // 모바일 툴바 이벤트
+            const mobileToolbar = document.querySelector('.mobile-toolbar');
+            if (mobileToolbar) {
+                mobileToolbar.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('toolbar-button')) {
+                        const mode = e.target.dataset.mode;
+                        if (mode) {
+                            document.getElementById('modeSelector').value = mode;
+                            document.getElementById('modeSelector').dispatchEvent(new Event('change'));
+                            updateMobileToolbar();
+                        }
+                    }
+                });
+            }
+            
+            updateMobileToolbar();
+        }
+        
+        function showMobileModePanel() {
+            const panel = document.getElementById('mobileModePanel');
+            const overlay = document.getElementById('mobileOverlay');
+            if (panel && overlay) {
+                panel.classList.add('show');
+                overlay.classList.add('show');
+            }
+        }
+        
+        function hideMobileModePanel() {
+            const panel = document.getElementById('mobileModePanel');
+            const overlay = document.getElementById('mobileOverlay');
+            if (panel && overlay) {
+                panel.classList.remove('show');
+                overlay.classList.remove('show');
+            }
+        }
+        
+        function updateMobileToolbar() {
+            const buttons = document.querySelectorAll('.mobile-toolbar .toolbar-button');
+            const currentMode = document.getElementById('modeSelector').value;
+            
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.mode === currentMode) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // 모바일 감지 함수 (중복 방지)
+        function isMobileDevice() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            const mobileKeywords = [
+                'android', 'webos', 'iphone', 'ipad', 'ipod', 
+                'blackberry', 'windows phone', 'mobile', 'opera mini'
+            ];
+            return mobileKeywords.some(keyword => userAgent.includes(keyword));
+        }
+
+        // DOMContentLoaded에 모바일 UI 초기화 추가
+        document.addEventListener('DOMContentLoaded', () => {
+            // 기존 초기화...
+            initializeMobileUI(); // 모바일 UI 초기화 추가
+        });
     </script>
+
+    <!-- 모바일 전용 UI 컴포넌트들 -->
+    <div class="mobile-only" style="display: none;">
+        <!-- 플로팅 액션 버튼들 -->
+        <div class="floating-action-buttons">
+            <button class="fab save" id="fabSave" title="저장">
+                <span class="material-icons">save</span>
+            </button>
+            <button class="fab undo" id="fabUndo" title="되돌리기">
+                <span class="material-icons">undo</span>
+            </button>
+            <button class="fab" id="fabMode" title="모드 변경">
+                <span class="material-icons">tune</span>
+            </button>
+        </div>
+
+        <!-- 모바일 하단 툴바 -->
+        <div class="mobile-toolbar">
+            <button class="toolbar-button" data-mode="number">
+                <span class="material-icons">format_list_numbered</span>
+                <span>숫자</span>
+            </button>
+            <button class="toolbar-button" data-mode="shape">
+                <span class="material-icons">crop_square</span>
+                <span>도형</span>
+            </button>
+            <button class="toolbar-button" data-mode="text">
+                <span class="material-icons">text_fields</span>
+                <span>텍스트</span>
+            </button>
+            <button class="toolbar-button" data-mode="emoji">
+                <span class="material-icons">sentiment_satisfied</span>
+                <span>이모지</span>
+            </button>
+        </div>
+
+        <!-- 모바일 모드 선택 패널 -->
+        <div class="mobile-mode-panel" id="mobileModePanel">
+            <h3 style="margin-top: 0; text-align: center;">편집 모드 선택</h3>
+            <div class="mode-grid">
+                <div class="mode-card" onclick="selectMobileMode('number')">
+                    <span class="material-icons">format_list_numbered</span>
+                    <div class="mode-name">숫자 모드</div>
+                </div>
+                <div class="mode-card" onclick="selectMobileMode('shape')">
+                    <span class="material-icons">crop_square</span>
+                    <div class="mode-name">도형 모드</div>
+                </div>
+                <div class="mode-card" onclick="selectMobileMode('text')">
+                    <span class="material-icons">text_fields</span>
+                    <div class="mode-name">텍스트 모드</div>
+                </div>
+                <div class="mode-card" onclick="selectMobileMode('emoji')">
+                    <span class="material-icons">sentiment_satisfied</span>
+                    <div class="mode-name">이모지 모드</div>
+                </div>
+            </div>
+            <button onclick="hideMobileModePanel()" style="margin-top: 1.5rem; width: 100%; padding: 1rem; background-color: var(--muted); border: none; border-radius: 8px; color: var(--foreground); font-size: 1rem;">닫기</button>
+        </div>
+    </div>
+
+    <script>
+        function selectMobileMode(mode) {
+            document.getElementById('modeSelector').value = mode;
+            document.getElementById('modeSelector').dispatchEvent(new Event('change'));
+            hideMobileModePanel();
+            updateMobileToolbar();
+        }
+
+        // 모바일 기기에서만 모바일 UI 표시
+        if (isMobileDevice()) {
+            document.querySelector('.mobile-only').style.display = 'block';
+        }
+    </script>
+
 </body>
 </html>

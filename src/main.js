@@ -1,6 +1,31 @@
-// 전역 상수 및 변수
+// 모바일 감지 시스템
+        function isMobileDevice() {
+            // User Agent 기반 모바일 기기 감지
+            const userAgent = navigator.userAgent.toLowerCase();
+            const mobileKeywords = [
+                'android', 'webos', 'iphone', 'ipad', 'ipod', 
+                'blackberry', 'windows phone', 'mobile', 'opera mini'
+            ];
+            return mobileKeywords.some(keyword => userAgent.includes(keyword));
+        }
+
+        // 모바일 UI 초기화
+        function initMobileUI() {
+            if (isMobileDevice()) {
+                document.body.classList.add('mobile-device');
+                console.log('모바일 기기 감지됨 - 모바일 UI 활성화');
+                return true;
+            } else {
+                document.body.classList.add('desktop-device');
+                console.log('데스크톱 기기 - 기본 UI 유지');
+                return false;
+            }
+        }
+
+        // 전역 상수 및 변수
         const MAX_WIDTH = 1400;
         const MAX_HEIGHT = 900;
+        const IS_MOBILE = initMobileUI();
         const imageLoader = document.getElementById('imageLoader');
         const clipboardButton = document.getElementById('clipboardButton');
         const saveButton = document.getElementById('saveButton');
@@ -1154,6 +1179,197 @@
                 stopDrawing(e); // Finalize drawing a new shape
             }
         });
+
+        // 모바일 터치 이벤트 처리
+        if (IS_MOBILE) {
+            console.log('모바일 기기 감지 - 터치 이벤트 핸들러 추가');
+            
+            // 터치 이벤트와 마우스 이벤트 중복 방지
+            let touchActive = false;
+            
+            // 터치 좌표 추출 헬퍼 함수
+            function getTouchPos(canvas, e) {
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0] || e.changedTouches[0];
+                return [touch.clientX - rect.left, touch.clientY - rect.top];
+            }
+            
+            // 터치 시작
+            canvas.addEventListener('touchstart', e => {
+                e.preventDefault(); // 스크롤 방지
+                touchActive = true;
+                
+                const [touchX, touchY] = getTouchPos(canvas, e);
+                
+                // 마우스다운 이벤트와 동일한 로직 실행
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touchX + canvas.getBoundingClientRect().left,
+                    clientY: touchY + canvas.getBoundingClientRect().top,
+                    button: 0
+                });
+                
+                // 직접 로직 실행 (이벤트 발생 대신)
+                handlePointerStart(touchX, touchY, e);
+                
+            }, { passive: false });
+            
+            // 터치 이동
+            canvas.addEventListener('touchmove', e => {
+                e.preventDefault(); // 스크롤 방지
+                if (!touchActive) return;
+                
+                const [touchX, touchY] = getTouchPos(canvas, e);
+                handlePointerMove(touchX, touchY, e);
+                
+            }, { passive: false });
+            
+            // 터치 종료
+            canvas.addEventListener('touchend', e => {
+                e.preventDefault();
+                touchActive = false;
+                
+                if (e.changedTouches.length > 0) {
+                    const [touchX, touchY] = getTouchPos(canvas, e);
+                    handlePointerEnd(touchX, touchY, e);
+                }
+                
+            }, { passive: false });
+            
+            // 터치 취소
+            canvas.addEventListener('touchcancel', e => {
+                touchActive = false;
+                // 드래그/리사이즈 상태 초기화
+                isDragging = false;
+                isResizing = false;
+                isDrawing = false;
+                draggedObject = null;
+                resizeHandle = null;
+                canvas.style.cursor = 'default';
+            });
+            
+            // 마우스 이벤트가 터치 이벤트 이후에 발생하지 않도록 방지
+            canvas.addEventListener('mousedown', e => {
+                if (touchActive) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        }
+        
+        // 공통 포인터 이벤트 처리 함수들
+        function handlePointerStart(x, y, e) {
+            // 기존 mousedown 로직
+            if (canvasMode === 'multi' && selectedImageLayer) {
+                const handleName = getResizeHandle(x, y, selectedImageLayer);
+                if (handleName) {
+                    isResizing = true;
+                    resizeHandle = handleName;
+                    resizeStartX = x;
+                    resizeStartY = y;
+                    resizeStartWidth = selectedImageLayer.width;
+                    resizeStartHeight = selectedImageLayer.height;
+                    resizeStartImageX = selectedImageLayer.x;
+                    resizeStartImageY = selectedImageLayer.y;
+                    canvas.style.cursor = getResizeCursor(handleName);
+                    return;
+                }
+            }
+            
+            const clickedObject = isMouseOverObjectByCoords(x, y);
+            
+            if (clickedObject) {
+                if (canvasMode === 'multi' && clickedObject.image) {
+                    selectedImageLayer = clickedObject;
+                    redrawCanvas();
+                }
+                
+                isDragging = true;
+                draggedObject = clickedObject;
+                
+                dragOffsetX = x - (draggedObject.x !== undefined ? draggedObject.x : draggedObject.startX);
+                dragOffsetY = y - (draggedObject.y !== undefined ? draggedObject.y : draggedObject.startY);
+                
+                canvas.style.cursor = 'grabbing';
+            } else {
+                // 새 객체 생성 로직
+                if (currentMode === 'number') {
+                    addNumber(x, y);
+                } else if (currentMode === 'text') {
+                    addText(x, y);
+                } else if (currentMode === 'emoji') {
+                    addEmoji(x, y);
+                } else if (currentMode === 'shape') {
+                    startDrawing(x, y);
+                }
+            }
+        }
+        
+        function handlePointerMove(x, y, e) {
+            // 기존 mousemove 로직
+            if (isResizing && selectedImageLayer && resizeHandle) {
+                resizeSelectedImage(x, y);
+                return;
+            }
+            
+            if (isDragging && draggedObject) {
+                moveObject(draggedObject, x, y);
+                redrawCanvas();
+                return;
+            }
+            
+            if (currentMode === 'shape' && isDrawing) {
+                drawShapePreview(x, y);
+                return;
+            }
+            
+            updateCursor(x, y);
+        }
+        
+        function handlePointerEnd(x, y, e) {
+            // 기존 mouseup 로직
+            if (isResizing) {
+                isResizing = false;
+                resizeHandle = null;
+                canvas.style.cursor = 'default';
+                saveUserSettings();
+            } else if (isDragging) {
+                isDragging = false;
+                draggedObject = null;
+                canvas.style.cursor = 'default';
+                saveUserSettings();
+            } else if (currentMode === 'shape' && isDrawing) {
+                stopDrawing(e);
+            }
+        }
+        
+        // 좌표 기반 객체 검색 헬퍼 함수
+        function isMouseOverObjectByCoords(x, y) {
+            // 기존 isMouseOverObject 로직을 좌표로 처리
+            for (let i = clicks.length - 1; i >= 0; i--) {
+                const obj = clicks[i];
+                if (obj.type === 'number' || obj.type === 'text' || obj.type === 'emoji') {
+                    const size = parseInt(obj.size) || 20;
+                    if (Math.abs(x - obj.x) <= size && Math.abs(y - obj.y) <= size) {
+                        return obj;
+                    }
+                } else if (obj.type === 'shape') {
+                    if (isPointInsideShape(x, y, obj)) {
+                        return obj;
+                    }
+                }
+            }
+            
+            if (canvasMode === 'multi') {
+                for (let layer of imageLayers) {
+                    if (x >= layer.x && x <= layer.x + layer.width && 
+                        y >= layer.y && y <= layer.y + layer.height) {
+                        return layer;
+                    }
+                }
+            }
+            
+            return null;
+        }
 
         // 키보드 이벤트 처리
         document.addEventListener('keydown', e => {
