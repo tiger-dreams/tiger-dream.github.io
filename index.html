@@ -322,6 +322,38 @@
             pointer-events: auto;
         }
 
+        .chrome-extension-link:hover {
+            background: linear-gradient(135deg, #3367d6, #2d8659) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .chrome-extension-link:active {
+            transform: translateY(0);
+        }
+
+        /* 모바일에서는 텍스트 숨김 */
+        @media (max-width: 768px) {
+            .chrome-extension-text {
+                display: none;
+            }
+            
+            .chrome-extension-link {
+                margin-right: 0.5rem !important;
+                padding: 0.5rem !important;
+                min-width: auto !important;
+            }
+            
+            .top-bar-actions {
+                gap: 0.25rem;
+            }
+            
+            /* 모바일에서는 라벨을 더 간결하게 */
+            .top-bar-actions label {
+                font-size: 0.75rem !important;
+            }
+        }
+
         .top-resize-selector {
             min-width: 180px;
             padding: 0.5rem;
@@ -994,7 +1026,14 @@
             <header class="top-bar">
                 <h2 data-lang-key="editImage">이미지 편집</h2>
                 <div class="top-bar-actions">
-                    <label for="resizeSelector" style="font-size: 0.875rem; color: var(--muted-foreground); margin-right: 0.5rem; pointer-events: none;" data-lang-key="imageSize">이미지 크기:</label>
+                    <!-- Chrome Extension Link -->
+                    <a href="https://chromewebstore.google.com/detail/annotateshot-capture/edngphlkihgcpcolnjadgopgkpfhdcce" target="_blank" class="chrome-extension-link" title="Chrome Extension으로 웹페이지 캡처하기" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1.25rem; background: linear-gradient(135deg, #4285f4, #34a853); color: white; text-decoration: none; border-radius: 6px; font-size: 0.875rem; margin-right: 1rem; transition: all 0.2s ease; white-space: nowrap;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm3.5 6L12 10.5 8.5 8 6 12l2.5 4 3.5-2.5L15.5 16l2.5-4-2.5-4z"/>
+                        </svg>
+                        <span data-lang-key="chromeExtension" class="chrome-extension-text">Chrome Extension</span>
+                    </a>
+                    <label for="resizeSelector" style="font-size: 0.875rem; color: var(--muted-foreground); margin-right: 0.5rem; pointer-events: none; white-space: nowrap;" data-lang-key="imageSize">이미지 크기:</label>
                     <select id="resizeSelector" aria-label="Select image resize option" class="top-resize-selector" onclick="event.stopPropagation();">
                         <option value="default" data-lang-key="autoResize">자동 리사이즈 (기본)</option>
                         <option value="original" data-lang-key="originalSize">원본</option>
@@ -1859,6 +1898,7 @@
                     'releaseNotes': '릴리즈 노트',
                     'codeLineRemover': '코드 라인 제거기',
                     'legacyVersion': '레거시 버전',
+                    'chromeExtension': 'Chrome 확장 프로그램',
                     'editImage': '이미지 편집',
                     'imageSize': '이미지 크기:',
                     'autoResize': '자동 리사이즈 (기본)',
@@ -1962,6 +2002,7 @@
                     'releaseNotes': 'Release Notes',
                     'codeLineRemover': 'Code Line Remover',
                     'legacyVersion': 'Legacy Version',
+                    'chromeExtension': 'Chrome Extension',
                     'editImage': 'Edit Image',
                     'imageSize': 'Image Size:',
                     'autoResize': 'Auto Resize (Default)',
