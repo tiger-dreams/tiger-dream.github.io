@@ -10,7 +10,10 @@ AnnotateShot is a web-based image annotation tool that allows users to add numbe
 
 ### Testing
 - Open `test.html` in browser for automated feature testing
-- Use VS Code Live Server (Go Live) extension for local testing
+- **Primary testing method**: Use VS Code Live Server (Go Live) extension for local testing
+  - Right-click on `index.html` and select "Open with Live Server"
+  - Or use the "Go Live" button in VS Code status bar
+  - Provides real-time updates and proper CORS handling
 - No build process required - static files served directly
 
 ### Deployment

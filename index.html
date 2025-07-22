@@ -382,6 +382,17 @@
             max-height: 100%;
         }
 
+        #imageCanvas.transparent-background {
+            background-image: 
+                linear-gradient(45deg, #e0e0e0 25%, transparent 25%), 
+                linear-gradient(-45deg, #e0e0e0 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #e0e0e0 75%), 
+                linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+            background-size: 60px 60px;
+            background-position: 0 0, 0 30px, 30px -30px, -30px 0px;
+            background-color: #ffffff;
+        }
+
         .status-bar {
             background-color: var(--card);
             border-top: 1px solid var(--border);
@@ -449,6 +460,180 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        /* Layer Sidebar Styles */
+        .layer-sidebar {
+            background-color: var(--card);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.1), -2px 0 4px -1px rgba(0, 0, 0, 0.06);
+            z-index: 20;
+            width: 280px;
+            transition: width 0.3s ease;
+        }
+
+        .layer-sidebar.collapsed {
+            width: 50px;
+        }
+
+        .layer-sidebar-header {
+            background-color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem;
+            min-height: 74px;
+            display: flex;
+            align-items: center;
+        }
+
+        .layer-sidebar-header-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+        }
+
+        .layer-sidebar-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--foreground);
+            margin: 0;
+            flex: 1;
+        }
+
+        .layer-sidebar-collapse {
+            padding: 0.375rem;
+            background: transparent;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+        }
+
+        .layer-sidebar-collapse:hover {
+            background-color: var(--accent);
+            color: var(--accent-foreground);
+        }
+
+        .layer-sidebar.collapsed .layer-sidebar-collapse .material-icons {
+            transform: rotate(180deg);
+        }
+
+        .layer-sidebar-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .layer-sidebar.collapsed .layer-sidebar-content {
+            display: none;
+        }
+
+        .layer-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--background);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .layer-item:hover {
+            background-color: var(--accent);
+            border-color: var(--primary);
+        }
+
+        .layer-item.selected {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border-color: var(--primary);
+        }
+
+        .layer-item.background-layer {
+            opacity: 0.8;
+        }
+
+        .layer-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        .layer-icon {
+            font-size: 1.25rem;
+            color: var(--muted-foreground);
+        }
+
+        .layer-item.selected .layer-icon {
+            color: var(--primary-foreground);
+        }
+
+        .layer-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--foreground);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .layer-item.selected .layer-name {
+            color: var(--primary-foreground);
+        }
+
+        .layer-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .layer-visibility-toggle {
+            padding: 0.25rem;
+            background: transparent;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .layer-visibility-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .layer-visibility-toggle.hidden .material-icons {
+            opacity: 0.3;
+        }
+
+        .layer-item.selected .layer-visibility-toggle {
+            color: var(--primary-foreground);
+        }
+
+        .layer-actions {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .layer-actions .btn {
+            width: 100%;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -468,6 +653,21 @@
 
             .main-content {
                 width: 100%;
+            }
+
+            .layer-sidebar {
+                position: fixed;
+                right: -280px;
+                height: 100vh;
+                z-index: 30;
+            }
+
+            .layer-sidebar.mobile-open {
+                right: 0;
+            }
+
+            .layer-sidebar.collapsed {
+                right: -50px;
             }
 
             .mobile-overlay {
@@ -576,6 +776,53 @@
                             <button class="btn btn-icon" id="undoButton" aria-label="Undo last action">
                                 <span class="material-icons">undo</span>
                             </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Canvas Settings -->
+                <div class="tool-panel">
+                    <div class="panel-title">
+                        <span class="material-icons">palette</span>
+                        <span data-lang-key="canvasSettings">캔버스 설정</span>
+                    </div>
+                    <div class="style-section">
+                        <div class="style-subtitle" data-lang-key="canvasMode">캔버스 모드</div>
+                        <select id="canvasModeSelector" aria-label="Select canvas mode">
+                            <option value="single" data-lang-key="singleImageMode">싱글 이미지 편집</option>
+                            <option value="multi" data-lang-key="multiImageMode">빈 캔버스 (멀티 이미지)</option>
+                        </select>
+                    </div>
+                    <div class="style-section" id="backgroundColorSection" style="display: none;">
+                        <div class="style-subtitle" data-lang-key="backgroundColor">배경색</div>
+                        <select id="backgroundColorSelector" aria-label="Select background color">
+                            <option value="" data-lang-key="pleaseSelect">배경색을 선택해주세요</option>
+                            <option value="transparent" data-lang-key="transparent">투명</option>
+                            <option value="white" data-lang-key="white">흰색</option>
+                            <option value="light-gray" data-lang-key="lightGray">연한 회색</option>
+                            <option value="gray" data-lang-key="gray">회색</option>
+                            <option value="dark-gray" data-lang-key="darkGray">짙은 회색</option>
+                        </select>
+                    </div>
+                    <div class="style-section" id="canvasSizeSection" style="display: none;">
+                        <div class="style-subtitle" data-lang-key="canvasSize">캔버스 크기</div>
+                        <select id="canvasSizeSelector" aria-label="Select canvas size">
+                            <option value="" data-lang-key="pleaseSelectSize">캔버스 크기를 선택해주세요</option>
+                            <option value="1920x1080" data-lang-key="size1920x1080">Full HD (1920×1080)</option>
+                            <option value="1280x720" data-lang-key="size1280x720">HD (1280×720)</option>
+                            <option value="1200x800" data-lang-key="size1200x800">웹 표준 (1200×800)</option>
+                            <option value="800x600" data-lang-key="size800x600">클래식 (800×600)</option>
+                            <option value="a4-landscape" data-lang-key="sizeA4Landscape">A4 가로 (297×210mm)</option>
+                            <option value="a4-portrait" data-lang-key="sizeA4Portrait">A4 세로 (210×297mm)</option>
+                            <option value="custom" data-lang-key="sizeCustom">사용자 정의</option>
+                        </select>
+                        <div id="customSizeSection" style="display: none; margin-top: 10px;">
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <input type="number" id="customWidth" placeholder="가로" min="100" max="2000" style="width: 70px; padding: 5px; border: 1px solid #ddd; border-radius: 3px;">
+                                <span>×</span>
+                                <input type="number" id="customHeight" placeholder="세로" min="100" max="2000" style="width: 70px; padding: 5px; border: 1px solid #ddd; border-radius: 3px;">
+                                <button id="applyCustomSize" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 3px; background: #f5f5f5; cursor: pointer;" data-lang-key="apply">적용</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -782,6 +1029,39 @@
                 </div>
             </footer>
         </main>
+
+        <!-- Right Layer Sidebar -->
+        <aside class="layer-sidebar" id="layerSidebar">
+            <div class="layer-sidebar-header">
+                <div class="layer-sidebar-header-content">
+                    <span class="material-icons">layers</span>
+                    <h3 data-lang-key="layers">레이어</h3>
+                </div>
+            </div>
+            
+            <div class="layer-sidebar-content">
+                <div class="layer-list" id="layerList">
+                    <div class="layer-item background-layer">
+                        <div class="layer-info">
+                            <span class="material-icons layer-icon">image</span>
+                            <span class="layer-name" data-lang-key="backgroundLayer">배경 이미지</span>
+                        </div>
+                        <div class="layer-controls">
+                            <button class="layer-visibility-toggle" aria-label="Toggle visibility">
+                                <span class="material-icons">visibility</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="layer-actions">
+                    <button class="btn btn-sm" id="clearAllLayers" data-lang-key="clearAllLayers">
+                        <span class="material-icons">clear_all</span>
+                        모든 레이어 지우기
+                    </button>
+                </div>
+            </div>
+        </aside>
     </div>
 
     <!-- Message -->
@@ -841,8 +1121,390 @@
                 mobileOverlay.classList.remove('show');
             });
             
-            window.addEventListener('resize', checkMobile);
+            window.addEventListener('resize', () => {
+                checkMobile();
+                
+                // Also trigger canvas resize if auto-resize is selected
+                if (typeof window.triggerCanvasResize === 'function') {
+                    clearTimeout(window.resizeTimeout);
+                    window.resizeTimeout = setTimeout(() => {
+                        window.triggerCanvasResize();
+                    }, 100); // Debounce resize events
+                }
+            });
             checkMobile();
+        }
+
+        // Layer Sidebar Functionality
+        function initializeLayerSidebar() {
+            const layerSidebar = document.getElementById('layerSidebar');
+            const layerList = document.getElementById('layerList');
+            const clearAllLayersBtn = document.getElementById('clearAllLayers');
+            
+            // Initialize background layer visibility toggle
+            const backgroundLayerToggle = layerList.querySelector('.background-layer .layer-visibility-toggle');
+            if (backgroundLayerToggle) {
+                backgroundLayerToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleBackgroundLayerVisibility();
+                });
+            }
+            
+            // Clear all layers functionality
+            clearAllLayersBtn.addEventListener('click', () => {
+                if (confirm('모든 주석을 삭제하시겠습니까?')) {
+                    if (typeof window.clearAllAnnotations === 'function') {
+                        window.clearAllAnnotations();
+                    } else {
+                        console.error('clearAllAnnotations function not available');
+                    }
+                }
+            });
+            
+            // Update layer list based on new layer system
+            function updateLayerList() {
+                console.log('Updating layer list...');
+                
+                // Clear existing layers
+                const existingLayers = layerList.querySelectorAll('.layer-item');
+                existingLayers.forEach(item => item.remove());
+                
+                // Get data from main.js
+                const layers = window.layers || [];
+                const imageLayers = window.imageLayers || [];
+                console.log('Layers:', layers.length, 'ImageLayers:', imageLayers.length);
+                
+                // 1. Add background layer (solid color)
+                addBackgroundLayer();
+                
+                // 2. Add image layers
+                imageLayers.forEach((imageLayer, index) => {
+                    addImageLayerToUI(imageLayer, index);
+                });
+                
+                // 3. Add annotation layers in reverse order (top layer first in UI)
+                const annotationLayers = layers.filter(layer => layer.type !== 'background');
+                for (let i = annotationLayers.length - 1; i >= 0; i--) {
+                    const layer = annotationLayers[i];
+                    addAnnotationLayerToUI(layer, i);
+                }
+                
+                console.log('Layer list updated successfully');
+            }
+            
+            function addBackgroundLayer() {
+                const backgroundItem = document.createElement('div');
+                backgroundItem.className = 'layer-item background-layer';
+                backgroundItem.setAttribute('data-layer-type', 'background');
+                
+                const layerContent = document.createElement('div');
+                layerContent.className = 'layer-info';
+                
+                const icon = document.createElement('span');
+                icon.className = 'material-icons layer-icon';
+                icon.textContent = 'layers';
+                
+                const name = document.createElement('span');
+                name.className = 'layer-name';
+                name.textContent = '배경';
+                
+                const controls = document.createElement('div');
+                controls.className = 'layer-controls';
+                
+                // 배경 레이어는 항상 보임, 삭제 불가
+                const visibilityBtn = document.createElement('button');
+                visibilityBtn.className = 'layer-visibility-toggle';
+                visibilityBtn.innerHTML = '<span class="material-icons">visibility</span>';
+                visibilityBtn.disabled = true;
+                visibilityBtn.style.opacity = '0.3';
+                
+                controls.appendChild(visibilityBtn);
+                
+                layerContent.appendChild(icon);
+                layerContent.appendChild(name);
+                backgroundItem.appendChild(layerContent);
+                backgroundItem.appendChild(controls);
+                
+                layerList.appendChild(backgroundItem);
+            }
+            
+            function addImageLayerToUI(imageLayer, index) {
+                const layerItem = document.createElement('div');
+                layerItem.className = 'layer-item image-layer';
+                layerItem.setAttribute('data-image-layer-id', imageLayer.id);
+                
+                const layerContent = document.createElement('div');
+                layerContent.className = 'layer-info';
+                
+                const icon = document.createElement('span');
+                icon.className = 'material-icons layer-icon';
+                icon.textContent = 'image';
+                
+                const name = document.createElement('span');
+                name.className = 'layer-name';
+                name.textContent = `이미지 레이어 ${index + 1}`;
+                
+                const controls = document.createElement('div');
+                controls.className = 'layer-controls';
+                
+                // Visibility toggle
+                const visibilityBtn = document.createElement('button');
+                visibilityBtn.className = 'layer-visibility-toggle';
+                const visibilityIcon = imageLayer.visible !== false ? 'visibility' : 'visibility_off';
+                visibilityBtn.innerHTML = `<span class="material-icons">${visibilityIcon}</span>`;
+                if (imageLayer.visible === false) {
+                    visibilityBtn.classList.add('hidden');
+                }
+                visibilityBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleImageLayerVisibility(imageLayer.id);
+                };
+                
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'layer-visibility-toggle';
+                deleteBtn.innerHTML = '<span class="material-icons">delete</span>';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteImageLayer(imageLayer.id);
+                };
+                
+                controls.appendChild(visibilityBtn);
+                controls.appendChild(deleteBtn);
+                
+                layerContent.appendChild(icon);
+                layerContent.appendChild(name);
+                layerItem.appendChild(layerContent);
+                layerItem.appendChild(controls);
+                
+                layerList.appendChild(layerItem);
+            }
+            
+            function addAnnotationLayerToUI(layer, index) {
+                const layerItem = createLayerItem(layer, index);
+                layerList.appendChild(layerItem);
+            }
+            
+            function createLayerItem(layer, displayIndex) {
+                const layerItem = document.createElement('div');
+                layerItem.className = 'layer-item annotation-layer';
+                layerItem.dataset.layerId = layer.id;
+                
+                const layerInfo = document.createElement('div');
+                layerInfo.className = 'layer-info';
+                
+                const icon = document.createElement('span');
+                icon.className = 'material-icons layer-icon';
+                icon.textContent = getLayerIcon(layer.type);
+                
+                const name = document.createElement('span');
+                name.className = 'layer-name';
+                name.textContent = layer.name || getLayerName(layer, displayIndex);
+                
+                const controls = document.createElement('div');
+                controls.className = 'layer-controls';
+                
+                const visibilityToggle = document.createElement('button');
+                visibilityToggle.className = 'layer-visibility-toggle';
+                if (layer.visible === false) {
+                    visibilityToggle.classList.add('hidden');
+                }
+                const visibilityIcon = layer.visible === false ? 'visibility_off' : 'visibility';
+                visibilityToggle.innerHTML = `<span class="material-icons">${visibilityIcon}</span>`;
+                visibilityToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleLayerVisibility(layer.id);
+                });
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'layer-visibility-toggle';
+                deleteBtn.innerHTML = '<span class="material-icons">delete</span>';
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteLayer(layer.id);
+                });
+                
+                layerInfo.appendChild(icon);
+                layerInfo.appendChild(name);
+                controls.appendChild(visibilityToggle);
+                controls.appendChild(deleteBtn);
+                layerItem.appendChild(layerInfo);
+                layerItem.appendChild(controls);
+                
+                // Layer click to select
+                layerItem.addEventListener('click', () => {
+                    selectLayerById(layer.id);
+                });
+                
+                return layerItem;
+            }
+            
+            function getLayerIcon(type) {
+                const icons = {
+                    number: 'looks_one',
+                    shape: 'crop_square',
+                    text: 'text_fields',
+                    emoji: 'emoji_emotions'
+                };
+                return icons[type] || 'layers';
+            }
+            
+            function getLayerName(annotation, index) {
+                const typeNames = {
+                    number: '숫자',
+                    shape: '도형',
+                    text: '텍스트',
+                    emoji: '이모지'
+                };
+                const baseName = typeNames[annotation.type] || '요소';
+                return `${baseName} ${index + 1}`;
+            }
+            
+            function selectLayer(index) {
+                // Remove previous selection
+                document.querySelectorAll('.layer-item.selected').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // Select new layer
+                const layerItem = document.querySelector(`[data-index="${index}"]`);
+                if (layerItem) {
+                    layerItem.classList.add('selected');
+                }
+            }
+            
+            function toggleAnnotationVisibility(index) {
+                if (clicks[index]) {
+                    clicks[index].visible = clicks[index].visible !== false ? false : true;
+                    redrawCanvas();
+                    updateLayerList();
+                }
+            }
+            
+            function deleteAnnotation(index) {
+                if (clicks[index]) {
+                    clicks.splice(index, 1);
+                    redrawCanvas();
+                    updateLayerList();
+                }
+            }
+            
+            
+            // Background layer visibility toggle
+            function toggleBackgroundLayerVisibility() {
+                console.log('Toggling background layer visibility');
+                if (window.layers) {
+                    const backgroundLayer = window.layers.find(layer => layer.type === 'background');
+                    console.log('Found background layer:', backgroundLayer);
+                    if (backgroundLayer) {
+                        backgroundLayer.visible = !backgroundLayer.visible;
+                        console.log('New visibility state:', backgroundLayer.visible);
+                        if (typeof window.redrawCanvas === 'function') {
+                            window.redrawCanvas();
+                        }
+                        updateLayerList();
+                    }
+                }
+            }
+            
+            // Layer visibility toggle by ID
+            function toggleLayerVisibility(layerId) {
+                if (window.layers) {
+                    const layer = window.layers.find(l => l.id === layerId);
+                    if (layer) {
+                        layer.visible = !layer.visible;
+                        if (typeof window.redrawCanvas === 'function') {
+                            window.redrawCanvas();
+                        }
+                        updateLayerList();
+                    }
+                }
+            }
+            
+            // Delete layer by ID
+            function deleteLayer(layerId) {
+                console.log('Deleting layer with ID:', layerId);
+                if (window.layers) {
+                    const layerIndex = window.layers.findIndex(l => l.id === layerId);
+                    console.log('Found layer at index:', layerIndex);
+                    if (layerIndex !== -1) {
+                        const layer = window.layers[layerIndex];
+                        console.log('Layer to delete:', layer);
+                        
+                        // Also remove from clicks array
+                        const clickIndex = window.clicks.findIndex(click => click === layer.data);
+                        console.log('Found corresponding click at index:', clickIndex);
+                        console.log('Clicks array before:', window.clicks.length);
+                        
+                        if (clickIndex !== -1) {
+                            window.clicks.splice(clickIndex, 1);
+                        }
+                        
+                        console.log('Clicks array after:', window.clicks.length);
+                        
+                        window.layers.splice(layerIndex, 1);
+                        console.log('Layers array after:', window.layers.length);
+                        
+                        if (typeof window.redrawCanvas === 'function') {
+                            window.redrawCanvas();
+                        }
+                        updateLayerList();
+                    }
+                }
+            }
+            
+            // Image layer control functions
+            function toggleImageLayerVisibility(imageLayerId) {
+                if (window.imageLayers) {
+                    const imageLayer = window.imageLayers.find(layer => layer.id === imageLayerId);
+                    if (imageLayer) {
+                        imageLayer.visible = !imageLayer.visible;
+                        if (typeof window.redrawCanvas === 'function') {
+                            window.redrawCanvas();
+                        }
+                        updateLayerList();
+                    }
+                }
+            }
+            
+            function deleteImageLayer(imageLayerId) {
+                if (window.imageLayers) {
+                    const layerIndex = window.imageLayers.findIndex(layer => layer.id === imageLayerId);
+                    if (layerIndex !== -1) {
+                        window.imageLayers.splice(layerIndex, 1);
+                        
+                        // Also remove from legacy layers system
+                        if (window.layers) {
+                            const legacyIndex = window.layers.findIndex(l => l.type === 'background');
+                            if (legacyIndex !== -1) {
+                                window.layers.splice(legacyIndex, 1);
+                            }
+                        }
+                        
+                        if (typeof window.redrawCanvas === 'function') {
+                            window.redrawCanvas();
+                        }
+                        updateLayerList();
+                    }
+                }
+            }
+            
+            // Select layer by ID
+            function selectLayerById(layerId) {
+                // Remove previous selection
+                document.querySelectorAll('.layer-item.selected').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // Select new layer
+                const layerItem = document.querySelector(`[data-layer-id="${layerId}"]`);
+                if (layerItem) {
+                    layerItem.classList.add('selected');
+                }
+            }
+            
+            // Expose updateLayerList globally for main.js to call
+            window.updateLayerList = updateLayerList;
         }
 
         // Canvas Container State Management
@@ -1131,6 +1793,25 @@
                 'ko': {
                     'fileOperations': '파일 작업',
                     'pasteFromClipboard': '클립보드에서 가져오기',
+                    'canvasSettings': '캔버스 설정',
+                    'canvasMode': '캔버스 모드',
+                    'singleImageMode': '싱글 이미지 편집',
+                    'multiImageMode': '빈 캔버스 (멀티 이미지)',
+                    'backgroundColor': '배경색',
+                    'canvasSize': '캔버스 크기',
+                    'size1920x1080': 'Full HD (1920×1080)',
+                    'size1280x720': 'HD (1280×720)',
+                    'size1200x800': '웹 표준 (1200×800)',
+                    'size800x600': '클래식 (800×600)',
+                    'sizeA4Landscape': 'A4 가로 (297×210mm)',
+                    'sizeA4Portrait': 'A4 세로 (210×297mm)',
+                    'sizeCustom': '사용자 정의',
+                    'apply': '적용',
+                    'white': '흰색',
+                    'lightGray': '연한 회색',
+                    'gray': '회색',
+                    'darkGray': '짙은 회색',
+                    'transparent': '투명',
                     'annotationMode': '주석 모드',
                     'numberMode': '숫자 입력 모드',
                     'shapeMode': '도형 모드',
@@ -1167,6 +1848,9 @@
                     'cropControls': '크롭 컨트롤',
                     'applyCrop': '크롭 적용',
                     'cancelCrop': '크롭 취소',
+                    'layers': '레이어',
+                    'backgroundLayer': '배경 이미지',
+                    'clearAllLayers': '모든 레이어 지우기',
                     'cropInstruction': '드래그하여 크롭 영역을 선택하세요',
                     'undo': '실행 취소',
                     'save': '저장하기',
@@ -1186,6 +1870,9 @@
                     'scale50': '원본 대비 50% 축소',
                     'scale70': '원본 대비 70% 축소',
                     'uploadImagePrompt': 'AnnotateShot 서비스 이용 방법\n1. 번호, 도형, 텍스트를 입력해야하는 이미지를 불러오세요. 클립보드 이미지도 가능합니다.\n2. 아무곳이나 클릭해보세요.\n3. 저장이 필요하면 저장하기 버튼을 눌러서 로컬 PC로 저장할 수 있습니다. 혹은 이미지 우측 클릭 후 이미지 복사를 하셔도 괜찮습니다.',
+                    'blankCanvasPrompt': '빈 캔버스 모드 (멀티 이미지)\n1. 배경색을 선택하세요.\n2. 여러 이미지를 업로드하여 레이어로 구성하세요.\n3. 각 이미지를 드래그하여 위치를 조정할 수 있습니다.',
+                    'imageLoaded': '이미지 로드됨: {width} x {height}',
+                    'imageLayerAdded': '이미지 레이어 {layerNumber} 추가됨: {width} x {height}',
                     'mouseMovePrompt': '마우스를 움직여보세요',
                     'statusCoordinates': '좌표: ({x}, {y})',
                     'statusOutsideCanvas': '캔버스 영역 외부',
@@ -1208,6 +1895,25 @@
                 'en': {
                     'fileOperations': 'File Operations',
                     'pasteFromClipboard': 'Paste from Clipboard',
+                    'canvasSettings': 'Canvas Settings',
+                    'canvasMode': 'Canvas Mode',
+                    'singleImageMode': 'Single Image Edit',
+                    'multiImageMode': 'Blank Canvas (Multi Image)',
+                    'backgroundColor': 'Background Color',
+                    'canvasSize': 'Canvas Size',
+                    'size1920x1080': 'Full HD (1920×1080)',
+                    'size1280x720': 'HD (1280×720)',
+                    'size1200x800': 'Web Standard (1200×800)',
+                    'size800x600': 'Classic (800×600)',
+                    'sizeA4Landscape': 'A4 Landscape (297×210mm)',
+                    'sizeA4Portrait': 'A4 Portrait (210×297mm)',
+                    'sizeCustom': 'Custom',
+                    'apply': 'Apply',
+                    'white': 'White',
+                    'lightGray': 'Light Gray',
+                    'gray': 'Gray',
+                    'darkGray': 'Dark Gray',
+                    'transparent': 'Transparent',
                     'annotationMode': 'Annotation Mode',
                     'numberMode': 'Number Mode',
                     'shapeMode': 'Shape Mode',
@@ -1244,6 +1950,9 @@
                     'cropControls': 'Crop Controls',
                     'applyCrop': 'Apply Crop',
                     'cancelCrop': 'Cancel Crop',
+                    'layers': 'Layers',
+                    'backgroundLayer': 'Background Image',
+                    'clearAllLayers': 'Clear All Layers',
                     'cropInstruction': 'Drag to select crop area',
                     'undo': 'Undo',
                     'redo': 'Redo',
@@ -1264,6 +1973,9 @@
                     'scale50': 'Scale 50%',
                     'scale70': 'Scale 70%',
                     'uploadImagePrompt': 'How to use AnnotateShot\n1. Load an image that needs numbers, shapes, or text annotations. Clipboard images are supported.\n2. Click anywhere on the image.\n3. When you need to save, click the Save button to download to your local PC. You can also right-click the image and copy it.',
+                    'blankCanvasPrompt': 'Blank Canvas Mode (Multi Image)\n1. Select a background color.\n2. Upload multiple images to compose as layers.\n3. Drag each image to adjust its position.',
+                    'imageLoaded': 'Image loaded: {width} x {height}',
+                    'imageLayerAdded': 'Image layer {layerNumber} added: {width} x {height}',
                     'mouseMovePrompt': 'Move your mouse',
                     'statusCoordinates': 'Coordinates: ({x}, {y})',
                     'statusOutsideCanvas': 'Outside canvas area',
@@ -1341,6 +2053,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initializeTheme();
             initializeSidebar();
+            initializeLayerSidebar();
             initializeModeControls();
             initializeStatusLogging();
             updateCanvasContainer();
