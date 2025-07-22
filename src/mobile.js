@@ -434,10 +434,52 @@ class MobileAnnotateShot {
             });
         }
         
+        const fabDebug = document.getElementById('fabDebug');
+        if (fabDebug) {
+            fabDebug.addEventListener('click', () => {
+                this.toggleMobileDebugPanel();
+            });
+        }
+        
         // 설정 패널 이벤트 설정
         this.setupSettingsPanel();
         
         console.log('✅ 플로팅 버튼 설정 완료');
+    }
+    
+    toggleMobileDebugPanel() {
+        const panel = document.getElementById('mobileDebugPanel');
+        if (panel) {
+            if (panel.style.display === 'none' || !panel.classList.contains('show')) {
+                panel.style.display = 'block';
+                panel.classList.add('show');
+                this.mobileLog('🐛 모바일 디버그 패널 활성화');
+            } else {
+                panel.style.display = 'none';
+                panel.classList.remove('show');
+            }
+        }
+    }
+    
+    mobileLog(message) {
+        // 콘솔에도 로그
+        console.log(message);
+        
+        // 모바일 화면에 표시
+        const logDiv = document.getElementById('mobileDebugLog');
+        if (logDiv) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logDiv.textContent += logEntry;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        // 자동으로 디버그 패널 표시 (첫 번째 로그 시)
+        const panel = document.getElementById('mobileDebugPanel');
+        if (panel && panel.style.display === 'none') {
+            panel.style.display = 'block';
+            panel.classList.add('show');
+        }
     }
     
     setupSettingsPanel() {
@@ -706,18 +748,14 @@ class MobileAnnotateShot {
     }
     
     handleTouchStart(e) {
-        console.log('👆 터치 이벤트 감지됨');
+        this.mobileLog('👆 터치 이벤트 감지됨');
         e.preventDefault();
         this.touchActive = true;
         
         const touch = e.touches[0];
         const canvas = e.target;
         
-        console.log('📊 터치 초기 정보:', {
-            touchesLength: e.touches.length,
-            targetId: canvas.id,
-            targetTagName: canvas.tagName
-        });
+        this.mobileLog(`📊 터치 초기: touches=${e.touches.length}, target=${canvas.id}`);
         
         // 캔버스 좌표 정확히 계산 (스케일링 고려)
         const rect = canvas.getBoundingClientRect();
@@ -729,15 +767,8 @@ class MobileAnnotateShot {
         const x = rawX * scaleX;
         const y = rawY * scaleY;
         
-        console.log('📐 터치 좌표 계산:', {
-            touch: { clientX: touch.clientX, clientY: touch.clientY },
-            rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-            canvas: { width: canvas.width, height: canvas.height },
-            scale: { scaleX, scaleY },
-            raw: { x: rawX, y: rawY },
-            final: { x, y },
-            mode: document.getElementById('modeSelector')?.value
-        });
+        this.mobileLog(`📐 좌표계산: raw(${rawX.toFixed(1)},${rawY.toFixed(1)}) → final(${x.toFixed(1)},${y.toFixed(1)}) scale(${scaleX.toFixed(2)},${scaleY.toFixed(2)})`);
+        this.mobileLog(`🎯 모드: ${document.getElementById('modeSelector')?.value}`);
         
         // main.js의 마우스 이벤트와 동일한 방식으로 처리
         this.triggerCanvasClick(x, y);
@@ -804,26 +835,19 @@ class MobileAnnotateShot {
     }
     
     handleNumberMode(x, y) {
-        console.log('🔢 숫자 모드 처리 시작:', { x, y });
+        this.mobileLog(`🔢 숫자모드 처리: (${x.toFixed(1)},${y.toFixed(1)})`);
         
         // main.js 전역 변수 상태 확인
-        console.log('📊 main.js 전역 변수 상태:', {
-            clicks: window.clicks ? window.clicks.length : 'undefined',
-            clickCount: window.clickCount,
-            currentColor: window.currentColor,
-            currentSize: window.currentSize,
-            currentImage: !!window.currentImage,
-            redrawCanvas: typeof window.redrawCanvas
-        });
+        this.mobileLog(`📊 전역변수: clicks=${window.clicks ? window.clicks.length : 'undefined'}, count=${window.clickCount}, image=${!!window.currentImage}`);
         
         // main.js의 전역 변수들 초기화
         if (typeof window.clicks === 'undefined') {
             window.clicks = [];
-            console.log('✅ window.clicks 배열 초기화');
+            this.mobileLog('✅ clicks 배열 초기화');
         }
         if (typeof window.clickCount === 'undefined') {
             window.clickCount = 0;
-            console.log('✅ window.clickCount 초기화');
+            this.mobileLog('✅ clickCount 초기화');
         }
         
         const currentColor = window.currentColor || '#FF0000';
@@ -843,8 +867,8 @@ class MobileAnnotateShot {
         window.clicks.push(numberObj);
         window.clickCount++;
         
-        console.log('✅ 숫자 추가됨:', numberObj);
-        console.log('📊 업데이트된 clicks 배열:', window.clicks);
+        this.mobileLog(`✅ 숫자추가: #${numberObj.number} at (${x.toFixed(1)},${y.toFixed(1)}) 색상:${currentColor} 크기:${currentSize}`);
+        this.mobileLog(`📊 총 주석수: ${window.clicks.length}`);
         
         // 캔버스 다시 그리기 - 더 안전한 방법
         this.safeRedrawCanvas();
@@ -1307,6 +1331,21 @@ window.hideMobileSettingsPanel = function() {
         panel.classList.remove('show');
         overlay.classList.remove('show');
         console.log('⚙️ 모바일 설정 패널 닫기');
+    }
+};
+
+window.hideMobileDebugPanel = function() {
+    const panel = document.getElementById('mobileDebugPanel');
+    if (panel) {
+        panel.style.display = 'none';
+        panel.classList.remove('show');
+    }
+};
+
+window.clearMobileDebugLog = function() {
+    const logDiv = document.getElementById('mobileDebugLog');
+    if (logDiv) {
+        logDiv.textContent = '';
     }
 };
 
