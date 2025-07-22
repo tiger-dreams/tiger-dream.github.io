@@ -18,11 +18,13 @@
         const lineWidthSelector = document.getElementById('lineWidthSelector');
         const resizeSelector = document.getElementById('resizeSelector');
         const backgroundColorSelector = document.getElementById('backgroundColorSelector');
+        const canvasModeSelector = document.getElementById('canvasModeSelector');
 
-        // 새로운 배경/이미지 레이어 시스템
-        let canvasBackgroundColor = 'white'; // 무지 배경색
-        let imageLayers = []; // 이미지 레이어들: [{ image, x, y, width, height, visible }, ...]
-        let currentImage = null; // 호환성을 위해 유지
+        // 캔버스 모드 시스템
+        let canvasMode = 'single'; // 'single' (기본) 또는 'multi' (빈 캔버스)
+        let canvasBackgroundColor = 'white'; // 무지 배경색 (멀티 모드 전용)
+        let imageLayers = []; // 이미지 레이어들 (멀티 모드 전용)
+        let currentImage = null; // 싱글 모드에서 사용
         let layers = []; // New layer system: [{ type, data, visible, id }, ...]
         let layerIdCounter = 0;
         let currentColor = "#FF0000";
@@ -165,12 +167,48 @@
 
         function applyImageToCanvas() {
             if (!currentImage) {
-                drawDefaultCanvasBackground();
-                messageDiv.textContent = translate('noImageLoaded');
+                if (canvasMode === 'multi') {
+                    // 멀티 모드: 빈 캔버스 표시
+                    drawBlankMultiCanvas();
+                } else {
+                    // 싱글 모드: 기본 캔버스 표시
+                    drawDefaultCanvasBackground();
+                    messageDiv.textContent = translate('noImageLoaded');
+                }
                 resetDrawingState();
                 return;
             }
 
+            if (canvasMode === 'single') {
+                // 싱글 모드: 기존 방식 (이미지에 맞춰 캔버스 크기 조정)
+                applySingleImageMode();
+            } else {
+                // 멀티 모드: 이미지를 레이어로 추가
+                applyMultiImageMode();
+            }
+        }
+
+        function applySingleImageMode() {
+            // 기존 싱글 이미지 편집 방식
+            const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
+            applyCanvasDimensions(width, height);
+            
+            // 레이어 시스템에 추가 (UI 호환성 위해)
+            createBackgroundImageLayer();
+            
+            // 캔버스 다시 그리기
+            redrawCanvas();
+            
+            // 레이어 UI 업데이트
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+            
+            resetDrawingState();
+            messageDiv.textContent = translate('imageLoaded', { width, height });
+        }
+
+        function applyMultiImageMode() {
             if (imageLayers.length === 0) {
                 // 첫 번째 이미지: 캔버스 크기를 이미지에 맞춰 설정
                 const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
@@ -191,14 +229,11 @@
                 return;
             }
             
-            // 레이어 시스템에도 추가 (UI 호환성 위해)
-            createBackgroundImageLayer();
+            // 전역 imageLayers 업데이트
+            window.imageLayers = imageLayers;
             
             // 캔버스 다시 그리기
             redrawCanvas();
-            
-            // 전역 imageLayers 업데이트
-            window.imageLayers = imageLayers;
             
             // 레이어 UI 업데이트
             if (typeof window.updateLayerList === 'function') {
@@ -206,6 +241,29 @@
             }
             
             resetDrawingState();
+        }
+
+        function drawBlankMultiCanvas() {
+            canvas.width = MAX_WIDTH;
+            canvas.height = MAX_HEIGHT;
+            canvas.classList.add('default-canvas');
+            
+            drawCanvasBackground();
+            
+            const text = translate('blankCanvasPrompt');
+            const lines = text.split('\n');
+            
+            ctx.fillStyle = '#888';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const lineHeight = 35;
+            const startY = canvas.height / 2 - (lines.length - 1) * lineHeight / 2;
+            
+            lines.forEach((line, index) => {
+                ctx.fillText(line, canvas.width / 2, startY + index * lineHeight);
+            });
         }
 
         function addImageAsNewLayer() {
@@ -403,6 +461,81 @@
         window.imageLayers = imageLayers;
         window.redrawCanvas = redrawCanvas;
         window.clearAllAnnotations = clearAllAnnotations;
+
+        function switchCanvasMode(newMode) {
+            const previousMode = canvasMode;
+            canvasMode = newMode;
+            
+            // UI 요소 표시/숨김 제어
+            updateCanvasModeUI();
+            
+            // 모드 전환 로직
+            if (newMode === 'multi') {
+                // 멀티 모드로 전환
+                if (previousMode === 'single') {
+                    // 싱글 모드에서 멀티 모드로: 기존 이미지를 첫 번째 레이어로 이동
+                    convertSingleToMultiMode();
+                }
+                // 빈 캔버스 또는 기존 멀티 모드 유지
+                if (!currentImage && imageLayers.length === 0) {
+                    drawBlankMultiCanvas();
+                } else {
+                    redrawCanvas();
+                }
+            } else {
+                // 싱글 모드로 전환
+                if (previousMode === 'multi') {
+                    // 멀티 모드에서 싱글 모드로: 첫 번째 이미지 레이어를 메인 이미지로
+                    convertMultiToSingleMode();
+                }
+                // 기존 싱글 모드 유지 또는 빈 캔버스
+                if (!currentImage) {
+                    drawDefaultCanvasBackground();
+                } else {
+                    applySingleImageMode();
+                }
+            }
+            
+            saveUserSettings();
+            
+            // 레이어 UI 업데이트
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+        }
+
+        function updateCanvasModeUI() {
+            const backgroundColorSection = document.getElementById('backgroundColorSection');
+            
+            if (canvasMode === 'multi') {
+                // 멀티 모드: 배경색 섹션 표시
+                backgroundColorSection.style.display = 'block';
+            } else {
+                // 싱글 모드: 배경색 섹션 숨김
+                backgroundColorSection.style.display = 'none';
+            }
+        }
+
+        function convertSingleToMultiMode() {
+            if (currentImage) {
+                // 기존 이미지를 첫 번째 이미지 레이어로 변환
+                const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
+                const imageLayer = createImageLayer(currentImage, 0, 0, width, height);
+                imageLayers = [imageLayer];
+                window.imageLayers = imageLayers;
+            }
+        }
+
+        function convertMultiToSingleMode() {
+            if (imageLayers.length > 0) {
+                // 첫 번째 이미지 레이어를 메인 이미지로 설정
+                currentImage = imageLayers[0].image;
+                imageLayers = [];
+                window.imageLayers = imageLayers;
+            } else {
+                currentImage = null;
+            }
+        }
 
         // Helper functions to calculate sidebar widths
         function getSidebarWidth() {
@@ -661,6 +794,11 @@
             canvasBackgroundColor = e.target.value;
             saveUserSettings();
             redrawCanvas();
+        });
+        
+        canvasModeSelector.addEventListener('change', (e) => {
+            const newMode = e.target.value;
+            switchCanvasMode(newMode);
         });
 
         saveButton.addEventListener('click', saveImage);
@@ -1353,6 +1491,52 @@
             // Clear canvas
             canvas.width = canvas.width;
             
+            if (canvasMode === 'single') {
+                // 싱글 모드: 기존 방식
+                redrawSingleModeCanvas();
+            } else {
+                // 멀티 모드: 레이어 시스템
+                redrawMultiModeCanvas();
+            }
+        }
+
+        function redrawSingleModeCanvas() {
+            // 싱글 모드에서는 currentImage를 배경으로 그리고 주석들을 위에 그림
+            if (currentImage) {
+                ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+            }
+            
+            // Draw annotation layers
+            layers.forEach((layer) => {
+                if (layer.visible === false) return;
+                
+                if (layer.type === 'background') {
+                    // 싱글 모드에서 배경 이미지는 이미 위에서 그려짐
+                    return;
+                } else {
+                    const data = layer.data;
+                    if (data.type === 'number') drawNumber(data);
+                    else if (data.type === 'shape') drawShape(data.startX, data.startY, data.endX, data.endY, data.shape, data.color, data.fillType || 'none');
+                    else if (data.type === 'text') drawText(data);
+                    else if (data.type === 'emoji') drawEmoji(data);
+                }
+            });
+            
+            // Legacy support
+            clicks.forEach((click) => {
+                if (layers.some(layer => layer.data === click)) return;
+                if (click.visible === false) return;
+                
+                if (click.type === 'number') drawNumber(click);
+                else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color, click.fillType || 'none');
+                else if (click.type === 'text') drawText(click);
+                else if (click.type === 'emoji') drawEmoji(click);
+            });
+        }
+
+        function redrawMultiModeCanvas() {
+            // 멀티 모드: 무지 배경 → 이미지 레이어들 → 주석 레이어들
+            
             // Step 1: Draw solid background
             drawCanvasBackground();
             
@@ -1368,14 +1552,12 @@
             
             // Step 3: Draw annotation layers
             layers.forEach((layer) => {
-                // Skip hidden layers
                 if (layer.visible === false) return;
                 
                 if (layer.type === 'background') {
-                    // 배경 이미지는 이미 imageLayers에서 처리됨 - 스킵
+                    // 멀티 모드에서는 무지 배경이므로 스킵
                     return;
                 } else {
-                    // Draw annotation layer
                     const data = layer.data;
                     if (data.type === 'number') drawNumber(data);
                     else if (data.type === 'shape') drawShape(data.startX, data.startY, data.endX, data.endY, data.shape, data.color, data.fillType || 'none');
@@ -1384,12 +1566,9 @@
                 }
             });
             
-            // Legacy support: also draw from clicks array for backward compatibility
+            // Legacy support
             clicks.forEach((click) => {
-                // Skip if already drawn via layer system
                 if (layers.some(layer => layer.data === click)) return;
-                
-                // Skip hidden layers (default visible if not set)
                 if (click.visible === false) return;
                 
                 if (click.type === 'number') drawNumber(click);
@@ -1935,6 +2114,7 @@
                 fillType: fillSelector.value,
                 lineWidth: lineWidthSelector.value,
                 cropStyle: currentCropStyle,
+                canvasMode: canvasMode,
                 backgroundColor: canvasBackgroundColor,
                 clicks, // clicks array already contains emoji objects
                 clickCount,
@@ -1963,8 +2143,13 @@
             if (document.getElementById('cropStyleSelector')) {
                 document.getElementById('cropStyleSelector').value = currentCropStyle;
             }
+            canvasMode = settings.canvasMode || 'single';
+            canvasModeSelector.value = canvasMode;
             canvasBackgroundColor = settings.backgroundColor || 'white';
             backgroundColorSelector.value = canvasBackgroundColor;
+            
+            // 캔버스 모드에 따른 UI 업데이트
+            updateCanvasModeUI();
             clicks = settings.clicks || [];
             clickCount = settings.clickCount || 0;
             shapeCount = settings.shapeCount || 0;
