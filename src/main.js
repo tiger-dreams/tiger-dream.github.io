@@ -19,10 +19,15 @@
         const resizeSelector = document.getElementById('resizeSelector');
         const backgroundColorSelector = document.getElementById('backgroundColorSelector');
         const canvasModeSelector = document.getElementById('canvasModeSelector');
+        const canvasSizeSelector = document.getElementById('canvasSizeSelector');
+        const customWidth = document.getElementById('customWidth');
+        const customHeight = document.getElementById('customHeight');
+        const applyCustomSize = document.getElementById('applyCustomSize');
 
         // 캔버스 모드 시스템
         let canvasMode = 'single'; // 'single' (기본) 또는 'multi' (빈 캔버스)
         let canvasBackgroundColor = 'white'; // 무지 배경색 (멀티 모드 전용)
+        let canvasSize = '1200x800'; // 멀티 모드 전용 캔버스 크기
         let imageLayers = []; // 이미지 레이어들 (멀티 모드 전용)
         let currentImage = null; // 싱글 모드에서 사용
         let layers = []; // New layer system: [{ type, data, visible, id }, ...]
@@ -210,19 +215,42 @@
 
         function applyMultiImageMode() {
             if (imageLayers.length === 0) {
-                // 첫 번째 이미지: 캔버스 크기를 이미지에 맞춰 설정
-                const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
+                // 첫 번째 이미지: 설정된 캔버스 크기 사용
+                const { width, height } = getCanvasSize();
                 applyCanvasDimensions(width, height);
+                
+                // 이미지를 캔버스에 맞게 리사이즈
+                const imageAspectRatio = currentImage.width / currentImage.height;
+                const canvasAspectRatio = width / height;
+                
+                let imageWidth, imageHeight, x, y;
+                
+                if (imageAspectRatio > canvasAspectRatio) {
+                    // 이미지가 캔버스보다 가로로 길 경우
+                    imageWidth = Math.min(width * 0.9, currentImage.width);
+                    imageHeight = imageWidth / imageAspectRatio;
+                } else {
+                    // 이미지가 캔버스보다 세로로 길거나 비슷한 경우
+                    imageHeight = Math.min(height * 0.9, currentImage.height);
+                    imageWidth = imageHeight * imageAspectRatio;
+                }
+                
+                // 중앙에 배치
+                x = (width - imageWidth) / 2;
+                y = (height - imageHeight) / 2;
                 
                 // 첫 번째 이미지 레이어 추가
                 const imageLayer = createImageLayer(
                     currentImage, 
-                    0, 0,  
-                    width, height
+                    x, y,  
+                    imageWidth, imageHeight
                 );
                 imageLayers.push(imageLayer);
                 
-                messageDiv.textContent = translate('imageLoaded', { width, height });
+                messageDiv.textContent = translate('imageLoaded', { 
+                    width: Math.round(imageWidth), 
+                    height: Math.round(imageHeight) 
+                });
             } else {
                 // 추가 이미지들: 캔버스 크기 유지, 이미지를 캔버스에 맞게 리사이즈하여 추가
                 addImageAsNewLayer();
@@ -244,9 +272,9 @@
         }
 
         function drawBlankMultiCanvas() {
-            canvas.width = MAX_WIDTH;
-            canvas.height = MAX_HEIGHT;
-            canvas.classList.add('default-canvas');
+            // 멀티 모드에서는 설정된 캔버스 크기 사용
+            const { width, height } = getCanvasSize();
+            applyCanvasDimensions(width, height);
             
             drawCanvasBackground();
             
@@ -264,6 +292,44 @@
             lines.forEach((line, index) => {
                 ctx.fillText(line, canvas.width / 2, startY + index * lineHeight);
             });
+        }
+
+        function getCanvasSize() {
+            if (canvasSize === 'custom') {
+                const width = parseInt(customWidth.value) || 1200;
+                const height = parseInt(customHeight.value) || 800;
+                return { width, height };
+            }
+            
+            const sizeMap = {
+                '1920x1080': { width: 1920, height: 1080 },
+                '1280x720': { width: 1280, height: 720 },
+                '1200x800': { width: 1200, height: 800 },
+                '800x600': { width: 800, height: 600 },
+                'a4-landscape': { width: 1122, height: 794 }, // A4 297×210mm at 96 DPI
+                'a4-portrait': { width: 794, height: 1122 }   // A4 210×297mm at 96 DPI
+            };
+            
+            return sizeMap[canvasSize] || sizeMap['1200x800'];
+        }
+
+        function setCanvasSize(newSize) {
+            canvasSize = newSize;
+            
+            if (canvasMode === 'multi') {
+                // 멀티 모드에서만 즉시 적용
+                if (imageLayers.length === 0) {
+                    // 이미지가 없으면 빈 캔버스 다시 그리기
+                    drawBlankMultiCanvas();
+                } else {
+                    // 이미지가 있으면 캔버스 크기만 변경하고 이미지는 현재 위치 유지
+                    const { width, height } = getCanvasSize();
+                    applyCanvasDimensions(width, height);
+                    redrawCanvas();
+                }
+            }
+            
+            saveUserSettings();
         }
 
         function addImageAsNewLayer() {
@@ -506,13 +572,26 @@
 
         function updateCanvasModeUI() {
             const backgroundColorSection = document.getElementById('backgroundColorSection');
+            const canvasSizeSection = document.getElementById('canvasSizeSection');
             
             if (canvasMode === 'multi') {
-                // 멀티 모드: 배경색 섹션 표시
+                // 멀티 모드: 배경색, 캔버스 크기 섹션 표시
                 backgroundColorSection.style.display = 'block';
+                canvasSizeSection.style.display = 'block';
             } else {
-                // 싱글 모드: 배경색 섹션 숨김
+                // 싱글 모드: 배경색, 캔버스 크기 섹션 숨김
                 backgroundColorSection.style.display = 'none';
+                canvasSizeSection.style.display = 'none';
+            }
+        }
+
+        function updateCanvasSizeUI(selectedSize) {
+            const customSizeSection = document.getElementById('customSizeSection');
+            
+            if (selectedSize === 'custom') {
+                customSizeSection.style.display = 'block';
+            } else {
+                customSizeSection.style.display = 'none';
             }
         }
 
@@ -799,6 +878,31 @@
         canvasModeSelector.addEventListener('change', (e) => {
             const newMode = e.target.value;
             switchCanvasMode(newMode);
+        });
+        
+        canvasSizeSelector.addEventListener('change', (e) => {
+            const newSize = e.target.value;
+            updateCanvasSizeUI(newSize);
+            setCanvasSize(newSize);
+        });
+        
+        applyCustomSize.addEventListener('click', () => {
+            if (canvasSize === 'custom') {
+                setCanvasSize('custom');
+            }
+        });
+        
+        // Enter 키로도 커스텀 사이즈 적용
+        customWidth.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && canvasSize === 'custom') {
+                setCanvasSize('custom');
+            }
+        });
+        
+        customHeight.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && canvasSize === 'custom') {
+                setCanvasSize('custom');
+            }
         });
 
         saveButton.addEventListener('click', saveImage);
@@ -2116,6 +2220,7 @@
                 cropStyle: currentCropStyle,
                 canvasMode: canvasMode,
                 backgroundColor: canvasBackgroundColor,
+                canvasSize: canvasSize,
                 clicks, // clicks array already contains emoji objects
                 clickCount,
                 shapeCount
@@ -2147,9 +2252,12 @@
             canvasModeSelector.value = canvasMode;
             canvasBackgroundColor = settings.backgroundColor || 'white';
             backgroundColorSelector.value = canvasBackgroundColor;
+            canvasSize = settings.canvasSize || '1200x800';
+            canvasSizeSelector.value = canvasSize;
             
             // 캔버스 모드에 따른 UI 업데이트
             updateCanvasModeUI();
+            updateCanvasSizeUI(canvasSize);
             clicks = settings.clicks || [];
             clickCount = settings.clickCount || 0;
             shapeCount = settings.shapeCount || 0;

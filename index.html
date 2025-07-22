@@ -792,6 +792,26 @@
                             <option value="transparent" data-lang-key="transparent">투명</option>
                         </select>
                     </div>
+                    <div class="style-section" id="canvasSizeSection" style="display: none;">
+                        <div class="style-subtitle" data-lang-key="canvasSize">캔버스 크기</div>
+                        <select id="canvasSizeSelector" aria-label="Select canvas size">
+                            <option value="1920x1080" data-lang-key="size1920x1080">Full HD (1920×1080)</option>
+                            <option value="1280x720" data-lang-key="size1280x720">HD (1280×720)</option>
+                            <option value="1200x800" data-lang-key="size1200x800">웹 표준 (1200×800)</option>
+                            <option value="800x600" data-lang-key="size800x600">클래식 (800×600)</option>
+                            <option value="a4-landscape" data-lang-key="sizeA4Landscape">A4 가로 (297×210mm)</option>
+                            <option value="a4-portrait" data-lang-key="sizeA4Portrait">A4 세로 (210×297mm)</option>
+                            <option value="custom" data-lang-key="sizeCustom">사용자 정의</option>
+                        </select>
+                        <div id="customSizeSection" style="display: none; margin-top: 10px;">
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <input type="number" id="customWidth" placeholder="가로" min="100" max="2000" style="width: 70px; padding: 5px; border: 1px solid #ddd; border-radius: 3px;">
+                                <span>×</span>
+                                <input type="number" id="customHeight" placeholder="세로" min="100" max="2000" style="width: 70px; padding: 5px; border: 1px solid #ddd; border-radius: 3px;">
+                                <button id="applyCustomSize" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 3px; background: #f5f5f5; cursor: pointer;" data-lang-key="apply">적용</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Drawing Mode -->
@@ -1765,6 +1785,15 @@
                     'singleImageMode': '싱글 이미지 편집',
                     'multiImageMode': '빈 캔버스 (멀티 이미지)',
                     'backgroundColor': '배경색',
+                    'canvasSize': '캔버스 크기',
+                    'size1920x1080': 'Full HD (1920×1080)',
+                    'size1280x720': 'HD (1280×720)',
+                    'size1200x800': '웹 표준 (1200×800)',
+                    'size800x600': '클래식 (800×600)',
+                    'sizeA4Landscape': 'A4 가로 (297×210mm)',
+                    'sizeA4Portrait': 'A4 세로 (210×297mm)',
+                    'sizeCustom': '사용자 정의',
+                    'apply': '적용',
                     'white': '흰색',
                     'lightGray': '연한 회색',
                     'gray': '회색',
@@ -1858,6 +1887,15 @@
                     'singleImageMode': 'Single Image Edit',
                     'multiImageMode': 'Blank Canvas (Multi Image)',
                     'backgroundColor': 'Background Color',
+                    'canvasSize': 'Canvas Size',
+                    'size1920x1080': 'Full HD (1920×1080)',
+                    'size1280x720': 'HD (1280×720)',
+                    'size1200x800': 'Web Standard (1200×800)',
+                    'size800x600': 'Classic (800×600)',
+                    'sizeA4Landscape': 'A4 Landscape (297×210mm)',
+                    'sizeA4Portrait': 'A4 Portrait (210×297mm)',
+                    'sizeCustom': 'Custom',
+                    'apply': 'Apply',
                     'white': 'White',
                     'lightGray': 'Light Gray',
                     'gray': 'Gray',
