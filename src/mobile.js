@@ -768,7 +768,14 @@ class MobileAnnotateShot {
         this.mobileLog(`🎯 모드: ${document.getElementById('modeSelector')?.value}`);
         
         // main.js의 마우스 이벤트와 동일한 방식으로 처리
-        this.triggerCanvasClick(x, y);
+        this.mobileLog(`🚀 triggerCanvasClick 호출 시작`);
+        try {
+            this.triggerCanvasClick(x, y);
+            this.mobileLog(`✅ triggerCanvasClick 호출 완료`);
+        } catch (error) {
+            this.mobileLog(`❌ triggerCanvasClick 오류: ${error.message}`);
+            console.error('triggerCanvasClick 상세 오류:', error);
+        }
     }
     
     triggerCanvasClick(x, y) {
@@ -1350,28 +1357,49 @@ window.clearMobileDebugLog = function() {
 };
 
 window.copyMobileDebugLog = function() {
+    console.log('🔧 Copy 버튼 클릭됨');
     const logDiv = document.getElementById('mobileDebugLog');
-    if (logDiv && logDiv.textContent.trim()) {
+    
+    if (!logDiv) {
+        console.error('❌ 로그 DIV를 찾을 수 없음');
+        return;
+    }
+    
+    const logText = logDiv.textContent.trim();
+    console.log('📝 복사할 텍스트 길이:', logText.length);
+    
+    if (logText) {
+        // 즉시 시각적 피드백
+        const originalText = logDiv.textContent;
+        logDiv.textContent = '🔄 복사 중...\n\n' + originalText;
+        
         // 클립보드 복사 시도
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(logDiv.textContent).then(() => {
-                // 복사 성공 알림
-                const originalText = logDiv.textContent;
-                logDiv.textContent = '✅ 클립보드에 복사되었습니다!\n\n' + originalText;
+            console.log('📋 navigator.clipboard 사용');
+            navigator.clipboard.writeText(logText).then(() => {
+                console.log('✅ 클립보드 복사 성공');
+                logDiv.textContent = '✅ 클립보드에 복사 완료!\n\n' + originalText;
                 setTimeout(() => {
                     logDiv.textContent = originalText;
                 }, 2000);
             }).catch(err => {
-                console.error('클립보드 복사 실패:', err);
-                // fallback: 텍스트 선택하여 수동 복사 가능하도록
+                console.error('❌ 클립보드 복사 실패:', err);
+                logDiv.textContent = '❌ 복사 실패. 텍스트 선택됨.\n\n' + originalText;
                 selectAllText(logDiv);
+                setTimeout(() => {
+                    logDiv.textContent = originalText;
+                }, 3000);
             });
         } else {
-            // 구형 브라우저 대응: 텍스트 선택
+            console.log('📋 구형 브라우저 - 텍스트 선택 사용');
             selectAllText(logDiv);
         }
     } else {
-        console.log('복사할 로그가 없습니다');
+        console.log('❌ 복사할 로그가 없습니다');
+        logDiv.textContent = '❌ 복사할 로그가 없습니다';
+        setTimeout(() => {
+            logDiv.textContent = '';
+        }, 2000);
     }
 };
 
