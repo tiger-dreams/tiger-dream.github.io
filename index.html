@@ -394,7 +394,7 @@
         }
         
         /* 모바일에서 햄버거 메뉴 완전 숨기기 */
-        .mobile-device .mobile-menu-btn {
+        .mobile-device .mobile-menu-btn-removed {
             display: none !important;
         }
         
@@ -785,7 +785,7 @@
             padding-left: 3rem;
         }
 
-        .mobile-device .mobile-menu-btn {
+        .mobile-device .mobile-menu-btn-removed {
             position: fixed;
             top: 1rem;
             left: 1rem;
@@ -802,17 +802,17 @@
             backdrop-filter: blur(10px);
         }
 
-        .mobile-device .mobile-menu-btn:hover {
+        .mobile-device .mobile-menu-btn-removed:hover {
             background-color: var(--primary);
             transform: scale(1.05);
         }
 
-        .mobile-device .mobile-menu-btn:active {
+        .mobile-device .mobile-menu-btn-removed:active {
             transform: scale(0.95);
         }
 
         /* 데스크톱에서는 모바일 요소들 숨기기 */
-        .desktop-device .mobile-menu-btn {
+        .desktop-device .mobile-menu-btn-removed {
             display: none !important;
         }
 
@@ -1249,10 +1249,7 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Mobile Menu Button -->
-        <button class="mobile-menu-btn" id="mobileMenuBtn" style="display: none;">
-            <span class="material-icons">menu</span>
-        </button>
+        <!-- Mobile Menu Button 제거됨 -->
 
         <!-- Mobile Overlay -->
         <div class="mobile-overlay" id="mobileOverlay"></div>
