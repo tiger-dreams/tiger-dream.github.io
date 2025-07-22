@@ -366,9 +366,9 @@ class MobileAnnotateShot {
             return;
         }
         
-        // 캔버스 크기를 이미지에 맞게 조정
-        const maxWidth = window.innerWidth - 100;
-        const maxHeight = window.innerHeight - 200;
+        // 인스타그램 스타일 전체화면 캔버스 크기 조정
+        const maxWidth = window.innerWidth; // 전체 너비 사용
+        const maxHeight = window.innerHeight - 180; // 상단바(60px) + 하단바(120px) 제외
         
         let { width, height } = this.calculateImageSize(img.width, img.height, maxWidth, maxHeight);
         
@@ -385,9 +385,9 @@ class MobileAnnotateShot {
     }
     
     calculateImageSize(originalWidth, originalHeight, maxWidth, maxHeight) {
-        // 모바일에서는 화면 전체 너비를 최대한 활용 (좌우 1rem 여백만)
-        const availableWidth = window.innerWidth - 16; // 1rem = 16px 좌우 여백
-        const availableHeight = window.innerHeight - 200; // 상하 UI 공간 제외
+        // 인스타그램 스타일 전체화면 활용 (여백 없음)
+        const availableWidth = window.innerWidth; // 전체 너비 사용
+        const availableHeight = window.innerHeight - 180; // 상단바(60px) + 하단바(120px) 제외
         
         const finalMaxWidth = Math.min(maxWidth || availableWidth, availableWidth);
         const finalMaxHeight = Math.min(maxHeight || availableHeight, availableHeight);
@@ -706,24 +706,36 @@ class MobileAnnotateShot {
     }
     
     handleTouchStart(e) {
+        console.log('👆 터치 이벤트 감지됨');
         e.preventDefault();
         this.touchActive = true;
         
         const touch = e.touches[0];
         const canvas = e.target;
         
+        console.log('📊 터치 초기 정보:', {
+            touchesLength: e.touches.length,
+            targetId: canvas.id,
+            targetTagName: canvas.tagName
+        });
+        
         // 캔버스 좌표 정확히 계산 (스케일링 고려)
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
         
-        const x = (touch.clientX - rect.left) * scaleX;
-        const y = (touch.clientY - rect.top) * scaleY;
+        const rawX = touch.clientX - rect.left;
+        const rawY = touch.clientY - rect.top;
+        const x = rawX * scaleX;
+        const y = rawY * scaleY;
         
-        console.log('👆 터치 시작:', {
-            raw: { x: touch.clientX - rect.left, y: touch.clientY - rect.top },
-            scaled: { x, y },
+        console.log('📐 터치 좌표 계산:', {
+            touch: { clientX: touch.clientX, clientY: touch.clientY },
+            rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+            canvas: { width: canvas.width, height: canvas.height },
             scale: { scaleX, scaleY },
+            raw: { x: rawX, y: rawY },
+            final: { x, y },
             mode: document.getElementById('modeSelector')?.value
         });
         
@@ -792,11 +804,27 @@ class MobileAnnotateShot {
     }
     
     handleNumberMode(x, y) {
-        console.log('🔢 숫자 모드 처리:', x, y);
+        console.log('🔢 숫자 모드 처리 시작:', { x, y });
         
-        // main.js의 전역 변수들 사용
-        if (typeof window.clicks === 'undefined') window.clicks = [];
-        if (typeof window.clickCount === 'undefined') window.clickCount = 0;
+        // main.js 전역 변수 상태 확인
+        console.log('📊 main.js 전역 변수 상태:', {
+            clicks: window.clicks ? window.clicks.length : 'undefined',
+            clickCount: window.clickCount,
+            currentColor: window.currentColor,
+            currentSize: window.currentSize,
+            currentImage: !!window.currentImage,
+            redrawCanvas: typeof window.redrawCanvas
+        });
+        
+        // main.js의 전역 변수들 초기화
+        if (typeof window.clicks === 'undefined') {
+            window.clicks = [];
+            console.log('✅ window.clicks 배열 초기화');
+        }
+        if (typeof window.clickCount === 'undefined') {
+            window.clickCount = 0;
+            console.log('✅ window.clickCount 초기화');
+        }
         
         const currentColor = window.currentColor || '#FF0000';
         const currentSize = window.currentSize || '20';
@@ -816,6 +844,7 @@ class MobileAnnotateShot {
         window.clickCount++;
         
         console.log('✅ 숫자 추가됨:', numberObj);
+        console.log('📊 업데이트된 clicks 배열:', window.clicks);
         
         // 캔버스 다시 그리기 - 더 안전한 방법
         this.safeRedrawCanvas();
@@ -896,12 +925,6 @@ class MobileAnnotateShot {
         console.log('🎨 안전한 캔버스 다시 그리기 시작');
         
         try {
-            // main.js의 currentImage가 있는지 확인
-            if (!window.currentImage) {
-                console.warn('⚠️ currentImage가 없어서 캔버스 다시 그리기를 건너뜁니다');
-                return;
-            }
-            
             const canvas = document.getElementById('imageCanvas');
             const ctx = canvas.getContext('2d');
             
@@ -910,15 +933,36 @@ class MobileAnnotateShot {
                 return;
             }
             
-            // 캔버스 지우고 이미지 다시 그리기
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(window.currentImage, 0, 0, canvas.width, canvas.height);
+            console.log('📊 캔버스 상태:', {
+                canvas: !!canvas,
+                context: !!ctx,
+                width: canvas.width,
+                height: canvas.height,
+                currentImage: !!window.currentImage,
+                clicks: window.clicks ? window.clicks.length : 0
+            });
+            
+            // main.js의 currentImage가 있는지 확인
+            if (!window.currentImage) {
+                console.warn('⚠️ currentImage가 없어서 배경 이미지를 건너뜁니다');
+                // 이미지가 없어도 주석은 그려보자
+            } else {
+                // 캔버스 지우고 이미지 다시 그리기
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(window.currentImage, 0, 0, canvas.width, canvas.height);
+                console.log('✅ 배경 이미지 다시 그리기 완료');
+            }
             
             // 모든 주석 다시 그리기
-            if (window.clicks && Array.isArray(window.clicks)) {
-                window.clicks.forEach(click => {
+            if (window.clicks && Array.isArray(window.clicks) && window.clicks.length > 0) {
+                console.log(`🎯 ${window.clicks.length}개의 주석 그리기 시작`);
+                window.clicks.forEach((click, index) => {
+                    console.log(`📝 주석 ${index + 1} 그리기:`, click);
                     this.drawAnnotation(ctx, click);
                 });
+                console.log('✅ 모든 주석 그리기 완료');
+            } else {
+                console.log('ℹ️ 그릴 주석이 없습니다');
             }
             
             console.log('✅ 안전한 캔버스 다시 그리기 완료');
@@ -956,21 +1000,33 @@ class MobileAnnotateShot {
     }
     
     drawNumber(ctx, annotation) {
+        console.log('🔢 숫자 그리기 시작:', annotation);
+        
         const size = parseInt(annotation.size) || 20;
         const radius = size;
         
-        // 배경 원 그리기
-        ctx.fillStyle = annotation.color;
-        ctx.beginPath();
-        ctx.arc(annotation.x, annotation.y, radius, 0, 2 * Math.PI);
-        ctx.fill();
-        
-        // 숫자 텍스트
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = `bold ${size}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(annotation.number.toString(), annotation.x, annotation.y);
+        try {
+            // 배경 원 그리기
+            ctx.save(); // 현재 컨텍스트 상태 저장
+            ctx.fillStyle = annotation.color;
+            ctx.beginPath();
+            ctx.arc(annotation.x, annotation.y, radius, 0, 2 * Math.PI);
+            ctx.fill();
+            console.log(`✅ 배경 원 그리기: (${annotation.x}, ${annotation.y}), 반지름: ${radius}, 색상: ${annotation.color}`);
+            
+            // 숫자 텍스트
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `bold ${size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(annotation.number.toString(), annotation.x, annotation.y);
+            console.log(`✅ 숫자 텍스트 그리기: "${annotation.number}" at (${annotation.x}, ${annotation.y})`);
+            
+            ctx.restore(); // 컨텍스트 상태 복원
+            
+        } catch (error) {
+            console.error('❌ 숫자 그리기 오류:', error, annotation);
+        }
     }
     
     drawText(ctx, annotation) {
