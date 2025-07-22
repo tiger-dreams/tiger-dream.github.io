@@ -333,14 +333,8 @@
         }
 
         /* 모바일 전용 UI - User Agent 기반 */
-        .mobile-device .chrome-extension-text {
-            display: none;
-        }
-        
         .mobile-device .chrome-extension-link {
-            margin-right: 0.5rem !important;
-            padding: 0.5rem !important;
-            min-width: auto !important;
+            display: none !important; /* 모바일에서 완전히 숨김 */
         }
         
         .mobile-device .top-bar-actions {
@@ -349,6 +343,47 @@
         
         .mobile-device .top-bar-actions label {
             font-size: 0.75rem !important;
+        }
+        
+        /* 모바일에서 리사이즈 옵션 숨기기 */
+        .mobile-device .top-resize-selector option:not([value=""]):not([value="auto"]) {
+            display: none;
+        }
+        
+        /* 모바일에서 불필요한 컨트롤들 숨기기 */
+        .mobile-device .sidebar .control-group:has(.top-resize-selector) label {
+            display: none;
+        }
+        
+        /* 모바일 상단바 개선 */
+        .mobile-device .top-bar {
+            justify-content: center;
+            padding: 1rem 3rem;
+        }
+        
+        .mobile-device .top-bar::before {
+            content: "AnnotateShot";
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--foreground);
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .mobile-device .top-bar-actions {
+            opacity: 0.7;
+            transform: scale(0.9);
+        }
+        
+        /* 모바일에서 사이드바 헤더 텍스트 숨기기 */
+        .mobile-device .sidebar-header .logo-text {
+            display: none;
+        }
+        
+        .mobile-device .sidebar-header {
+            padding: 1rem;
+            text-align: center;
         }
 
         .top-resize-selector {
@@ -789,17 +824,17 @@
         /* 모바일 전용 플로팅 버튼 */
         .mobile-device .floating-action-buttons {
             position: fixed;
-            bottom: 2rem;
-            right: 2rem;
+            bottom: 140px; /* 하단 툴바 위쪽으로 이동 */
+            right: 1rem; /* 오른쪽 여백 줄임 */
             z-index: 40;
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.5rem; /* 간격 줄임 */
         }
 
         .mobile-device .fab {
-            width: 56px;
-            height: 56px;
+            width: 48px; /* 크기 줄임 */
+            height: 48px; /* 크기 줄임 */
             border-radius: 50%;
             background-color: var(--primary);
             color: var(--primary-foreground);
@@ -807,8 +842,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 1.25rem; /* 아이콘 크기 조정 */
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
             cursor: pointer;
             transition: all 0.2s ease;
             backdrop-filter: blur(10px);
@@ -845,6 +880,9 @@
             touch-action: none;
             -webkit-touch-callout: none;
             -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         /* 모바일 전용 하단 툴바 */
@@ -2357,13 +2395,83 @@
             console.log('모바일 전용 UI 초기화 중...');
             
             // 플로팅 액션 버튼 이벤트
+            const fabImage = document.getElementById('fabImage');
             const fabSave = document.getElementById('fabSave');
             const fabUndo = document.getElementById('fabUndo');
             const fabMode = document.getElementById('fabMode');
+            const mobileImageInput = document.getElementById('mobileImageInput');
+            
+            // 모바일 이미지 업로드
+            if (fabImage && mobileImageInput) {
+                fabImage.addEventListener('click', () => {
+                    console.log('모바일 이미지 업로드 버튼 클릭');
+                    mobileImageInput.click();
+                });
+                
+                mobileImageInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        console.log('모바일에서 이미지 선택됨:', file.name);
+                        loadImageFromFile(file);
+                    }
+                });
+            }
             
             if (fabSave) fabSave.addEventListener('click', () => document.getElementById('saveButton').click());
             if (fabUndo) fabUndo.addEventListener('click', () => document.getElementById('undoButton').click());
             if (fabMode) fabMode.addEventListener('click', showMobileModePanel);
+            
+            // 모바일 이미지 로더 함수
+            function loadImageFromFile(file) {
+                if (!file.type.startsWith('image/')) {
+                    console.error('이미지 파일이 아닙니다');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        console.log('모바일 이미지 로드 완료:', img.width, 'x', img.height);
+                        
+                        // 싱글 모드로 전환
+                        document.getElementById('canvasModeSelector').value = 'single';
+                        document.getElementById('canvasModeSelector').dispatchEvent(new Event('change'));
+                        
+                        // 이미지 설정
+                        if (typeof window.setCurrentImage === 'function') {
+                            window.setCurrentImage(img);
+                        } else {
+                            // main.js의 기존 이미지 로딩 로직 사용
+                            currentImage = img;
+                            resizeAndDrawImage();
+                        }
+                        
+                        // 성공 피드백
+                        showMobileMessage('이미지가 로드되었습니다', 'success');
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            // 모바일 메시지 표시
+            function showMobileMessage(message, type = 'info') {
+                // 기존 메시지 div 사용
+                const messageDiv = document.getElementById('message');
+                if (messageDiv) {
+                    messageDiv.textContent = message;
+                    messageDiv.style.display = 'block';
+                    messageDiv.className = type === 'success' ? 'success' : '';
+                    
+                    setTimeout(() => {
+                        messageDiv.style.display = 'none';
+                        messageDiv.className = '';
+                    }, 3000);
+                } else {
+                    console.log('모바일 메시지:', message);
+                }
+            }
             
             // 모바일 툴바 이벤트
             const mobileToolbar = document.querySelector('.mobile-toolbar');
@@ -2381,6 +2489,14 @@
             }
             
             updateMobileToolbar();
+            
+            // 모바일에서 리사이즈를 auto로 기본 설정
+            const resizeSelector = document.getElementById('resizeSelector');
+            if (resizeSelector) {
+                resizeSelector.value = 'auto';
+                resizeSelector.dispatchEvent(new Event('change'));
+                console.log('모바일 - 리사이즈 모드를 auto로 설정');
+            }
         }
         
         function showMobileModePanel() {
@@ -2434,6 +2550,9 @@
     <div class="mobile-only" style="display: none;">
         <!-- 플로팅 액션 버튼들 -->
         <div class="floating-action-buttons">
+            <button class="fab" id="fabImage" title="이미지 업로드">
+                <span class="material-icons">add_photo_alternate</span>
+            </button>
             <button class="fab save" id="fabSave" title="저장">
                 <span class="material-icons">save</span>
             </button>
@@ -2444,6 +2563,10 @@
                 <span class="material-icons">tune</span>
             </button>
         </div>
+        
+        <!-- 모바일 전용 숨겨진 파일 입력 -->
+        <input type="file" id="mobileImageInput" accept="image/*" capture="environment" style="display: none;">
+    </div>
 
         <!-- 모바일 하단 툴바 -->
         <div class="mobile-toolbar">
@@ -2499,9 +2622,23 @@
         }
 
         // 모바일 기기에서만 모바일 UI 표시
-        if (isMobileDevice()) {
+        if (isMobileDevice() || localStorage.getItem('dev-force-mobile') === 'true' || new URLSearchParams(window.location.search).get('mobile') === 'true') {
             document.querySelector('.mobile-only').style.display = 'block';
+            console.log('모바일 UI 컴포넌트 활성화');
         }
+
+        // 개발용 디버그 정보 (콘솔에서 확인)
+        console.log('=== AnnotateShot 모바일 디버그 정보 ===');
+        console.log('User Agent:', navigator.userAgent);
+        console.log('모바일 감지:', isMobileDevice());
+        console.log('강제 모바일 모드:', localStorage.getItem('dev-force-mobile') === 'true');
+        console.log('URL 모바일 모드:', new URLSearchParams(window.location.search).get('mobile') === 'true');
+        console.log('적용된 클래스:', document.body.className);
+        console.log('===');
+        console.log('테스트 방법:');
+        console.log('1. toggleMobileMode() - 모바일/데스크톱 모드 전환');
+        console.log('2. ?mobile=true 파라미터로 URL 접속');
+        console.log('================================');
     </script>
 
 </body>

@@ -11,9 +11,13 @@
 
         // 모바일 UI 초기화
         function initMobileUI() {
-            if (isMobileDevice()) {
+            // 개발용 강제 모바일 모드 (URL 파라미터 또는 로컬스토리지)
+            const forceMobile = new URLSearchParams(window.location.search).get('mobile') === 'true' || 
+                               localStorage.getItem('dev-force-mobile') === 'true';
+            
+            if (isMobileDevice() || forceMobile) {
                 document.body.classList.add('mobile-device');
-                console.log('모바일 기기 감지됨 - 모바일 UI 활성화');
+                console.log('모바일 기기 감지됨 - 모바일 UI 활성화' + (forceMobile ? ' (강제 모드)' : ''));
                 return true;
             } else {
                 document.body.classList.add('desktop-device');
@@ -21,6 +25,23 @@
                 return false;
             }
         }
+        
+        // 개발용 모바일 모드 토글 함수 (콘솔에서 사용)
+        window.toggleMobileMode = function() {
+            const isMobileNow = document.body.classList.contains('mobile-device');
+            if (isMobileNow) {
+                document.body.classList.remove('mobile-device');
+                document.body.classList.add('desktop-device');
+                localStorage.setItem('dev-force-mobile', 'false');
+                console.log('데스크톱 모드로 전환');
+            } else {
+                document.body.classList.remove('desktop-device');
+                document.body.classList.add('mobile-device');
+                localStorage.setItem('dev-force-mobile', 'true');
+                console.log('모바일 모드로 전환');
+            }
+            location.reload(); // 페이지 새로고침으로 변경사항 적용
+        };
 
         // 전역 상수 및 변수
         const MAX_WIDTH = 1400;
@@ -1180,9 +1201,17 @@
             }
         });
 
-        // 모바일 터치 이벤트 처리
-        if (IS_MOBILE) {
-            console.log('모바일 기기 감지 - 터치 이벤트 핸들러 추가');
+        // 모바일 터치 이벤트 처리 - 모바일 기기이거나 강제 모바일 모드
+        const forceMobile = localStorage.getItem('dev-force-mobile') === 'true' || 
+                           new URLSearchParams(window.location.search).get('mobile') === 'true';
+        const shouldUseTouchEvents = IS_MOBILE || forceMobile;
+        
+        if (shouldUseTouchEvents) {
+            console.log('터치 이벤트 핸들러 추가 - 실제 모바일:', IS_MOBILE, ', 강제 모드:', forceMobile);
+            console.log('캔버스 요소:', canvas);
+            
+            // 모바일에서 마우스 이벤트 비활성화
+            canvas.style.touchAction = 'none';
             
             // 터치 이벤트와 마우스 이벤트 중복 방지
             let touchActive = false;
@@ -1194,43 +1223,169 @@
                 return [touch.clientX - rect.left, touch.clientY - rect.top];
             }
             
-            // 터치 시작
+            // 터치 시작 - 기존 마우스다운 로직과 동일
             canvas.addEventListener('touchstart', e => {
                 e.preventDefault(); // 스크롤 방지
                 touchActive = true;
                 
                 const [touchX, touchY] = getTouchPos(canvas, e);
+                console.log('터치 시작:', touchX, touchY);
                 
-                // 마우스다운 이벤트와 동일한 로직 실행
-                const mouseEvent = new MouseEvent('mousedown', {
-                    clientX: touchX + canvas.getBoundingClientRect().left,
-                    clientY: touchY + canvas.getBoundingClientRect().top,
-                    button: 0
-                });
-                
-                // 직접 로직 실행 (이벤트 발생 대신)
-                handlePointerStart(touchX, touchY, e);
+                // 기존 mousedown 로직을 직접 실행
+                // 멀티 모드에서 선택된 이미지의 리사이즈 핸들 체크
+                if (canvasMode === 'multi' && selectedImageLayer) {
+                    const handleName = getResizeHandle(touchX, touchY, selectedImageLayer);
+                    if (handleName) {
+                        isResizing = true;
+                        resizeHandle = handleName;
+                        resizeStartX = touchX;
+                        resizeStartY = touchY;
+                        resizeStartWidth = selectedImageLayer.width;
+                        resizeStartHeight = selectedImageLayer.height;
+                        resizeStartImageX = selectedImageLayer.x;
+                        resizeStartImageY = selectedImageLayer.y;
+                        canvas.style.cursor = getResizeCursor(handleName);
+                        return;
+                    }
+                }
+            
+                // 기존 객체 클릭 확인
+                const clickedObject = isMouseOverObjectByCoords(touchX, touchY);
+            
+                if (clickedObject) {
+                    // 멀티 모드에서 이미지 레이어를 클릭한 경우
+                    if (canvasMode === 'multi' && clickedObject.image) {
+                        selectedImageLayer = clickedObject;
+                        redrawCanvas();
+                    }
+
+                    // 드래그 시작
+                    isDragging = true;
+                    draggedObject = clickedObject;
+            
+                    dragOffsetX = touchX - (draggedObject.x !== undefined ? draggedObject.x : draggedObject.startX);
+                    dragOffsetY = touchY - (draggedObject.y !== undefined ? draggedObject.y : draggedObject.startY);
+                    canvas.style.cursor = 'grabbing';
+                    console.log('드래그 시작:', draggedObject.type);
+                } else {
+                    // 새 객체 생성
+                    console.log('새 객체 생성 모드:', currentMode);
+                    if (currentMode === 'number') {
+                        addNumber(touchX, touchY);
+                    } else if (currentMode === 'text') {
+                        addText(touchX, touchY);
+                    } else if (currentMode === 'emoji') {
+                        addEmoji(touchX, touchY);
+                    } else if (currentMode === 'shape') {
+                        startDrawing({ clientX: touchX + canvas.getBoundingClientRect().left, clientY: touchY + canvas.getBoundingClientRect().top });
+                        isDrawing = true;
+                        startX = touchX;
+                        startY = touchY;
+                    }
+                }
                 
             }, { passive: false });
             
-            // 터치 이동
+            // 터치 이동 - 기존 mousemove 로직과 동일
             canvas.addEventListener('touchmove', e => {
                 e.preventDefault(); // 스크롤 방지
                 if (!touchActive) return;
                 
                 const [touchX, touchY] = getTouchPos(canvas, e);
-                handlePointerMove(touchX, touchY, e);
+                
+                // 기존 mousemove 로직
+                if (isResizing && selectedImageLayer && resizeHandle) {
+                    resizeSelectedImage(touchX, touchY);
+                    return;
+                }
+                
+                if (isDragging && draggedObject) {
+                    // 드래그된 객체 위치 업데이트
+                    const newX = touchX - dragOffsetX;
+                    const newY = touchY - dragOffsetY;
+
+                    if (draggedObject.x !== undefined) {
+                        draggedObject.x = newX;
+                        draggedObject.y = newY;
+                    } else if (draggedObject.startX !== undefined) {
+                        const width = draggedObject.endX - draggedObject.startX;
+                        const height = draggedObject.endY - draggedObject.startY;
+                        draggedObject.startX = newX;
+                        draggedObject.startY = newY;
+                        draggedObject.endX = newX + width;
+                        draggedObject.endY = newY + height;
+                    }
+                    redrawCanvas();
+                    return;
+                }
+                
+                if (currentMode === 'shape' && isDrawing) {
+                    // 도형 미리보기
+                    redrawCanvas();
+                    ctx.save();
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeStyle = currentColor;
+                    ctx.lineWidth = currentLineWidth;
+                    
+                    if (currentShape === 'rectangle') {
+                        ctx.strokeRect(startX, startY, touchX - startX, touchY - startY);
+                    } else if (currentShape === 'circle') {
+                        const radius = Math.sqrt(Math.pow(touchX - startX, 2) + Math.pow(touchY - startY, 2));
+                        ctx.beginPath();
+                        ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                        ctx.stroke();
+                    } else if (currentShape === 'arrow') {
+                        drawArrow(ctx, startX, startY, touchX, touchY, currentLineWidth * 3);
+                    }
+                    ctx.restore();
+                    return;
+                }
                 
             }, { passive: false });
             
-            // 터치 종료
+            // 터치 종료 - 기존 mouseup 로직과 동일
             canvas.addEventListener('touchend', e => {
                 e.preventDefault();
                 touchActive = false;
                 
-                if (e.changedTouches.length > 0) {
+                if (isResizing) {
+                    isResizing = false;
+                    resizeHandle = null;
+                    canvas.style.cursor = 'default';
+                    saveUserSettings();
+                } else if (isDragging) {
+                    isDragging = false;
+                    draggedObject = null;
+                    canvas.style.cursor = 'default';
+                    saveUserSettings();
+                    console.log('드래그 종료');
+                } else if (currentMode === 'shape' && isDrawing) {
+                    // 도형 그리기 완료
                     const [touchX, touchY] = getTouchPos(canvas, e);
-                    handlePointerEnd(touchX, touchY, e);
+                    
+                    if (Math.abs(touchX - startX) > 5 || Math.abs(touchY - startY) > 5) {
+                        const shapeObject = {
+                            type: 'shape',
+                            shape: currentShape,
+                            startX: startX,
+                            startY: startY,
+                            endX: touchX,
+                            endY: touchY,
+                            color: currentColor,
+                            size: currentSize,
+                            lineWidth: currentLineWidth,
+                            fill: currentFill,
+                            id: Date.now()
+                        };
+                        
+                        clicks.push(shapeObject);
+                        undoStack.push([...clicks]);
+                        saveUserSettings();
+                        redrawCanvas();
+                        console.log('도형 생성 완료:', currentShape);
+                    }
+                    
+                    isDrawing = false;
                 }
                 
             }, { passive: false });
