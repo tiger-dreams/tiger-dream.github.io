@@ -147,8 +147,16 @@
             canvas.classList.remove('transparent-background');
             canvas.classList.add('default-canvas');
             
-            const { width, height } = { width: 1400, height: 900 }; // 기본 크기 (prod와 동일)
-            applyCanvasDimensions(width, height);
+            // 화면 크기에 맞는 적절한 기본 캔버스 크기 계산 (기존 prod와 동일한 로직)
+            const sidebarWidth = getSidebarWidth();
+            const layerSidebarWidth = getLayerSidebarWidth();
+            const availableWidth = window.innerWidth - sidebarWidth - layerSidebarWidth - 64;
+            const availableHeight = window.innerHeight - 200; // 상단/하단 여백
+            
+            const maxWidth = Math.min(MAX_WIDTH, Math.max(400, availableWidth));
+            const maxHeight = Math.min(MAX_HEIGHT, Math.max(300, availableHeight));
+            
+            applyCanvasDimensions(maxWidth, maxHeight);
             
             // 배경 그리기
             ctx.fillStyle = '#e0e0e0';
@@ -164,10 +172,13 @@
             ctx.textBaseline = 'middle';
             
             const lineHeight = 30;
-            const startY = canvas.height / 2 - (lines.length - 1) * lineHeight / 2;
+            // CSS 픽셀 기준으로 계산 (applyCanvasDimensions에서 ctx.scale이 적용되므로)
+            const canvasWidth = parseInt(canvas.style.width);
+            const canvasHeight = parseInt(canvas.style.height);
+            const startY = canvasHeight / 2 - (lines.length - 1) * lineHeight / 2;
             
             lines.forEach((line, index) => {
-                ctx.fillText(line, canvas.width / 2, startY + index * lineHeight);
+                ctx.fillText(line, canvasWidth / 2, startY + index * lineHeight);
             });
             
             console.log('Single mode default canvas drawn successfully'); // 디버그용
