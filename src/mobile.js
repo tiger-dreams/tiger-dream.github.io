@@ -9,6 +9,9 @@ class MobileAnnotateShot {
         this.isMobile = false;
         this.isInitialized = false;
         this.touchActive = false;
+        this.shapeDragging = false;
+        this.shapeStartX = null;
+        this.shapeStartY = null;
         
         // 모바일 감지
         this.detectMobile();
@@ -382,17 +385,34 @@ class MobileAnnotateShot {
     }
     
     calculateImageSize(originalWidth, originalHeight, maxWidth, maxHeight) {
-        const ratio = Math.min(maxWidth / originalWidth, maxHeight / originalHeight, 1);
-        return {
+        // 모바일에서는 화면 전체 너비를 최대한 활용 (좌우 1rem 여백만)
+        const availableWidth = window.innerWidth - 16; // 1rem = 16px 좌우 여백
+        const availableHeight = window.innerHeight - 200; // 상하 UI 공간 제외
+        
+        const finalMaxWidth = Math.min(maxWidth || availableWidth, availableWidth);
+        const finalMaxHeight = Math.min(maxHeight || availableHeight, availableHeight);
+        
+        const ratio = Math.min(finalMaxWidth / originalWidth, finalMaxHeight / originalHeight, 1);
+        
+        const result = {
             width: Math.floor(originalWidth * ratio),
             height: Math.floor(originalHeight * ratio)
         };
+        
+        console.log('📏 모바일 이미지 크기 계산:', {
+            original: `${originalWidth}x${originalHeight}`,
+            available: `${availableWidth}x${availableHeight}`,
+            final: `${result.width}x${result.height}`,
+            ratio: ratio.toFixed(2)
+        });
+        
+        return result;
     }
     
     setupFloatingButtons() {
         const fabSave = document.getElementById('fabSave');
         const fabUndo = document.getElementById('fabUndo');
-        const fabMode = document.getElementById('fabMode');
+        const fabSettings = document.getElementById('fabSettings');
         
         if (fabSave) {
             fabSave.addEventListener('click', () => {
@@ -408,13 +428,231 @@ class MobileAnnotateShot {
             });
         }
         
-        if (fabMode) {
-            fabMode.addEventListener('click', () => {
-                this.showMobileModePanel();
+        if (fabSettings) {
+            fabSettings.addEventListener('click', () => {
+                this.showMobileSettingsPanel();
             });
         }
         
+        // 설정 패널 이벤트 설정
+        this.setupSettingsPanel();
+        
         console.log('✅ 플로팅 버튼 설정 완료');
+    }
+    
+    setupSettingsPanel() {
+        console.log('⚙️ 설정 패널 이벤트 설정 중...');
+        
+        // 색상 버튼 이벤트
+        const colorButtons = document.querySelectorAll('.mobile-color-btn');
+        colorButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // 기존 active 제거
+                colorButtons.forEach(b => b.classList.remove('active'));
+                // 새로운 active 추가
+                btn.classList.add('active');
+                
+                const color = btn.dataset.color;
+                this.changeColor(color);
+            });
+        });
+        
+        // 크기 슬라이더 이벤트
+        const sizeSlider = document.getElementById('mobileSizeSlider');
+        const sizeValue = document.getElementById('mobileSizeValue');
+        if (sizeSlider && sizeValue) {
+            sizeSlider.addEventListener('input', (e) => {
+                const size = e.target.value;
+                sizeValue.textContent = size + 'px';
+                this.changeSize(size);
+            });
+        }
+        
+        // 이모지 버튼 이벤트
+        const emojiButtons = document.querySelectorAll('.mobile-emoji-btn');
+        emojiButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                emojiButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const emoji = btn.dataset.emoji;
+                this.changeEmoji(emoji);
+            });
+        });
+        
+        // 채우기 옵션 버튼 이벤트
+        const fillButtons = document.querySelectorAll('.mobile-fill-btn');
+        fillButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                fillButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const fill = btn.dataset.fill;
+                this.changeFillType(fill);
+            });
+        });
+        
+        console.log('✅ 설정 패널 이벤트 설정 완료');
+    }
+    
+    showMobileSettingsPanel() {
+        console.log('⚙️ 모바일 설정 패널 열기');
+        
+        const panel = document.getElementById('mobileSettingsPanel');
+        const overlay = document.getElementById('mobileOverlay');
+        
+        if (panel && overlay) {
+            // 현재 모드에 따라 패널 내용 조정
+            this.updateSettingsPanelForCurrentMode();
+            
+            panel.classList.add('show');
+            overlay.classList.add('show');
+            
+            // 현재 설정값들로 UI 초기화
+            this.syncSettingsPanelWithCurrentValues();
+            
+            // 오버레이 클릭으로 닫기 (기존 이벤트 제거 후 새로 추가)
+            overlay.replaceWith(overlay.cloneNode(true));
+            const newOverlay = document.getElementById('mobileOverlay');
+            newOverlay.addEventListener('click', (e) => {
+                if (e.target === newOverlay) {
+                    window.hideMobileSettingsPanel();
+                }
+            });
+        }
+    }
+    
+    updateSettingsPanelForCurrentMode() {
+        const currentMode = document.getElementById('modeSelector')?.value || 'number';
+        
+        const emojiSection = document.getElementById('emojiSection');
+        const shapeSection = document.getElementById('shapeSection');
+        
+        // 모든 섹션 숨기기
+        if (emojiSection) emojiSection.style.display = 'none';
+        if (shapeSection) shapeSection.style.display = 'none';
+        
+        // 현재 모드에 따라 관련 섹션 표시
+        switch(currentMode) {
+            case 'emoji':
+                if (emojiSection) emojiSection.style.display = 'block';
+                break;
+            case 'shape':
+                if (shapeSection) shapeSection.style.display = 'block';
+                break;
+        }
+        
+        console.log('⚙️ 설정 패널을 모드에 맞게 조정:', currentMode);
+    }
+    
+    syncSettingsPanelWithCurrentValues() {
+        // 현재 색상 동기화
+        const currentColor = window.currentColor || '#FF0000';
+        const colorButtons = document.querySelectorAll('.mobile-color-btn');
+        colorButtons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.color === currentColor) {
+                btn.classList.add('active');
+            }
+        });
+        
+        // 현재 크기 동기화
+        const currentSize = window.currentSize || '20';
+        const sizeSlider = document.getElementById('mobileSizeSlider');
+        const sizeValue = document.getElementById('mobileSizeValue');
+        if (sizeSlider && sizeValue) {
+            sizeSlider.value = currentSize;
+            sizeValue.textContent = currentSize + 'px';
+        }
+        
+        // 현재 채우기 옵션 동기화
+        const currentFill = window.currentFill || 'none';
+        const fillButtons = document.querySelectorAll('.mobile-fill-btn');
+        fillButtons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.fill === currentFill) {
+                btn.classList.add('active');
+            }
+        });
+        
+        console.log('🔄 설정 패널 현재값 동기화 완료');
+    }
+    
+    changeColor(color) {
+        console.log('🎨 색상 변경:', color);
+        
+        // main.js의 전역 변수 업데이트
+        if (typeof window.currentColor !== 'undefined') {
+            window.currentColor = color;
+        }
+        
+        // 색상 선택기 업데이트
+        const colorSelector = document.getElementById('colorSelector');
+        if (colorSelector) {
+            colorSelector.value = color;
+            colorSelector.dispatchEvent(new Event('change'));
+        }
+        
+        this.showToast('색상이 변경되었습니다', 'success');
+    }
+    
+    changeSize(size) {
+        console.log('📏 크기 변경:', size);
+        
+        // main.js의 전역 변수 업데이트
+        if (typeof window.currentSize !== 'undefined') {
+            window.currentSize = size;
+        }
+        
+        // 크기 선택기 업데이트
+        const sizeSelector = document.getElementById('sizeSelector');
+        if (sizeSelector) {
+            sizeSelector.value = size;
+            sizeSelector.dispatchEvent(new Event('change'));
+        }
+    }
+    
+    changeEmoji(emoji) {
+        console.log('😀 이모지 변경:', emoji);
+        
+        // main.js의 전역 변수 업데이트
+        if (typeof window.currentEmoji !== 'undefined') {
+            window.currentEmoji = emoji;
+        }
+        
+        // 이모지 선택기 업데이트
+        const emojiSelector = document.getElementById('emojiSelector');
+        if (emojiSelector) {
+            emojiSelector.value = emoji;
+            emojiSelector.dispatchEvent(new Event('change'));
+        }
+        
+        this.showToast(`이모지가 ${emoji}로 변경되었습니다`, 'success');
+    }
+    
+    changeFillType(fill) {
+        console.log('🎨 채우기 옵션 변경:', fill);
+        
+        // main.js의 전역 변수 업데이트
+        if (typeof window.currentFill !== 'undefined') {
+            window.currentFill = fill;
+        }
+        
+        // 채우기 선택기 업데이트
+        const fillSelector = document.getElementById('fillSelector');
+        if (fillSelector) {
+            fillSelector.value = fill;
+            fillSelector.dispatchEvent(new Event('change'));
+        }
+        
+        const fillNames = {
+            'none': '테두리만',
+            'solid': '채우기',
+            'blur': '흐림',
+            'mosaic': '모자이크'
+        };
+        
+        this.showToast(`${fillNames[fill]}로 변경되었습니다`, 'success');
     }
     
     setupBottomToolbar() {
@@ -472,61 +710,302 @@ class MobileAnnotateShot {
         this.touchActive = true;
         
         const touch = e.touches[0];
-        const rect = e.target.getBoundingClientRect();
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
+        const canvas = e.target;
         
-        console.log('👆 터치 시작:', x, y);
+        // 캔버스 좌표 정확히 계산 (스케일링 고려)
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
         
-        // 기존 마우스 이벤트 시뮬레이션
-        const mouseEvent = new MouseEvent('mousedown', {
-            clientX: touch.clientX,
-            clientY: touch.clientY,
-            button: 0,
-            bubbles: true,
-            cancelable: true
+        const x = (touch.clientX - rect.left) * scaleX;
+        const y = (touch.clientY - rect.top) * scaleY;
+        
+        console.log('👆 터치 시작:', {
+            raw: { x: touch.clientX - rect.left, y: touch.clientY - rect.top },
+            scaled: { x, y },
+            scale: { scaleX, scaleY },
+            mode: document.getElementById('modeSelector')?.value
         });
         
-        e.target.dispatchEvent(mouseEvent);
+        // main.js의 마우스 이벤트와 동일한 방식으로 처리
+        this.triggerCanvasClick(x, y);
     }
+    
+    triggerCanvasClick(x, y) {
+        console.log('🎯 캔버스 클릭 트리거:', x, y);
+        
+        // main.js의 캔버스 클릭 이벤트와 동일한 로직 실행
+        const canvas = document.getElementById('imageCanvas');
+        if (!canvas) {
+            console.error('❌ 캔버스를 찾을 수 없음');
+            return;
+        }
+        
+        // main.js의 전역 변수들 확인
+        const currentMode = document.getElementById('modeSelector')?.value || 'number';
+        
+        // 마우스 이벤트 객체를 만들어서 main.js의 기존 이벤트 핸들러 호출
+        const mouseEvent = {
+            preventDefault: () => {},
+            clientX: x + canvas.getBoundingClientRect().left,
+            clientY: y + canvas.getBoundingClientRect().top,
+            offsetX: x,
+            offsetY: y,
+            target: canvas
+        };
+        
+        // main.js의 getMousePos 함수가 있다면 사용
+        let canvasX, canvasY;
+        if (typeof window.getMousePos === 'function') {
+            const pos = window.getMousePos(canvas, mouseEvent);
+            canvasX = pos.x;
+            canvasY = pos.y;
+        } else {
+            // 직접 계산
+            canvasX = x;
+            canvasY = y;
+        }
+        
+        console.log('📍 최종 캔버스 좌표:', { canvasX, canvasY, mode: currentMode });
+        
+        // 현재 모드에 따라 적절한 main.js 함수 호출
+        try {
+            switch(currentMode) {
+                case 'number':
+                    this.handleNumberMode(canvasX, canvasY);
+                    break;
+                case 'text':
+                    this.handleTextMode(canvasX, canvasY);
+                    break;
+                case 'emoji':
+                    this.handleEmojiMode(canvasX, canvasY);
+                    break;
+                case 'shape':
+                    this.handleShapeMode(canvasX, canvasY);
+                    break;
+                default:
+                    console.log('❓ 알 수 없는 모드:', currentMode);
+            }
+        } catch (error) {
+            console.error('❌ 터치 액션 처리 오류:', error);
+        }
+    }
+    
+    handleNumberMode(x, y) {
+        console.log('🔢 숫자 모드 처리:', x, y);
+        
+        // main.js의 전역 변수들 사용
+        if (typeof window.clicks === 'undefined') window.clicks = [];
+        if (typeof window.clickCount === 'undefined') window.clickCount = 0;
+        
+        const currentColor = window.currentColor || '#FF0000';
+        const currentSize = window.currentSize || '20';
+        
+        // 숫자 객체 생성 (main.js와 동일한 구조)
+        const numberObj = {
+            type: 'number',
+            x: x,
+            y: y,
+            number: window.clickCount + 1,
+            color: currentColor,
+            size: currentSize,
+            id: Date.now()
+        };
+        
+        window.clicks.push(numberObj);
+        window.clickCount++;
+        
+        console.log('✅ 숫자 추가됨:', numberObj);
+        
+        // 캔버스 다시 그리기
+        if (typeof window.redrawCanvas === 'function') {
+            window.redrawCanvas();
+        }
+    }
+    
+    handleTextMode(x, y) {
+        console.log('📝 텍스트 모드 처리:', x, y);
+        
+        // 텍스트 입력 프롬프트
+        const text = prompt('텍스트를 입력하세요:');
+        if (!text || text.trim() === '') {
+            console.log('❌ 텍스트 입력이 취소되었습니다');
+            return;
+        }
+        
+        if (typeof window.clicks === 'undefined') window.clicks = [];
+        
+        const currentColor = window.currentColor || '#FF0000';
+        const currentSize = window.currentSize || '20';
+        
+        // 텍스트 객체 생성
+        const textObj = {
+            type: 'text',
+            x: x,
+            y: y,
+            text: text.trim(),
+            color: currentColor,
+            size: currentSize,
+            id: Date.now()
+        };
+        
+        window.clicks.push(textObj);
+        
+        console.log('✅ 텍스트 추가됨:', textObj);
+        
+        // 캔버스 다시 그리기
+        if (typeof window.redrawCanvas === 'function') {
+            window.redrawCanvas();
+        }
+    }
+    
+    handleEmojiMode(x, y) {
+        console.log('😀 이모지 모드 처리:', x, y);
+        
+        if (typeof window.clicks === 'undefined') window.clicks = [];
+        
+        const currentEmoji = window.currentEmoji || '😀';
+        const currentSize = window.currentSize || '20';
+        
+        // 이모지 객체 생성
+        const emojiObj = {
+            type: 'emoji',
+            x: x,
+            y: y,
+            emoji: currentEmoji,
+            size: currentSize,
+            id: Date.now()
+        };
+        
+        window.clicks.push(emojiObj);
+        
+        console.log('✅ 이모지 추가됨:', emojiObj);
+        
+        // 캔버스 다시 그리기
+        if (typeof window.redrawCanvas === 'function') {
+            window.redrawCanvas();
+        }
+    }
+    
+    handleShapeMode(x, y) {
+        console.log('🔷 도형 모드 처리 (드래그 시작):', x, y);
+        
+        // 도형은 드래그로 그려야 하므로 시작 좌표만 저장
+        this.shapeStartX = x;
+        this.shapeStartY = y;
+        this.shapeDragging = true;
+        
+        console.log('🔷 도형 드래그 시작점 설정:', { x, y });
+    }
+    
     
     handleTouchMove(e) {
         if (!this.touchActive) return;
         e.preventDefault();
         
         const touch = e.touches[0];
+        const canvas = e.target;
         
-        const mouseEvent = new MouseEvent('mousemove', {
-            clientX: touch.clientX,
-            clientY: touch.clientY,
-            bubbles: true,
-            cancelable: true
-        });
+        // 캔버스 좌표 계산 (스케일링 고려)
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
         
-        e.target.dispatchEvent(mouseEvent);
+        const x = (touch.clientX - rect.left) * scaleX;
+        const y = (touch.clientY - rect.top) * scaleY;
+        
+        // 도형 모드에서 드래그 중인 경우 미리보기 처리
+        if (this.shapeDragging && typeof this.shapeStartX !== 'undefined') {
+            console.log('🔷 도형 드래그 중:', { startX: this.shapeStartX, startY: this.shapeStartY, currentX: x, currentY: y });
+            
+            // main.js의 도형 미리보기 함수가 있다면 호출
+            if (typeof window.drawShapePreview === 'function') {
+                window.drawShapePreview(this.shapeStartX, this.shapeStartY, x, y);
+            }
+        }
     }
     
     handleTouchEnd(e) {
         e.preventDefault();
         this.touchActive = false;
         
-        const touch = e.changedTouches[0];
-        
-        const mouseEvent = new MouseEvent('mouseup', {
-            clientX: touch.clientX,
-            clientY: touch.clientY,
-            button: 0,
-            bubbles: true,
-            cancelable: true
-        });
-        
-        e.target.dispatchEvent(mouseEvent);
+        // 도형 드래그가 완료된 경우
+        if (this.shapeDragging && typeof this.shapeStartX !== 'undefined') {
+            const touch = e.changedTouches[0];
+            const canvas = e.target;
+            
+            // 캔버스 좌표 계산 (스케일링 고려)
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const endX = (touch.clientX - rect.left) * scaleX;
+            const endY = (touch.clientY - rect.top) * scaleY;
+            
+            console.log('🔷 도형 드래그 완료:', { 
+                startX: this.shapeStartX, 
+                startY: this.shapeStartY, 
+                endX, 
+                endY 
+            });
+            
+            // 도형 생성
+            this.createShape(this.shapeStartX, this.shapeStartY, endX, endY);
+            
+            // 드래그 상태 초기화
+            this.shapeDragging = false;
+            delete this.shapeStartX;
+            delete this.shapeStartY;
+        }
         
         console.log('👆 터치 종료');
     }
     
+    createShape(startX, startY, endX, endY) {
+        console.log('🔷 도형 생성:', { startX, startY, endX, endY });
+        
+        if (typeof window.clicks === 'undefined') window.clicks = [];
+        
+        const currentShape = window.currentShape || 'rectangle';
+        const currentColor = window.currentColor || '#FF0000';
+        const currentLineWidth = window.currentLineWidth || 'medium';
+        const currentFill = window.currentFill || 'none';
+        
+        // 도형 객체 생성 (main.js와 동일한 구조)
+        const shapeObj = {
+            type: 'shape',
+            shape: currentShape,
+            startX: startX,
+            startY: startY,
+            endX: endX,
+            endY: endY,
+            color: currentColor,
+            lineWidth: currentLineWidth,
+            fill: currentFill,
+            id: Date.now()
+        };
+        
+        window.clicks.push(shapeObj);
+        
+        console.log('✅ 도형 추가됨:', shapeObj);
+        
+        // 캔버스 다시 그리기
+        if (typeof window.redrawCanvas === 'function') {
+            window.redrawCanvas();
+        }
+    }
+    
     handleTouchCancel(e) {
         this.touchActive = false;
+        
+        // 도형 드래그 상태 초기화
+        if (this.shapeDragging) {
+            this.shapeDragging = false;
+            delete this.shapeStartX;
+            delete this.shapeStartY;
+            console.log('🔷 도형 드래그 취소');
+        }
+        
         console.log('👆 터치 취소');
     }
     
@@ -640,6 +1119,16 @@ window.hideMobileModePanel = function() {
     if (panel && overlay) {
         panel.classList.remove('show');
         overlay.classList.remove('show');
+    }
+};
+
+window.hideMobileSettingsPanel = function() {
+    const panel = document.getElementById('mobileSettingsPanel');
+    const overlay = document.getElementById('mobileOverlay');
+    if (panel && overlay) {
+        panel.classList.remove('show');
+        overlay.classList.remove('show');
+        console.log('⚙️ 모바일 설정 패널 닫기');
     }
 };
 
