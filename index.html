@@ -14,6 +14,8 @@
     
     <!-- Usage Monitoring -->
     <script src="usage-monitor.js"></script>
+    <!-- Mobile UI Module -->
+    <script src="src/mobile.js"></script>
     
     <style>
         :root {
@@ -2388,162 +2390,7 @@
             observer.observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
         });
 
-        // 모바일 전용 UI 초기화
-        function initializeMobileUI() {
-            if (!isMobileDevice()) return; // 모바일이 아니면 실행하지 않음
-            
-            console.log('모바일 전용 UI 초기화 중...');
-            
-            // 플로팅 액션 버튼 이벤트
-            const fabImage = document.getElementById('fabImage');
-            const fabSave = document.getElementById('fabSave');
-            const fabUndo = document.getElementById('fabUndo');
-            const fabMode = document.getElementById('fabMode');
-            const mobileImageInput = document.getElementById('mobileImageInput');
-            
-            // 모바일 이미지 업로드
-            if (fabImage && mobileImageInput) {
-                fabImage.addEventListener('click', () => {
-                    console.log('모바일 이미지 업로드 버튼 클릭');
-                    mobileImageInput.click();
-                });
-                
-                mobileImageInput.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        console.log('모바일에서 이미지 선택됨:', file.name);
-                        loadImageFromFile(file);
-                    }
-                });
-            }
-            
-            if (fabSave) fabSave.addEventListener('click', () => document.getElementById('saveButton').click());
-            if (fabUndo) fabUndo.addEventListener('click', () => document.getElementById('undoButton').click());
-            if (fabMode) fabMode.addEventListener('click', showMobileModePanel);
-            
-            // 모바일 이미지 로더 함수
-            function loadImageFromFile(file) {
-                if (!file.type.startsWith('image/')) {
-                    console.error('이미지 파일이 아닙니다');
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        console.log('모바일 이미지 로드 완료:', img.width, 'x', img.height);
-                        
-                        // 싱글 모드로 전환
-                        document.getElementById('canvasModeSelector').value = 'single';
-                        document.getElementById('canvasModeSelector').dispatchEvent(new Event('change'));
-                        
-                        // 이미지 설정
-                        if (typeof window.setCurrentImage === 'function') {
-                            window.setCurrentImage(img);
-                        } else {
-                            // main.js의 기존 이미지 로딩 로직 사용
-                            currentImage = img;
-                            resizeAndDrawImage();
-                        }
-                        
-                        // 성공 피드백
-                        showMobileMessage('이미지가 로드되었습니다', 'success');
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-            
-            // 모바일 메시지 표시
-            function showMobileMessage(message, type = 'info') {
-                // 기존 메시지 div 사용
-                const messageDiv = document.getElementById('message');
-                if (messageDiv) {
-                    messageDiv.textContent = message;
-                    messageDiv.style.display = 'block';
-                    messageDiv.className = type === 'success' ? 'success' : '';
-                    
-                    setTimeout(() => {
-                        messageDiv.style.display = 'none';
-                        messageDiv.className = '';
-                    }, 3000);
-                } else {
-                    console.log('모바일 메시지:', message);
-                }
-            }
-            
-            // 모바일 툴바 이벤트
-            const mobileToolbar = document.querySelector('.mobile-toolbar');
-            if (mobileToolbar) {
-                mobileToolbar.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('toolbar-button')) {
-                        const mode = e.target.dataset.mode;
-                        if (mode) {
-                            document.getElementById('modeSelector').value = mode;
-                            document.getElementById('modeSelector').dispatchEvent(new Event('change'));
-                            updateMobileToolbar();
-                        }
-                    }
-                });
-            }
-            
-            updateMobileToolbar();
-            
-            // 모바일에서 리사이즈를 auto로 기본 설정
-            const resizeSelector = document.getElementById('resizeSelector');
-            if (resizeSelector) {
-                resizeSelector.value = 'auto';
-                resizeSelector.dispatchEvent(new Event('change'));
-                console.log('모바일 - 리사이즈 모드를 auto로 설정');
-            }
-        }
-        
-        function showMobileModePanel() {
-            const panel = document.getElementById('mobileModePanel');
-            const overlay = document.getElementById('mobileOverlay');
-            if (panel && overlay) {
-                panel.classList.add('show');
-                overlay.classList.add('show');
-            }
-        }
-        
-        function hideMobileModePanel() {
-            const panel = document.getElementById('mobileModePanel');
-            const overlay = document.getElementById('mobileOverlay');
-            if (panel && overlay) {
-                panel.classList.remove('show');
-                overlay.classList.remove('show');
-            }
-        }
-        
-        function updateMobileToolbar() {
-            const buttons = document.querySelectorAll('.mobile-toolbar .toolbar-button');
-            const currentMode = document.getElementById('modeSelector').value;
-            
-            buttons.forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.mode === currentMode) {
-                    btn.classList.add('active');
-                }
-            });
-        }
-
-        // 모바일 감지 함수 (중복 방지)
-        function isMobileDevice() {
-            const userAgent = navigator.userAgent.toLowerCase();
-            const mobileKeywords = [
-                'android', 'webos', 'iphone', 'ipad', 'ipod', 
-                'blackberry', 'windows phone', 'mobile', 'opera mini'
-            ];
-            return mobileKeywords.some(keyword => userAgent.includes(keyword));
-        }
-
-        // DOMContentLoaded에 모바일 UI 초기화 추가
-        document.addEventListener('DOMContentLoaded', () => {
-            // 기존 초기화...
-            initializeMobileUI(); // 모바일 UI 초기화 추가
-        });
+        // 모바일 UI는 별도 mobile.js에서 처리됨
     </script>
 
     <!-- 모바일 전용 UI 컴포넌트들 -->
@@ -2613,33 +2460,7 @@
         </div>
     </div>
 
-    <script>
-        function selectMobileMode(mode) {
-            document.getElementById('modeSelector').value = mode;
-            document.getElementById('modeSelector').dispatchEvent(new Event('change'));
-            hideMobileModePanel();
-            updateMobileToolbar();
-        }
-
-        // 모바일 기기에서만 모바일 UI 표시
-        if (isMobileDevice() || localStorage.getItem('dev-force-mobile') === 'true' || new URLSearchParams(window.location.search).get('mobile') === 'true') {
-            document.querySelector('.mobile-only').style.display = 'block';
-            console.log('모바일 UI 컴포넌트 활성화');
-        }
-
-        // 개발용 디버그 정보 (콘솔에서 확인)
-        console.log('=== AnnotateShot 모바일 디버그 정보 ===');
-        console.log('User Agent:', navigator.userAgent);
-        console.log('모바일 감지:', isMobileDevice());
-        console.log('강제 모바일 모드:', localStorage.getItem('dev-force-mobile') === 'true');
-        console.log('URL 모바일 모드:', new URLSearchParams(window.location.search).get('mobile') === 'true');
-        console.log('적용된 클래스:', document.body.className);
-        console.log('===');
-        console.log('테스트 방법:');
-        console.log('1. toggleMobileMode() - 모바일/데스크톱 모드 전환');
-        console.log('2. ?mobile=true 파라미터로 URL 접속');
-        console.log('================================');
-    </script>
+    <!-- 모바일 관련 스크립트는 mobile.js에서 처리됨 -->
 
 </body>
 </html>
