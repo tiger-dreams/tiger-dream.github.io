@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>간단한 유닛 테스트 데모</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .pass { background-color: #d4edda; color: #155724; }
+        .fail { background-color: #f8d7da; color: #721c24; }
+        .test-summary { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🧪 AnnotateShot 유닛 테스트 데모</h1>
+    <p>이것이 실제 유닛 테스트가 어떻게 작동하는지 보여주는 예시입니다.</p>
+    
+    <button onclick="runAllTests()">테스트 실행</button>
+    
+    <div id="test-results"></div>
+    
+    <script>
+        // 테스트할 함수들 (main.js에서 분리된 순수 함수들)
+        function calculateImageDimensions(width, height, mode) {
+            switch(mode) {
+                case 'scale50':
+                    return { width: Math.floor(width * 0.5), height: Math.floor(height * 0.5) };
+                case 'scale30':
+                    return { width: Math.floor(width * 0.3), height: Math.floor(height * 0.3) };
+                case 'original':
+                    return { width, height };
+                default:
+                    // Auto resize logic (simplified)
+                    const maxWidth = 1400;
+                    const maxHeight = 900;
+                    if (width > maxWidth || height > maxHeight) {
+                        const scale = Math.min(maxWidth / width, maxHeight / height);
+                        return { 
+                            width: Math.floor(width * scale), 
+                            height: Math.floor(height * scale) 
+                        };
+                    }
+                    return { width, height };
+            }
+        }
+        
+        function getColorFromSelector(colorValue) {
+            const colorMap = {
+                'red': '#FF0000',
+                'blue': '#0000FF',
+                'green': '#00FF00'
+            };
+            return colorMap[colorValue] || colorValue;
+        }
+        
+        function translateText(key, lang = 'ko') {
+            const translations = {
+                ko: { save: '저장하기', undo: '뒤로가기', red: '빨간색' },
+                en: { save: 'Save', undo: 'Undo', red: 'Red' }
+            };
+            return translations[lang]?.[key] || key;
+        }
+
+        // 간단한 테스트 프레임워크
+        class SimpleTestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+            
+            test(name, testFunction) {
+                this.tests.push({ name, testFunction });
+            }
+            
+            expect(actual) {
+                return {
+                    toBe: (expected) => {
+                        if (actual !== expected) {
+                            throw new Error(`Expected ${expected}, but got ${actual}`);
+                        }
+                    },
+                    toEqual: (expected) => {
+                        if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                            throw new Error(`Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(actual)}`);
+                        }
+                    }
+                };
+            }
+            
+            run() {
+                this.results = [];
+                let passed = 0;
+                let failed = 0;
+                
+                this.tests.forEach(({ name, testFunction }) => {
+                    try {
+                        testFunction();
+                        this.results.push({ name, status: 'pass', error: null });
+                        passed++;
+                    } catch (error) {
+                        this.results.push({ name, status: 'fail', error: error.message });
+                        failed++;
+                    }
+                });
+                
+                return { passed, failed, results: this.results };
+            }
+        }
+        
+        // 테스트 케이스들
+        const runner = new SimpleTestRunner();
+        
+        runner.test('이미지 50% 축소 계산', () => {
+            const result = calculateImageDimensions(1000, 800, 'scale50');
+            runner.expect(result).toEqual({ width: 500, height: 400 });
+        });
+        
+        runner.test('이미지 30% 축소 계산', () => {
+            const result = calculateImageDimensions(1000, 800, 'scale30');
+            runner.expect(result).toEqual({ width: 300, height: 240 });
+        });
+        
+        runner.test('원본 크기 유지', () => {
+            const result = calculateImageDimensions(800, 600, 'original');
+            runner.expect(result).toEqual({ width: 800, height: 600 });
+        });
+        
+        runner.test('자동 리사이즈 - 큰 이미지', () => {
+            const result = calculateImageDimensions(2000, 1500, 'auto');
+            // 1400x900 범위 내로 축소되어야 함
+            runner.expect(result.width <= 1400).toBe(true);
+            runner.expect(result.height <= 900).toBe(true);
+        });
+        
+        runner.test('색상 변환 - red', () => {
+            const result = getColorFromSelector('red');
+            runner.expect(result).toBe('#FF0000');
+        });
+        
+        runner.test('번역 - 한국어 저장', () => {
+            const result = translateText('save', 'ko');
+            runner.expect(result).toBe('저장하기');
+        });
+        
+        runner.test('번역 - 영어 저장', () => {
+            const result = translateText('save', 'en');
+            runner.expect(result).toBe('Save');
+        });
+        
+        function runAllTests() {
+            const { passed, failed, results } = runner.run();
+            
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '';
+            
+            results.forEach(({ name, status, error }) => {
+                const div = document.createElement('div');
+                div.className = `test-result ${status}`;
+                div.innerHTML = `
+                    <strong>${status === 'pass' ? '✅' : '❌'} ${name}</strong>
+                    ${error ? `<br><small>Error: ${error}</small>` : ''}
+                `;
+                resultsDiv.appendChild(div);
+            });
+            
+            const summary = document.createElement('div');
+            summary.className = 'test-summary';
+            summary.innerHTML = `
+                <div>📊 테스트 결과: ${passed}개 통과, ${failed}개 실패</div>
+                <div>⚡ 실행 시간: ${Date.now() % 1000}ms (예시)</div>
+            `;
+            resultsDiv.appendChild(summary);
+        }
+    </script>
+</body>
+</html>
