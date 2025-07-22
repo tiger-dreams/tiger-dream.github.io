@@ -817,10 +817,8 @@ class MobileAnnotateShot {
         
         console.log('✅ 숫자 추가됨:', numberObj);
         
-        // 캔버스 다시 그리기
-        if (typeof window.redrawCanvas === 'function') {
-            window.redrawCanvas();
-        }
+        // 캔버스 다시 그리기 - 더 안전한 방법
+        this.safeRedrawCanvas();
     }
     
     handleTextMode(x, y) {
@@ -853,10 +851,8 @@ class MobileAnnotateShot {
         
         console.log('✅ 텍스트 추가됨:', textObj);
         
-        // 캔버스 다시 그리기
-        if (typeof window.redrawCanvas === 'function') {
-            window.redrawCanvas();
-        }
+        // 캔버스 다시 그리기 - 더 안전한 방법
+        this.safeRedrawCanvas();
     }
     
     handleEmojiMode(x, y) {
@@ -881,10 +877,8 @@ class MobileAnnotateShot {
         
         console.log('✅ 이모지 추가됨:', emojiObj);
         
-        // 캔버스 다시 그리기
-        if (typeof window.redrawCanvas === 'function') {
-            window.redrawCanvas();
-        }
+        // 캔버스 다시 그리기 - 더 안전한 방법
+        this.safeRedrawCanvas();
     }
     
     handleShapeMode(x, y) {
@@ -896,6 +890,136 @@ class MobileAnnotateShot {
         this.shapeDragging = true;
         
         console.log('🔷 도형 드래그 시작점 설정:', { x, y });
+    }
+    
+    safeRedrawCanvas() {
+        console.log('🎨 안전한 캔버스 다시 그리기 시작');
+        
+        try {
+            // main.js의 currentImage가 있는지 확인
+            if (!window.currentImage) {
+                console.warn('⚠️ currentImage가 없어서 캔버스 다시 그리기를 건너뜁니다');
+                return;
+            }
+            
+            const canvas = document.getElementById('imageCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (!canvas || !ctx) {
+                console.error('❌ 캔버스 또는 컨텍스트를 찾을 수 없음');
+                return;
+            }
+            
+            // 캔버스 지우고 이미지 다시 그리기
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(window.currentImage, 0, 0, canvas.width, canvas.height);
+            
+            // 모든 주석 다시 그리기
+            if (window.clicks && Array.isArray(window.clicks)) {
+                window.clicks.forEach(click => {
+                    this.drawAnnotation(ctx, click);
+                });
+            }
+            
+            console.log('✅ 안전한 캔버스 다시 그리기 완료');
+            
+        } catch (error) {
+            console.error('❌ 캔버스 다시 그리기 오류:', error);
+            
+            // 실패 시 기존 방법으로 fallback
+            if (typeof window.redrawCanvas === 'function') {
+                console.log('🔄 기존 redrawCanvas 함수로 fallback');
+                window.redrawCanvas();
+            }
+        }
+    }
+    
+    drawAnnotation(ctx, annotation) {
+        try {
+            switch(annotation.type) {
+                case 'number':
+                    this.drawNumber(ctx, annotation);
+                    break;
+                case 'text':
+                    this.drawText(ctx, annotation);
+                    break;
+                case 'emoji':
+                    this.drawEmoji(ctx, annotation);
+                    break;
+                case 'shape':
+                    this.drawShape(ctx, annotation);
+                    break;
+            }
+        } catch (error) {
+            console.error('❌ 주석 그리기 오류:', error, annotation);
+        }
+    }
+    
+    drawNumber(ctx, annotation) {
+        const size = parseInt(annotation.size) || 20;
+        const radius = size;
+        
+        // 배경 원 그리기
+        ctx.fillStyle = annotation.color;
+        ctx.beginPath();
+        ctx.arc(annotation.x, annotation.y, radius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // 숫자 텍스트
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `bold ${size}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(annotation.number.toString(), annotation.x, annotation.y);
+    }
+    
+    drawText(ctx, annotation) {
+        const size = parseInt(annotation.size) || 20;
+        
+        ctx.fillStyle = annotation.color;
+        ctx.font = `${size}px Arial`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(annotation.text, annotation.x, annotation.y);
+    }
+    
+    drawEmoji(ctx, annotation) {
+        const size = parseInt(annotation.size) || 20;
+        
+        ctx.font = `${size}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(annotation.emoji, annotation.x, annotation.y);
+    }
+    
+    drawShape(ctx, annotation) {
+        const width = annotation.endX - annotation.startX;
+        const height = annotation.endY - annotation.startY;
+        
+        ctx.strokeStyle = annotation.color;
+        ctx.lineWidth = annotation.lineWidth === 'thin' ? 1 : annotation.lineWidth === 'thick' ? 5 : 3;
+        
+        switch(annotation.shape) {
+            case 'rectangle':
+                ctx.strokeRect(annotation.startX, annotation.startY, width, height);
+                if (annotation.fill === 'solid') {
+                    ctx.fillStyle = annotation.color;
+                    ctx.fillRect(annotation.startX, annotation.startY, width, height);
+                }
+                break;
+            case 'circle':
+                const radius = Math.sqrt(width * width + height * height) / 2;
+                const centerX = annotation.startX + width / 2;
+                const centerY = annotation.startY + height / 2;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.stroke();
+                if (annotation.fill === 'solid') {
+                    ctx.fillStyle = annotation.color;
+                    ctx.fill();
+                }
+                break;
+        }
     }
     
     
@@ -989,10 +1113,8 @@ class MobileAnnotateShot {
         
         console.log('✅ 도형 추가됨:', shapeObj);
         
-        // 캔버스 다시 그리기
-        if (typeof window.redrawCanvas === 'function') {
-            window.redrawCanvas();
-        }
+        // 캔버스 다시 그리기 - 더 안전한 방법
+        this.safeRedrawCanvas();
     }
     
     handleTouchCancel(e) {
