@@ -1198,6 +1198,25 @@
             background-color: var(--primary);
             color: var(--primary-foreground);
         }
+        
+        /* 모바일 디버그 패널 */
+        .mobile-device .mobile-debug-panel {
+            position: fixed;
+            top: 70px;
+            left: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.95);
+            border-radius: 12px;
+            padding: 1rem;
+            z-index: 200;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        
+        .mobile-device .mobile-debug-panel.show {
+            display: block !important;
+        }
 
         /* Hide elements initially if no image */
         .canvas-container.empty {
@@ -2613,6 +2632,9 @@
             <button class="fab" id="fabSettings" title="스타일 설정">
                 <span class="material-icons">palette</span>
             </button>
+            <button class="fab debug" id="fabDebug" title="디버그 로그" style="background-color: #FF4444;">
+                <span class="material-icons">bug_report</span>
+            </button>
         </div>
         
         <!-- 모바일 전용 숨겨진 파일 입력 -->
@@ -2726,6 +2748,18 @@
             </div>
             
             <button onclick="hideMobileSettingsPanel()" style="margin-top: 1.5rem; width: 100%; padding: 1rem; background-color: var(--muted); border: none; border-radius: 8px; color: var(--foreground); font-size: 1rem;">닫기</button>
+        </div>
+        
+        <!-- 모바일 디버그 로그 패널 -->
+        <div class="mobile-debug-panel" id="mobileDebugPanel" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: #00FF00; font-size: 1rem;">🐛 Debug Log</h3>
+                <div>
+                    <button onclick="clearMobileDebugLog()" style="padding: 0.5rem; background: #FF4444; color: white; border: none; border-radius: 4px; margin-right: 0.5rem;">Clear</button>
+                    <button onclick="hideMobileDebugPanel()" style="padding: 0.5rem; background: #666; color: white; border: none; border-radius: 4px;">Hide</button>
+                </div>
+            </div>
+            <div id="mobileDebugLog" style="font-family: monospace; font-size: 0.8rem; color: #00FF00; background: #000; padding: 1rem; border-radius: 8px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;"></div>
         </div>
     </div>
 
