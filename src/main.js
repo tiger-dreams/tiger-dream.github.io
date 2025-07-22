@@ -17,8 +17,21 @@
         const fillSelector = document.getElementById('fillSelector');
         const lineWidthSelector = document.getElementById('lineWidthSelector');
         const resizeSelector = document.getElementById('resizeSelector');
+        const backgroundColorSelector = document.getElementById('backgroundColorSelector');
+        const canvasModeSelector = document.getElementById('canvasModeSelector');
+        const canvasSizeSelector = document.getElementById('canvasSizeSelector');
+        const customWidth = document.getElementById('customWidth');
+        const customHeight = document.getElementById('customHeight');
+        const applyCustomSize = document.getElementById('applyCustomSize');
 
-        let currentImage = null;
+        // 캔버스 모드 시스템
+        let canvasMode = 'single'; // 'single' (기본) 또는 'multi' (빈 캔버스)
+        let canvasBackgroundColor = ''; // 무지 배경색 (멀티 모드 전용) - 기본값: 선택 안함
+        let canvasSize = ''; // 멀티 모드 전용 캔버스 크기 - 기본값: 선택 안함
+        let imageLayers = []; // 이미지 레이어들 (멀티 모드 전용)
+        let currentImage = null; // 싱글 모드에서 사용
+        let layers = []; // New layer system: [{ type, data, visible, id }, ...]
+        let layerIdCounter = 0;
         let currentColor = "#FF0000";
         let currentSize = "20";
         let currentMode = 'number';
@@ -44,6 +57,17 @@
         let draggedObject = null;
         let dragOffsetX = 0;
         let dragOffsetY = 0;
+
+        // 이미지 리사이즈 핸들 관련 변수
+        let selectedImageLayer = null;
+        let isResizing = false;
+        let resizeHandle = null; // 'nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'
+        let resizeStartX = 0;
+        let resizeStartY = 0;
+        let resizeStartWidth = 0;
+        let resizeStartHeight = 0;
+        let resizeStartImageX = 0;
+        let resizeStartImageY = 0;
 
         // 크롭 관련 변수
         let isCropping = false;
@@ -90,14 +114,195 @@
             currentImage.src = dataUrl;
         }
 
-        function drawDefaultCanvasBackground() {
-            canvas.width = MAX_WIDTH; // Set a default size for the blank canvas
-            canvas.height = MAX_HEIGHT;
-            canvas.classList.add('default-canvas'); // Add class for responsive styling
-            ctx.fillStyle = '#f5f7fa'; // Light background color
+        function drawCanvasBackground() {
+            // 배경색에 따라 캔버스 배경 그리기
+            if (canvasBackgroundColor === 'transparent') {
+                // 투명 배경의 경우 아무것도 그리지 않음 (진짜 투명)
+                // 시각적 표시는 CSS로 처리
+                updateCanvasTransparencyVisual();
+            } else {
+                // 투명이 아닌 경우 CSS 배경 제거
+                canvas.classList.remove('transparent-background');
+                const colorMap = {
+                    'white': '#ffffff',
+                    'light-gray': '#f5f7fa', 
+                    'gray': '#e0e0e0',
+                    'dark-gray': '#808080'
+                };
+                ctx.fillStyle = colorMap[canvasBackgroundColor] || '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function updateCanvasTransparencyVisual() {
+            // 투명 배경일 때 CSS 클래스 추가 (시각적 표시용)
+            canvas.classList.add('transparent-background');
+        }
+
+        function drawSingleModeDefaultCanvas() {
+            // 싱글 모드 기본 캔버스 (안내 문구 포함)
+            console.log('Drawing single mode default canvas'); // 디버그용
+            
+            // 캔버스 클래스 정리
+            canvas.classList.remove('transparent-background');
+            canvas.classList.add('default-canvas');
+            
+            const { width, height } = { width: 1400, height: 900 }; // 기본 크기 (prod와 동일)
+            applyCanvasDimensions(width, height);
+            
+            // 배경 그리기
+            ctx.fillStyle = '#e0e0e0';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
+            // 안내 문구 표시 (uploadImagePrompt 사용)
             const text = translate('uploadImagePrompt');
+            const lines = text.split('\n');
+            
+            ctx.fillStyle = '#555';
+            ctx.font = '18px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const lineHeight = 30;
+            const startY = canvas.height / 2 - (lines.length - 1) * lineHeight / 2;
+            
+            lines.forEach((line, index) => {
+                ctx.fillText(line, canvas.width / 2, startY + index * lineHeight);
+            });
+            
+            console.log('Single mode default canvas drawn successfully'); // 디버그용
+        }
+
+        function createImageLayer(image, x = 0, y = 0, width = null, height = null) {
+            return {
+                id: layerIdCounter++,
+                image: image,
+                x: x,
+                y: y,
+                width: width || image.width,
+                height: height || image.height,
+                visible: true
+            };
+        }
+
+        function applyImageToCanvas() {
+            if (!currentImage) {
+                if (canvasMode === 'multi') {
+                    // 멀티 모드: 빈 캔버스 표시
+                    drawBlankMultiCanvas();
+                } else {
+                    // 싱글 모드: 기본 캔버스 표시
+                    drawSingleModeDefaultCanvas();
+                    messageDiv.textContent = translate('noImageLoaded');
+                }
+                resetDrawingState();
+                return;
+            }
+
+            if (canvasMode === 'single') {
+                // 싱글 모드: 기존 방식 (이미지에 맞춰 캔버스 크기 조정)
+                applySingleImageMode();
+            } else {
+                // 멀티 모드: 이미지를 레이어로 추가
+                applyMultiImageMode();
+            }
+        }
+
+        function applySingleImageMode() {
+            // 기존 싱글 이미지 편집 방식
+            const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
+            applyCanvasDimensions(width, height);
+            
+            // 레이어 시스템에 추가 (UI 호환성 위해)
+            createBackgroundImageLayer();
+            
+            // 캔버스 다시 그리기
+            redrawCanvas();
+            
+            // 레이어 UI 업데이트
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+            
+            resetDrawingState();
+            messageDiv.textContent = translate('imageLoaded', { width, height });
+        }
+
+        function applyMultiImageMode() {
+            if (imageLayers.length === 0) {
+                // 첫 번째 이미지: 설정된 캔버스 크기 사용
+                const { width, height } = getCanvasSize();
+                applyCanvasDimensions(width, height);
+                
+                // 이미지를 캔버스에 맞게 리사이즈
+                const imageAspectRatio = currentImage.width / currentImage.height;
+                const canvasAspectRatio = width / height;
+                
+                let imageWidth, imageHeight, x, y;
+                
+                if (imageAspectRatio > canvasAspectRatio) {
+                    // 이미지가 캔버스보다 가로로 길 경우
+                    imageWidth = Math.min(width * 0.9, currentImage.width);
+                    imageHeight = imageWidth / imageAspectRatio;
+                } else {
+                    // 이미지가 캔버스보다 세로로 길거나 비슷한 경우
+                    imageHeight = Math.min(height * 0.9, currentImage.height);
+                    imageWidth = imageHeight * imageAspectRatio;
+                }
+                
+                // 중앙에 배치
+                x = (width - imageWidth) / 2;
+                y = (height - imageHeight) / 2;
+                
+                // 첫 번째 이미지 레이어 추가
+                const imageLayer = createImageLayer(
+                    currentImage, 
+                    x, y,  
+                    imageWidth, imageHeight
+                );
+                imageLayers.push(imageLayer);
+                
+                messageDiv.textContent = translate('imageLoaded', { 
+                    width: Math.round(imageWidth), 
+                    height: Math.round(imageHeight) 
+                });
+            } else {
+                // 추가 이미지들: 캔버스 크기 유지, 이미지를 캔버스에 맞게 리사이즈하여 추가
+                addImageAsNewLayer();
+                return;
+            }
+            
+            // 전역 imageLayers 업데이트
+            window.imageLayers = imageLayers;
+            
+            // 캔버스 다시 그리기
+            redrawCanvas();
+            
+            // 레이어 UI 업데이트
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+            
+            resetDrawingState();
+        }
+
+        function drawBlankMultiCanvas() {
+            // 캔버스 크기나 배경색이 선택되지 않은 경우 아무것도 그리지 않음
+            const canvasSizeData = getCanvasSize();
+            if (!canvasSizeData || !canvasBackgroundColor || canvasBackgroundColor === '') {
+                // 캔버스를 기본 크기로 초기화하되 아무것도 그리지 않음
+                canvas.classList.remove('default-canvas', 'transparent-background');
+                applyCanvasDimensions(800, 600); // 최소 크기
+                return;
+            }
+            
+            // 설정이 모두 선택된 경우에만 캔버스 그리기
+            const { width, height } = canvasSizeData;
+            applyCanvasDimensions(width, height);
+            
+            drawCanvasBackground();
+            
+            const text = "멀티 이미지 모드\n이미지를 업로드해보세요";
             const lines = text.split('\n');
             
             ctx.fillStyle = '#888';
@@ -113,18 +318,375 @@
             });
         }
 
-        function applyImageToCanvas() {
-            if (!currentImage) {
-                drawDefaultCanvasBackground();
-                messageDiv.textContent = translate('noImageLoaded');
-                resetDrawingState();
-                return;
+        function getCanvasSize() {
+            // 캔버스 크기가 선택되지 않은 경우 null 반환
+            if (!canvasSize || canvasSize === '') {
+                return null;
             }
+            
+            if (canvasSize === 'custom') {
+                const width = parseInt(customWidth.value) || 1200;
+                const height = parseInt(customHeight.value) || 800;
+                return { width, height };
+            }
+            
+            const sizeMap = {
+                '1920x1080': { width: 1920, height: 1080 },
+                '1280x720': { width: 1280, height: 720 },
+                '1200x800': { width: 1200, height: 800 },
+                '800x600': { width: 800, height: 600 },
+                'a4-landscape': { width: 1122, height: 794 }, // A4 297×210mm at 96 DPI
+                'a4-portrait': { width: 794, height: 1122 }   // A4 210×297mm at 96 DPI
+            };
+            
+            return sizeMap[canvasSize] || null;
+        }
 
-            const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
-            applyCanvasDimensions(width, height);
-            resetDrawingState();
-            messageDiv.textContent = translate('imageLoaded', { width, height });
+        function setCanvasSize(newSize) {
+            canvasSize = newSize;
+            
+            if (canvasMode === 'multi') {
+                // 멀티 모드에서만 즉시 적용
+                if (imageLayers.length === 0) {
+                    // 이미지가 없으면 빈 캔버스 다시 그리기
+                    drawBlankMultiCanvas();
+                } else {
+                    // 이미지가 있으면 캔버스 크기만 변경하고 이미지는 현재 위치 유지
+                    const { width, height } = getCanvasSize();
+                    applyCanvasDimensions(width, height);
+                    redrawCanvas();
+                }
+            }
+            
+            saveUserSettings();
+        }
+
+        function addImageAsNewLayer() {
+            // 새 이미지를 캔버스 크기에 맞게 리사이즈
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            
+            // 이미지 비율을 유지하면서 캔버스에 맞는 크기 계산
+            const imageAspectRatio = currentImage.width / currentImage.height;
+            const canvasAspectRatio = canvasWidth / canvasHeight;
+            
+            let newWidth, newHeight, x, y;
+            
+            if (imageAspectRatio > canvasAspectRatio) {
+                // 이미지가 캔버스보다 가로로 길 경우
+                newWidth = Math.min(canvasWidth * 0.8, currentImage.width); // 캔버스의 80% 크기로 제한
+                newHeight = newWidth / imageAspectRatio;
+            } else {
+                // 이미지가 캔버스보다 세로로 길거나 비슷한 경우
+                newHeight = Math.min(canvasHeight * 0.8, currentImage.height);
+                newWidth = newHeight * imageAspectRatio;
+            }
+            
+            // 중앙에 배치
+            x = (canvasWidth - newWidth) / 2;
+            y = (canvasHeight - newHeight) / 2;
+            
+            // 새 이미지 레이어 생성
+            const newImageLayer = createImageLayer(
+                currentImage,
+                x, y,
+                newWidth, newHeight
+            );
+            imageLayers.push(newImageLayer);
+            
+            // 전역 업데이트
+            window.imageLayers = imageLayers;
+            
+            // 레이어 UI 업데이트
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+            
+            // 캔버스 다시 그리기
+            redrawCanvas();
+            
+            messageDiv.textContent = translate('imageLayerAdded', { 
+                layerNumber: imageLayers.length,
+                width: Math.round(newWidth), 
+                height: Math.round(newHeight) 
+            });
+        }
+
+        // Create background image layer (레이어 UI용)
+        function createBackgroundImageLayer() {
+            createBackgroundImageLayerWithSize(canvas.width, canvas.height);
+        }
+
+        // Create background image layer with specific size (for undo functionality)
+        function createBackgroundImageLayerWithSize(width, height) {
+            // Remove existing background layer if any
+            layers = layers.filter(layer => layer.type !== 'background');
+            
+            // Add new background layer
+            const backgroundLayer = {
+                id: layerIdCounter++,
+                type: 'background',
+                data: {
+                    image: currentImage,
+                    width: width,
+                    height: height
+                },
+                visible: true,
+                name: 'Background Image'
+            };
+            
+            // Background layer should be at the bottom
+            layers.unshift(backgroundLayer);
+            
+            // Update global reference
+            window.layers = layers;
+            
+            // Debug log
+            console.log('Created background layer with size:', width, height);
+            console.log('Total layers after background:', layers.length);
+            
+            // Update layer list in UI
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+        }
+
+        // Add annotation to layer system
+        function addAnnotationLayer(type, data) {
+            const layer = {
+                id: layerIdCounter++,
+                type: type,
+                data: data,
+                visible: true,
+                name: getLayerName(type, layers.filter(l => l.type === type).length + 1)
+            };
+            
+            // Add to end (top of stack)
+            layers.push(layer);
+            
+            // Update global reference
+            window.layers = layers;
+            
+            // Update layer UI
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+            
+            // Debug log
+            console.log('Added layer:', layer);
+            console.log('Total layers:', layers.length);
+        }
+
+        // Get layer name based on type
+        function getLayerName(type, index) {
+            const typeNames = {
+                'background': 'Background Image',
+                'number': '숫자',
+                'shape': '도형',
+                'text': '텍스트',
+                'emoji': '이모지'
+            };
+            return type === 'background' ? typeNames[type] : `${typeNames[type]} ${index}`;
+        }
+
+        // Rebuild layer system from clicks array (for undo functionality)
+        function rebuildLayersFromClicks() {
+            // Remove all annotation layers, keep only background
+            layers = layers.filter(layer => layer.type === 'background');
+            
+            // Rebuild layers from clicks array
+            clicks.forEach(click => {
+                const layer = {
+                    id: layerIdCounter++,
+                    type: click.type,
+                    data: click,
+                    visible: true,
+                    name: getLayerName(click.type, layers.filter(l => l.type === click.type).length + 1)
+                };
+                layers.push(layer);
+            });
+            
+            // Update global reference
+            window.layers = layers;
+        }
+
+        // Function to trigger canvas resize (exposed globally for sidebar interactions)
+        function triggerCanvasResize() {
+            if (currentImage && resizeSelector.value === 'default') {
+                applyImageToCanvas();
+            }
+        }
+        
+        // Clear all annotations function (exposed globally for UI)
+        function clearAllAnnotations() {
+            console.log('Clearing all annotations from main.js');
+            console.log('Clicks before:', clicks.length);
+            console.log('Layers before:', layers.length);
+            
+            // Clear clicks array completely
+            clicks.splice(0);
+            clickCount = 0;
+            maxClickCount = 0;
+            
+            // Clear layers except background
+            layers = layers.filter(layer => layer.type === 'background');
+            
+            // Update global references
+            window.clicks = clicks;
+            window.layers = layers;
+            window.clickCount = clickCount;
+            
+            console.log('Clicks after:', clicks.length);
+            console.log('Layers after:', layers.length);
+            
+            redrawCanvas();
+            
+            // Update layer list
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+            
+            saveUserSettings();
+        }
+
+        // Expose functions and data globally
+        window.triggerCanvasResize = triggerCanvasResize;
+        window.layers = layers;
+        window.clicks = clicks;
+        window.imageLayers = imageLayers;
+        window.redrawCanvas = redrawCanvas;
+        window.clearAllAnnotations = clearAllAnnotations;
+
+        function switchCanvasMode(newMode) {
+            const previousMode = canvasMode;
+            canvasMode = newMode;
+            
+            // UI 요소 표시/숨김 제어
+            updateCanvasModeUI();
+            
+            // 모드 전환 시 선택기 초기화 (멀티 모드로 전환하는 경우)
+            if (newMode === 'multi' && previousMode === 'single') {
+                // 멀티 모드로 처음 전환할 때 선택기를 기본값으로 초기화
+                canvasBackgroundColor = '';
+                canvasSize = '';
+                backgroundColorSelector.value = '';
+                canvasSizeSelector.value = '';
+                updateCanvasSizeUI(''); // 커스텀 사이즈 섹션 숨김
+            }
+            
+            // 모드 전환 로직
+            if (newMode === 'multi') {
+                // 멀티 모드로 전환
+                if (previousMode === 'single') {
+                    // 싱글 모드에서 멀티 모드로: 기존 이미지를 첫 번째 레이어로 이동
+                    convertSingleToMultiMode();
+                } else {
+                    // 빈 캔버스 또는 기존 멀티 모드 유지
+                    if (!currentImage && imageLayers.length === 0) {
+                        // 빈 캔버스인 경우
+                        drawBlankMultiCanvas();
+                    } else {
+                        // 기존 이미지 레이어가 있는 경우에만 캔버스 크기 재설정
+                        const canvasSizeData = getCanvasSize();
+                        if (canvasSizeData) {
+                            const { width, height } = canvasSizeData;
+                            applyCanvasDimensions(width, height);
+                        }
+                        redrawCanvas();
+                    }
+                }
+            } else {
+                // 싱글 모드로 전환
+                if (previousMode === 'multi') {
+                    // 멀티 모드에서 싱글 모드로: 첫 번째 이미지 레이어를 메인 이미지로
+                    convertMultiToSingleMode();
+                }
+                // 기존 싱글 모드 유지 또는 빈 캔버스
+                if (!currentImage) {
+                    // 싱글 모드 기본 캔버스 표시
+                    drawSingleModeDefaultCanvas();
+                } else {
+                    applySingleImageMode();
+                }
+            }
+            
+            saveUserSettings();
+            
+            // 레이어 UI 업데이트
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+        }
+
+        function updateCanvasModeUI() {
+            const backgroundColorSection = document.getElementById('backgroundColorSection');
+            const canvasSizeSection = document.getElementById('canvasSizeSection');
+            
+            if (canvasMode === 'multi') {
+                // 멀티 모드: 배경색, 캔버스 크기 섹션 표시
+                backgroundColorSection.style.display = 'block';
+                canvasSizeSection.style.display = 'block';
+            } else {
+                // 싱글 모드: 배경색, 캔버스 크기 섹션 숨김
+                backgroundColorSection.style.display = 'none';
+                canvasSizeSection.style.display = 'none';
+            }
+        }
+
+        function updateCanvasSizeUI(selectedSize) {
+            const customSizeSection = document.getElementById('customSizeSection');
+            
+            if (selectedSize === 'custom') {
+                customSizeSection.style.display = 'block';
+            } else {
+                customSizeSection.style.display = 'none';
+            }
+        }
+
+        function convertSingleToMultiMode() {
+            if (currentImage) {
+                // 기존 이미지를 첫 번째 이미지 레이어로 변환
+                const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
+                const imageLayer = createImageLayer(currentImage, 0, 0, width, height);
+                imageLayers = [imageLayer];
+                window.imageLayers = imageLayers;
+            }
+        }
+
+        function convertMultiToSingleMode() {
+            if (imageLayers.length > 0) {
+                // 첫 번째 이미지 레이어를 메인 이미지로 설정
+                currentImage = imageLayers[0].image;
+                imageLayers = [];
+                window.imageLayers = imageLayers;
+            } else {
+                currentImage = null;
+            }
+        }
+
+        // Helper functions to calculate sidebar widths
+        function getSidebarWidth() {
+            const sidebar = document.getElementById('sidebar');
+            if (!sidebar) return 0;
+            
+            // Mobile: sidebar is hidden by default
+            if (window.innerWidth <= 768) return 0;
+            
+            // Desktop: check if collapsed
+            if (sidebar.classList.contains('collapsed')) return 60;
+            return 280;
+        }
+
+        function getLayerSidebarWidth() {
+            const layerSidebar = document.getElementById('layerSidebar');
+            if (!layerSidebar) return 0;
+            
+            // Mobile: layer sidebar is hidden by default
+            if (window.innerWidth <= 768) return 0;
+            
+            // Desktop: check if collapsed
+            if (layerSidebar.classList.contains('collapsed')) return 50;
+            return 280;
         }
 
         function calculateImageDimensions(width, height) {
@@ -145,7 +707,9 @@
                     return { width: Math.floor(width * 0.7), height: Math.floor(height * 0.7) };
                 default:
                     // Auto-resize: fit to viewport while maintaining aspect ratio
-                    const availableWidth = window.innerWidth - 320; // Subtract sidebar width
+                    const sidebarWidth = getSidebarWidth();
+                    const layerSidebarWidth = getLayerSidebarWidth();
+                    const availableWidth = window.innerWidth - sidebarWidth - layerSidebarWidth - 64; // Subtract sidebars + padding
                     const availableHeight = window.innerHeight - 100; // Subtract header and padding
                     
                     // Use the smaller of MAX dimensions or available viewport space
@@ -178,9 +742,11 @@
             // are still done in terms of CSS pixels.
             ctx.scale(dpr, dpr);
 
-            // Draw the image at the exact calculated dimensions
-            ctx.drawImage(currentImage, 0, 0, width, height);
-            messageDiv.textContent = translate('imageLoaded', { width, height });
+            // Draw the image at the exact calculated dimensions only if currentImage exists
+            if (currentImage) {
+                ctx.drawImage(currentImage, 0, 0, width, height);
+                messageDiv.textContent = translate('imageLoaded', { width, height });
+            }
         }
 
         function cacheImageToLocalStorage(img, url) {
@@ -309,12 +875,16 @@
         // 초기화 및 이벤트 설정
         window.onload = () => {
             // 확장 프로그램에서 캡처한 이미지가 있는지 먼저 확인
-            if (!loadCapturedImage()) {
-                // 캡처된 이미지가 없으면 기본 캔버스 표시
-                drawDefaultCanvasBackground();
+            const hasCapturedImage = loadCapturedImage();
+            
+            if (!hasCapturedImage) {
+                // 캡처된 이미지가 없으면 설정 로드 및 기본 화면 표시
+                loadUserSettingsWithoutHistory();
+                initializeDefaultCanvas();
+            } else {
+                // 캡처된 이미지가 있으면 설정만 로드 (이미지 표시는 이미 됨)
+                loadUserSettingsWithoutHistory();
             }
-            // 설정은 로드하되, 이전 작업 내용은 초기화
-            loadUserSettingsWithoutHistory();
         };
 
         imageLoader.addEventListener('change', e => {
@@ -352,6 +922,50 @@
         resizeSelector.addEventListener('change', () => {
             if (currentImage) loadImageFromDataUrl(currentImage.src);
         });
+        
+        backgroundColorSelector.addEventListener('change', (e) => {
+            canvasBackgroundColor = e.target.value;
+            saveUserSettings();
+            redrawCanvas();
+        });
+        
+        canvasModeSelector.addEventListener('change', (e) => {
+            const newMode = e.target.value;
+            switchCanvasMode(newMode);
+        });
+        
+        canvasSizeSelector.addEventListener('change', (e) => {
+            const newSize = e.target.value;
+            updateCanvasSizeUI(newSize);
+            setCanvasSize(newSize);
+        });
+
+        backgroundColorSelector.addEventListener('change', (e) => {
+            canvasBackgroundColor = e.target.value;
+            if (canvasMode === 'multi') {
+                redrawCanvas();
+            }
+            saveUserSettings();
+        });
+        
+        applyCustomSize.addEventListener('click', () => {
+            if (canvasSize === 'custom') {
+                setCanvasSize('custom');
+            }
+        });
+        
+        // Enter 키로도 커스텀 사이즈 적용
+        customWidth.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && canvasSize === 'custom') {
+                setCanvasSize('custom');
+            }
+        });
+        
+        customHeight.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && canvasSize === 'custom') {
+                setCanvasSize('custom');
+            }
+        });
 
         saveButton.addEventListener('click', saveImage);
         copyToClipboardButton.addEventListener('click', copyToClipboard);
@@ -381,21 +995,51 @@
                 console.log('좌클릭이 아닌 이벤트는 무시됩니다.');
                 return;
             }
+
+            const [mouseX, mouseY] = getMousePos(canvas, e);
+
+            // 멀티 모드에서 선택된 이미지의 리사이즈 핸들 체크
+            if (canvasMode === 'multi' && selectedImageLayer) {
+                const handleName = getResizeHandle(mouseX, mouseY, selectedImageLayer);
+                if (handleName) {
+                    // 리사이즈 시작
+                    isResizing = true;
+                    resizeHandle = handleName;
+                    resizeStartX = mouseX;
+                    resizeStartY = mouseY;
+                    resizeStartWidth = selectedImageLayer.width;
+                    resizeStartHeight = selectedImageLayer.height;
+                    resizeStartImageX = selectedImageLayer.x;
+                    resizeStartImageY = selectedImageLayer.y;
+                    canvas.style.cursor = getResizeCursor(handleName);
+                    return;
+                }
+            }
         
             const clickedObject = isMouseOverObject(e); // Check if an existing object is clicked
         
             if (clickedObject) {
+                // 멀티 모드에서 이미지 레이어를 클릭한 경우 선택 상태 변경
+                if (canvasMode === 'multi' && clickedObject.image) {
+                    selectedImageLayer = clickedObject;
+                    redrawCanvas(); // 선택 핸들 표시를 위해 다시 그리기
+                }
+
                 // If an object is clicked, initiate dragging
                 isDragging = true;
                 draggedObject = clickedObject;
-                // Get mouse coordinates in canvas's internal pixel space
-                const [mouseX, mouseY] = getMousePos(canvas, e);
         
                 // Calculate offset based on object type (number/text use x,y; shapes use startX,startY)
                 dragOffsetX = mouseX - (draggedObject.x !== undefined ? draggedObject.x : draggedObject.startX);
                 dragOffsetY = mouseY - (draggedObject.y !== undefined ? draggedObject.y : draggedObject.startY);
                 canvas.style.cursor = 'grabbing';
             } else {
+                // 빈 공간 클릭 시 이미지 선택 해제 (멀티 모드에서만)
+                if (canvasMode === 'multi' && selectedImageLayer) {
+                    selectedImageLayer = null;
+                    redrawCanvas();
+                }
+
                 // If no object is clicked, proceed with drawing new elements based on mode
                 if (currentMode === 'shape') {
                     startDrawing(e); // Start drawing a new shape
@@ -412,12 +1056,22 @@
         });
         
         canvas.addEventListener('mousemove', e => {
-            if (isDragging) {
-                // Get mouse coordinates in canvas's internal pixel space
-                const [mouseX, mouseY] = getMousePos(canvas, e);
+            const [mouseX, mouseY] = getMousePos(canvas, e);
 
+            if (isResizing) {
+                // 이미지 리사이즈 처리
+                handleImageResize(mouseX, mouseY, e);
+                redrawCanvas();
+            } else if (isDragging) {
                 // Update object position based on type
-                if (draggedObject.type === 'number' || draggedObject.type === 'text' || draggedObject.type === 'emoji') {
+                if (draggedObject.image) {
+                    // This is an image layer
+                    draggedObject.x = mouseX - dragOffsetX;
+                    draggedObject.y = mouseY - dragOffsetY;
+                    
+                    // Update global imageLayers reference
+                    window.imageLayers = imageLayers;
+                } else if (draggedObject.type === 'number' || draggedObject.type === 'text' || draggedObject.type === 'emoji') {
                     draggedObject.x = mouseX - dragOffsetX;
                     draggedObject.y = mouseY - dragOffsetY;
                 } else if (draggedObject.type === 'shape') {
@@ -433,6 +1087,15 @@
                 }
                 redrawCanvas();
             } else {
+                // 멀티 모드에서 커서 스타일 처리
+                if (canvasMode === 'multi' && selectedImageLayer) {
+                    const handleName = getResizeHandle(mouseX, mouseY, selectedImageLayer);
+                    if (handleName) {
+                        canvas.style.cursor = getResizeCursor(handleName);
+                        return;
+                    }
+                }
+
                 // Handle cursor change for hovering over objects
                 const hoveredObject = isMouseOverObject(e);
                 canvas.style.cursor = hoveredObject ? 'grab' : 'default';
@@ -446,7 +1109,12 @@
             }
         });
         canvas.addEventListener('mouseup', e => {
-            if (isDragging) {
+            if (isResizing) {
+                isResizing = false;
+                resizeHandle = null;
+                canvas.style.cursor = 'default';
+                saveUserSettings(); // Save state after resizing
+            } else if (isDragging) {
                 isDragging = false;
                 draggedObject = null;
                 canvas.style.cursor = 'default';
@@ -458,12 +1126,17 @@
             }
         });
         canvas.addEventListener('mouseout', e => {
-            if (isDragging) {
+            if (isResizing) {
+                isResizing = false;
+                resizeHandle = null;
+                canvas.style.cursor = 'default';
+                saveUserSettings(); // Save state if resize ends by leaving canvas
+            } else if (isDragging) {
                 isDragging = false;
                 draggedObject = null;
                 canvas.style.cursor = 'default';
                 saveUserSettings(); // Save state if drag ends by leaving canvas
-            } else { // Only reset cursor if not dragging
+            } else { // Only reset cursor if not dragging or resizing
                 canvas.style.cursor = 'default';
             }
             if (currentMode === 'shape' && isDrawing) { // Only stop drawing if currently drawing a new shape
@@ -540,7 +1213,16 @@
             if (!e.shiftKey) {
                 maxClickCount = Math.max(maxClickCount, displayNumber);
             }
-            clicks.push({ type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize });
+            const numberAnnotation = { type: 'number', x, y, displayNumber, clickCount, color: currentColor, size: currentSize };
+            clicks.push(numberAnnotation);
+            
+            // Also add to layer system
+            addAnnotationLayer('number', numberAnnotation);
+            
+            // Update layer list
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
 
             redrawCanvas();
             messageDiv.textContent = translate('clickAdded', { number: displayNumber, x: Math.round(x), y: Math.round(y) });
@@ -556,7 +1238,16 @@
             let y = e.clientY - rect.top;
             const text = prompt(translate('enterText'));
             if (text) {
-                clicks.push({ type: 'text', x, y, text, color: currentColor, size: currentSize });
+                const textAnnotation = { type: 'text', x, y, text, color: currentColor, size: currentSize };
+                clicks.push(textAnnotation);
+                
+                // Also add to layer system
+                addAnnotationLayer('text', textAnnotation);
+                
+                // Update layer list
+                if (typeof window.updateLayerList === 'function') {
+                    window.updateLayerList();
+                }
                 redrawCanvas();
                 messageDiv.textContent = translate('textAdded', { text, x: Math.round(x), y: Math.round(y) });
             }
@@ -566,7 +1257,16 @@
             let [x, y] = getMousePos(canvas, e);
             const selectedEmoji = emojiSelector.value;
             if (selectedEmoji) {
-                clicks.push({ type: 'emoji', x, y, emoji: selectedEmoji, size: currentSize });
+                const emojiAnnotation = { type: 'emoji', x, y, emoji: selectedEmoji, size: currentSize };
+                clicks.push(emojiAnnotation);
+                
+                // Also add to layer system
+                addAnnotationLayer('emoji', emojiAnnotation);
+                
+                // Update layer list
+                if (typeof window.updateLayerList === 'function') {
+                    window.updateLayerList();
+                }
                 redrawCanvas();
                 messageDiv.textContent = translate('emojiAdded', { emoji: selectedEmoji, x: Math.round(x), y: Math.round(y) });
             }
@@ -662,7 +1362,7 @@
                 shapeCount: shapeCount,
                 canvasWidth: canvas.width,
                 canvasHeight: canvas.height,
-                resizeOption: resizeSelector ? resizeSelector.value : 'auto'
+                resizeOption: resizeSelector ? resizeSelector.value : 'default'
             });
             
             const minX = Math.min(cropStartX, cropEndX);
@@ -907,10 +1607,23 @@
                         resizeSelector.value = previousState.resizeOption;
                     }
                     
-                    // 이전 이미지 크기로 캔버스 복원
+                    // 이전 이미지 크기로 캔버스 복원 (CSS 스타일 포함)
+                    const dpr = window.devicePixelRatio || 1;
+                    const displayWidth = previousState.canvasWidth / dpr;
+                    const displayHeight = previousState.canvasHeight / dpr;
+                    
                     canvas.width = previousState.canvasWidth;
                     canvas.height = previousState.canvasHeight;
-                    ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+                    canvas.style.width = `${displayWidth}px`;
+                    canvas.style.height = `${displayHeight}px`;
+                    
+                    // Context scaling 복원
+                    ctx.scale(dpr, dpr);
+                    
+                    ctx.drawImage(currentImage, 0, 0, displayWidth, displayHeight);
+                    
+                    // 배경 이미지 레이어 재생성 (복원된 크기 사용)
+                    createBackgroundImageLayerWithSize(previousState.canvasWidth, previousState.canvasHeight);
                 }
                 
                 // 주석 상태 복원
@@ -919,7 +1632,20 @@
                 shapeCount = previousState.shapeCount;
                 maxClickCount = clicks.filter(c => c.type === 'number').reduce((max, c) => Math.max(max, c.displayNumber || 0), 0);
                 
+                // 레이어 시스템 재구축
+                rebuildLayersFromClicks();
+                
+                // 전역 참조 업데이트
+                window.clicks = clicks;
+                window.layers = layers;
+                
                 redrawCanvas();
+                
+                // 레이어 UI 업데이트
+                if (typeof window.updateLayerList === 'function') {
+                    window.updateLayerList();
+                }
+                
                 messageDiv.textContent = translate('undoPerformed');
                 saveUserSettings();
                 return;
@@ -933,11 +1659,27 @@
             
             const removedClick = clicks.pop();
             
+            // Also remove from layer system
+            const layerIndex = layers.findIndex(layer => layer.data === removedClick);
+            if (layerIndex !== -1) {
+                layers.splice(layerIndex, 1);
+            }
+            
+            // Update global references
+            window.clicks = clicks;
+            window.layers = layers;
+            
             // Recalculate maxClickCount and shapeCount based on remaining clicks
             maxClickCount = clicks.filter(c => c.type === 'number').reduce((max, c) => Math.max(max, c.displayNumber || 0), 0);
             shapeCount = clicks.filter(c => c.type === 'shape').length;
 
             redrawCanvas();
+            
+            // Update layer list
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
+            
             messageDiv.textContent = translate('undoPerformed');
             saveUserSettings();
         }
@@ -948,22 +1690,110 @@
 
         function resetDrawingState() {
             clicks = [];
+            layers = layers.filter(layer => layer.type === 'background'); // Keep only background layer
+            // imageLayers는 유지 - 이미지 레이어는 주석과 별개
             undoStack = [];
             clickCount = 0;
             maxClickCount = 0;
             initialX = null;
             initialY = null;
+            
+            // Update global references
+            window.clicks = clicks;
+            window.layers = layers;
+            
             redrawCanvas();
         }
 
         function redrawCanvas() {
-            if (!currentImage) {
-                drawDefaultCanvasBackground();
+            // Clear canvas
+            canvas.width = canvas.width;
+            
+            if (canvasMode === 'single') {
+                // 싱글 모드: 기존 방식
+                redrawSingleModeCanvas();
             } else {
-                canvas.width = canvas.width;
+                // 멀티 모드: 레이어 시스템
+                redrawMultiModeCanvas();
+            }
+            
+            // Draw resize handles if an image is selected (멀티 모드에서만)
+            if (canvasMode === 'multi' && selectedImageLayer) {
+                drawResizeHandles(selectedImageLayer);
+            }
+        }
+
+        function redrawSingleModeCanvas() {
+            // 싱글 모드에서는 currentImage를 배경으로 그리고 주석들을 위에 그림
+            if (currentImage) {
                 ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
             }
+            
+            // Draw annotation layers
+            layers.forEach((layer) => {
+                if (layer.visible === false) return;
+                
+                if (layer.type === 'background') {
+                    // 싱글 모드에서 배경 이미지는 이미 위에서 그려짐
+                    return;
+                } else {
+                    const data = layer.data;
+                    if (data.type === 'number') drawNumber(data);
+                    else if (data.type === 'shape') drawShape(data.startX, data.startY, data.endX, data.endY, data.shape, data.color, data.fillType || 'none');
+                    else if (data.type === 'text') drawText(data);
+                    else if (data.type === 'emoji') drawEmoji(data);
+                }
+            });
+            
+            // Legacy support
             clicks.forEach((click) => {
+                if (layers.some(layer => layer.data === click)) return;
+                if (click.visible === false) return;
+                
+                if (click.type === 'number') drawNumber(click);
+                else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color, click.fillType || 'none');
+                else if (click.type === 'text') drawText(click);
+                else if (click.type === 'emoji') drawEmoji(click);
+            });
+        }
+
+        function redrawMultiModeCanvas() {
+            // 멀티 모드: 무지 배경 → 이미지 레이어들 → 주석 레이어들
+            
+            // Step 1: Draw solid background
+            drawCanvasBackground();
+            
+            // Step 2: Draw image layers
+            imageLayers.forEach((imageLayer) => {
+                if (imageLayer.visible === false) return;
+                ctx.drawImage(
+                    imageLayer.image,
+                    imageLayer.x, imageLayer.y,
+                    imageLayer.width, imageLayer.height
+                );
+            });
+            
+            // Step 3: Draw annotation layers
+            layers.forEach((layer) => {
+                if (layer.visible === false) return;
+                
+                if (layer.type === 'background') {
+                    // 멀티 모드에서는 무지 배경이므로 스킵
+                    return;
+                } else {
+                    const data = layer.data;
+                    if (data.type === 'number') drawNumber(data);
+                    else if (data.type === 'shape') drawShape(data.startX, data.startY, data.endX, data.endY, data.shape, data.color, data.fillType || 'none');
+                    else if (data.type === 'text') drawText(data);
+                    else if (data.type === 'emoji') drawEmoji(data);
+                }
+            });
+            
+            // Legacy support
+            clicks.forEach((click) => {
+                if (layers.some(layer => layer.data === click)) return;
+                if (click.visible === false) return;
+                
                 if (click.type === 'number') drawNumber(click);
                 else if (click.type === 'shape') drawShape(click.startX, click.startY, click.endX, click.endY, click.shape, click.color, click.fillType || 'none');
                 else if (click.type === 'text') drawText(click);
@@ -992,7 +1822,16 @@
             isDrawing = false;
             const [mouseX, mouseY] = getAdjustedMousePos(canvas, e);
             shapeCount++;
-            clicks.push({ type: 'shape', shape: currentShape, startX, startY, endX: mouseX, endY: mouseY, color: currentColor, fillType: currentFill, id: shapeCount });
+            const shapeAnnotation = { type: 'shape', shape: currentShape, startX, startY, endX: mouseX, endY: mouseY, color: currentColor, fillType: currentFill, id: shapeCount };
+            clicks.push(shapeAnnotation);
+            
+            // Also add to layer system
+            addAnnotationLayer('shape', shapeAnnotation);
+            
+            // Update layer list
+            if (typeof window.updateLayerList === 'function') {
+                window.updateLayerList();
+            }
             
             redrawCanvas();
             saveUserSettings();
@@ -1044,6 +1883,273 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(click.emoji, click.x, click.y);
+        }
+
+        // 이미지 리사이즈 핸들 관련 함수들
+        function drawResizeHandles(imageLayer) {
+            const handleSize = 8;
+            const x = imageLayer.x;
+            const y = imageLayer.y;
+            const width = imageLayer.width;
+            const height = imageLayer.height;
+
+            // 8개의 핸들 위치 계산
+            const handles = [
+                { name: 'nw', x: x - handleSize/2, y: y - handleSize/2 },           // 북서
+                { name: 'n',  x: x + width/2 - handleSize/2, y: y - handleSize/2 }, // 북
+                { name: 'ne', x: x + width - handleSize/2, y: y - handleSize/2 },   // 북동
+                { name: 'e',  x: x + width - handleSize/2, y: y + height/2 - handleSize/2 }, // 동
+                { name: 'se', x: x + width - handleSize/2, y: y + height - handleSize/2 }, // 남동
+                { name: 's',  x: x + width/2 - handleSize/2, y: y + height - handleSize/2 }, // 남
+                { name: 'sw', x: x - handleSize/2, y: y + height - handleSize/2 },  // 남서
+                { name: 'w',  x: x - handleSize/2, y: y + height/2 - handleSize/2 } // 서
+            ];
+
+            // 핸들 그리기
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#0066cc';
+            ctx.lineWidth = 2;
+
+            handles.forEach(handle => {
+                ctx.fillRect(handle.x, handle.y, handleSize, handleSize);
+                ctx.strokeRect(handle.x, handle.y, handleSize, handleSize);
+            });
+
+            ctx.restore();
+        }
+
+        function getResizeHandle(mouseX, mouseY, imageLayer) {
+            if (!imageLayer) return null;
+
+            const handleSize = 8;
+            const tolerance = 3; // 클릭 허용 범위
+            const x = imageLayer.x;
+            const y = imageLayer.y;
+            const width = imageLayer.width;
+            const height = imageLayer.height;
+
+            // 8개의 핸들 위치
+            const handles = [
+                { name: 'nw', x: x - handleSize/2, y: y - handleSize/2 },
+                { name: 'n',  x: x + width/2 - handleSize/2, y: y - handleSize/2 },
+                { name: 'ne', x: x + width - handleSize/2, y: y - handleSize/2 },
+                { name: 'e',  x: x + width - handleSize/2, y: y + height/2 - handleSize/2 },
+                { name: 'se', x: x + width - handleSize/2, y: y + height - handleSize/2 },
+                { name: 's',  x: x + width/2 - handleSize/2, y: y + height - handleSize/2 },
+                { name: 'sw', x: x - handleSize/2, y: y + height - handleSize/2 },
+                { name: 'w',  x: x - handleSize/2, y: y + height/2 - handleSize/2 }
+            ];
+
+            // 마우스가 핸들 위에 있는지 확인
+            for (const handle of handles) {
+                if (mouseX >= handle.x - tolerance && mouseX <= handle.x + handleSize + tolerance &&
+                    mouseY >= handle.y - tolerance && mouseY <= handle.y + handleSize + tolerance) {
+                    return handle.name;
+                }
+            }
+
+            return null;
+        }
+
+        function getResizeCursor(handleName) {
+            const cursors = {
+                'nw': 'nw-resize',
+                'n': 'n-resize',
+                'ne': 'ne-resize',
+                'e': 'e-resize',
+                'se': 'se-resize',
+                's': 's-resize',
+                'sw': 'sw-resize',
+                'w': 'w-resize'
+            };
+            return cursors[handleName] || 'default';
+        }
+
+        function handleImageResize(mouseX, mouseY, event) {
+            if (!selectedImageLayer || !resizeHandle) return;
+
+            const deltaX = mouseX - resizeStartX;
+            const deltaY = mouseY - resizeStartY;
+            
+            let newX = resizeStartImageX;
+            let newY = resizeStartImageY;
+            let newWidth = resizeStartWidth;
+            let newHeight = resizeStartHeight;
+
+            // 최소 크기 제한
+            const minSize = 20;
+
+            // Shift 키가 눌려있는지 확인 (비율 유지)
+            const isShiftPressed = event && event.shiftKey;
+            const aspectRatio = resizeStartWidth / resizeStartHeight;
+
+            if (isShiftPressed) {
+                // 비율 유지 모드
+                let scaleFactor = 1;
+                
+                switch (resizeHandle) {
+                    case 'nw': // 북서 (왼쪽 위)
+                        scaleFactor = Math.min(
+                            (resizeStartWidth - deltaX) / resizeStartWidth,
+                            (resizeStartHeight - deltaY) / resizeStartHeight
+                        );
+                        newWidth = resizeStartWidth * scaleFactor;
+                        newHeight = resizeStartHeight * scaleFactor;
+                        newX = resizeStartImageX + resizeStartWidth - newWidth;
+                        newY = resizeStartImageY + resizeStartHeight - newHeight;
+                        break;
+                    case 'ne': // 북동 (오른쪽 위)
+                        scaleFactor = Math.min(
+                            (resizeStartWidth + deltaX) / resizeStartWidth,
+                            (resizeStartHeight - deltaY) / resizeStartHeight
+                        );
+                        newWidth = resizeStartWidth * scaleFactor;
+                        newHeight = resizeStartHeight * scaleFactor;
+                        newX = resizeStartImageX;
+                        newY = resizeStartImageY + resizeStartHeight - newHeight;
+                        break;
+                    case 'se': // 남동 (오른쪽 아래)
+                        scaleFactor = Math.min(
+                            (resizeStartWidth + deltaX) / resizeStartWidth,
+                            (resizeStartHeight + deltaY) / resizeStartHeight
+                        );
+                        newWidth = resizeStartWidth * scaleFactor;
+                        newHeight = resizeStartHeight * scaleFactor;
+                        newX = resizeStartImageX;
+                        newY = resizeStartImageY;
+                        break;
+                    case 'sw': // 남서 (왼쪽 아래)
+                        scaleFactor = Math.min(
+                            (resizeStartWidth - deltaX) / resizeStartWidth,
+                            (resizeStartHeight + deltaY) / resizeStartHeight
+                        );
+                        newWidth = resizeStartWidth * scaleFactor;
+                        newHeight = resizeStartHeight * scaleFactor;
+                        newX = resizeStartImageX + resizeStartWidth - newWidth;
+                        newY = resizeStartImageY;
+                        break;
+                    case 'n': // 북 (위) - 비율 유지하며 세로 기준으로 조정
+                        scaleFactor = (resizeStartHeight - deltaY) / resizeStartHeight;
+                        newWidth = resizeStartWidth * scaleFactor;
+                        newHeight = resizeStartHeight * scaleFactor;
+                        newX = resizeStartImageX + (resizeStartWidth - newWidth) / 2;
+                        newY = resizeStartImageY + resizeStartHeight - newHeight;
+                        break;
+                    case 's': // 남 (아래) - 비율 유지하며 세로 기준으로 조정
+                        scaleFactor = (resizeStartHeight + deltaY) / resizeStartHeight;
+                        newWidth = resizeStartWidth * scaleFactor;
+                        newHeight = resizeStartHeight * scaleFactor;
+                        newX = resizeStartImageX + (resizeStartWidth - newWidth) / 2;
+                        newY = resizeStartImageY;
+                        break;
+                    case 'e': // 동 (오른쪽) - 비율 유지하며 가로 기준으로 조정
+                        scaleFactor = (resizeStartWidth + deltaX) / resizeStartWidth;
+                        newWidth = resizeStartWidth * scaleFactor;
+                        newHeight = resizeStartHeight * scaleFactor;
+                        newX = resizeStartImageX;
+                        newY = resizeStartImageY + (resizeStartHeight - newHeight) / 2;
+                        break;
+                    case 'w': // 서 (왼쪽) - 비율 유지하며 가로 기준으로 조정
+                        scaleFactor = (resizeStartWidth - deltaX) / resizeStartWidth;
+                        newWidth = resizeStartWidth * scaleFactor;
+                        newHeight = resizeStartHeight * scaleFactor;
+                        newX = resizeStartImageX + resizeStartWidth - newWidth;
+                        newY = resizeStartImageY + (resizeStartHeight - newHeight) / 2;
+                        break;
+                }
+            } else {
+                // 자유 조정 모드 (기존 로직)
+                switch (resizeHandle) {
+                    case 'nw': // 북서 (왼쪽 위)
+                        newX = resizeStartImageX + deltaX;
+                        newY = resizeStartImageY + deltaY;
+                        newWidth = resizeStartWidth - deltaX;
+                        newHeight = resizeStartHeight - deltaY;
+                        break;
+                    case 'n': // 북 (위)
+                        newY = resizeStartImageY + deltaY;
+                        newHeight = resizeStartHeight - deltaY;
+                        break;
+                    case 'ne': // 북동 (오른쪽 위)
+                        newY = resizeStartImageY + deltaY;
+                        newWidth = resizeStartWidth + deltaX;
+                        newHeight = resizeStartHeight - deltaY;
+                        break;
+                    case 'e': // 동 (오른쪽)
+                        newWidth = resizeStartWidth + deltaX;
+                        break;
+                    case 'se': // 남동 (오른쪽 아래)
+                        newWidth = resizeStartWidth + deltaX;
+                        newHeight = resizeStartHeight + deltaY;
+                        break;
+                    case 's': // 남 (아래)
+                        newHeight = resizeStartHeight + deltaY;
+                        break;
+                    case 'sw': // 남서 (왼쪽 아래)
+                        newX = resizeStartImageX + deltaX;
+                        newWidth = resizeStartWidth - deltaX;
+                        newHeight = resizeStartHeight + deltaY;
+                        break;
+                    case 'w': // 서 (왼쪽)
+                        newX = resizeStartImageX + deltaX;
+                        newWidth = resizeStartWidth - deltaX;
+                        break;
+                }
+            }
+
+            // 최소 크기 제한 적용
+            if (newWidth < minSize) {
+                if (isShiftPressed) {
+                    // 비율 유지하며 최소 크기 적용
+                    const scaleToMinWidth = minSize / newWidth;
+                    newWidth = minSize;
+                    newHeight = newHeight * scaleToMinWidth;
+                    
+                    // 위치 조정
+                    if (resizeHandle.includes('w')) {
+                        newX = resizeStartImageX + resizeStartWidth - newWidth;
+                    }
+                    if (resizeHandle.includes('n')) {
+                        newY = resizeStartImageY + resizeStartHeight - newHeight;
+                    }
+                } else {
+                    if (resizeHandle.includes('w')) {
+                        newX = resizeStartImageX + resizeStartWidth - minSize;
+                    }
+                    newWidth = minSize;
+                }
+            }
+            if (newHeight < minSize) {
+                if (isShiftPressed) {
+                    // 비율 유지하며 최소 크기 적용
+                    const scaleToMinHeight = minSize / newHeight;
+                    newHeight = minSize;
+                    newWidth = newWidth * scaleToMinHeight;
+                    
+                    // 위치 조정
+                    if (resizeHandle.includes('n')) {
+                        newY = resizeStartImageY + resizeStartHeight - newHeight;
+                    }
+                    if (resizeHandle.includes('w')) {
+                        newX = resizeStartImageX + resizeStartWidth - newWidth;
+                    }
+                } else {
+                    if (resizeHandle.includes('n')) {
+                        newY = resizeStartImageY + resizeStartHeight - minSize;
+                    }
+                    newHeight = minSize;
+                }
+            }
+
+            // 이미지 레이어 업데이트
+            selectedImageLayer.x = newX;
+            selectedImageLayer.y = newY;
+            selectedImageLayer.width = newWidth;
+            selectedImageLayer.height = newHeight;
+
+            // 글로벌 참조 업데이트
+            window.imageLayers = imageLayers;
         }
 
         function drawShape(x1, y1, x2, y2, shape, color, fillType = 'none') {
@@ -1241,6 +2347,19 @@
             // Get mouse coordinates in canvas's internal pixel space
             const [mouseX, mouseY] = getMousePos(canvas, e);
 
+            // Check image layers first (they should be on top of background but below annotations)
+            for (let i = imageLayers.length - 1; i >= 0; i--) {
+                const imageLayer = imageLayers[i];
+                if (!imageLayer.visible) continue;
+                
+                // Check if mouse is over this image layer
+                if (mouseX >= imageLayer.x && mouseX <= imageLayer.x + imageLayer.width &&
+                    mouseY >= imageLayer.y && mouseY <= imageLayer.y + imageLayer.height) {
+                    return imageLayer;
+                }
+            }
+
+            // Check annotation objects
             for (let i = clicks.length - 1; i >= 0; i--) {
                 const click = clicks[i];
                 if (click.type === 'number') {
@@ -1485,6 +2604,9 @@
                 fillType: fillSelector.value,
                 lineWidth: lineWidthSelector.value,
                 cropStyle: currentCropStyle,
+                canvasMode: canvasMode,
+                backgroundColor: canvasBackgroundColor,
+                canvasSize: canvasSize,
                 clicks, // clicks array already contains emoji objects
                 clickCount,
                 shapeCount
@@ -1494,7 +2616,12 @@
 
         function loadUserSettings() {
             const savedSettings = localStorage.getItem('userSettings');
-            if (!savedSettings) return;
+            if (!savedSettings) {
+                // 기본값으로 초기화 (첫 방문자)
+                updateCanvasModeUI();
+                updateCanvasSizeUI(canvasSize);
+                return;
+            }
             const settings = JSON.parse(savedSettings);
             currentMode = settings.mode;
             modeSelector.value = currentMode;
@@ -1512,11 +2639,22 @@
             if (document.getElementById('cropStyleSelector')) {
                 document.getElementById('cropStyleSelector').value = currentCropStyle;
             }
+            canvasMode = settings.canvasMode || 'single';
+            canvasModeSelector.value = canvasMode;
+            canvasBackgroundColor = settings.backgroundColor || '';
+            backgroundColorSelector.value = canvasBackgroundColor;
+            canvasSize = settings.canvasSize || '';
+            canvasSizeSelector.value = canvasSize;
+            
+            // 캔버스 모드에 따른 UI 업데이트
+            updateCanvasModeUI();
+            updateCanvasSizeUI(canvasSize);
             clicks = settings.clicks || [];
             clickCount = settings.clickCount || 0;
             shapeCount = settings.shapeCount || 0;
             updateUIForMode(currentMode);
-            redrawCanvas();
+            
+            // 설정 로드 후 UI 업데이트만 수행 (캔버스 초기화는 별도 함수에서 처리)
         }
 
         function loadUserSettingsWithoutHistory() {
@@ -1539,6 +2677,19 @@
             if (document.getElementById('cropStyleSelector')) {
                 document.getElementById('cropStyleSelector').value = currentCropStyle;
             }
+            
+            // 캔버스 모드 설정 로드
+            canvasMode = settings.canvasMode || 'single';
+            canvasModeSelector.value = canvasMode;
+            canvasBackgroundColor = settings.backgroundColor || '';
+            backgroundColorSelector.value = canvasBackgroundColor;
+            canvasSize = settings.canvasSize || '';
+            canvasSizeSelector.value = canvasSize;
+            
+            // UI 업데이트
+            updateCanvasModeUI();
+            updateCanvasSizeUI(canvasSize);
+            
             // 이전 작업 내용은 로드하지 않음 - 깨끗한 상태 유지
             clicks = [];
             clickCount = 0;
@@ -1654,6 +2805,27 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             applyLanguage();
-            // DOM 로드 즉시 깨끗한 캔버스 표시 (이전 작업 내용 표시 방지)
-            drawDefaultCanvasBackground();
         });
+
+        function initializeDefaultCanvas() {
+            // 이미지가 없는 상태에서 현재 캔버스 모드에 따른 기본 화면 표시
+            console.log('initializeDefaultCanvas called:', { 
+                currentImage: !!currentImage, 
+                imageLayers: imageLayers.length, 
+                canvasMode: canvasMode 
+            });
+            
+            if (!currentImage && imageLayers.length === 0) {
+                if (canvasMode === 'multi') {
+                    // 멀티 모드: 빈 캔버스 표시 (설정에 따라)
+                    console.log('Initializing multi mode canvas');
+                    drawBlankMultiCanvas();
+                } else {
+                    // 싱글 모드: 기본 안내 화면 표시
+                    console.log('Initializing single mode canvas');
+                    drawSingleModeDefaultCanvas();
+                }
+            } else {
+                console.log('Skipping initialization - image already exists');
+            }
+        }
