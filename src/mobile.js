@@ -465,8 +465,10 @@ class MobileAnnotateShot {
         // 콘솔에도 로그
         console.log(message);
         
-        // 모바일 화면에 표시
+        // 모바일 화면에 표시 (패널이 열려있을 때만)
+        const panel = document.getElementById('mobileDebugPanel');
         const logDiv = document.getElementById('mobileDebugLog');
+        
         if (logDiv) {
             const timestamp = new Date().toLocaleTimeString();
             const logEntry = `[${timestamp}] ${message}\n`;
@@ -474,12 +476,7 @@ class MobileAnnotateShot {
             logDiv.scrollTop = logDiv.scrollHeight;
         }
         
-        // 자동으로 디버그 패널 표시 (첫 번째 로그 시)
-        const panel = document.getElementById('mobileDebugPanel');
-        if (panel && panel.style.display === 'none') {
-            panel.style.display = 'block';
-            panel.classList.add('show');
-        }
+        // 자동 패널 표시 제거 - 수동으로만 열도록 변경
     }
     
     setupSettingsPanel() {
@@ -775,17 +772,18 @@ class MobileAnnotateShot {
     }
     
     triggerCanvasClick(x, y) {
-        console.log('🎯 캔버스 클릭 트리거:', x, y);
+        this.mobileLog(`🎯 캔버스클릭 트리거: (${x.toFixed(1)},${y.toFixed(1)})`);
         
         // main.js의 캔버스 클릭 이벤트와 동일한 로직 실행
         const canvas = document.getElementById('imageCanvas');
         if (!canvas) {
-            console.error('❌ 캔버스를 찾을 수 없음');
+            this.mobileLog('❌ 캔버스를 찾을 수 없음');
             return;
         }
         
         // main.js의 전역 변수들 확인
         const currentMode = document.getElementById('modeSelector')?.value || 'number';
+        this.mobileLog(`🎯 현재모드: ${currentMode}`);
         
         // 마우스 이벤트 객체를 만들어서 main.js의 기존 이벤트 핸들러 호출
         const mouseEvent = {
@@ -803,16 +801,17 @@ class MobileAnnotateShot {
             const pos = window.getMousePos(canvas, mouseEvent);
             canvasX = pos.x;
             canvasY = pos.y;
+            this.mobileLog(`📍 getMousePos 사용: (${canvasX.toFixed(1)},${canvasY.toFixed(1)})`);
         } else {
             // 직접 계산
             canvasX = x;
             canvasY = y;
+            this.mobileLog(`📍 직접계산 사용: (${canvasX.toFixed(1)},${canvasY.toFixed(1)})`);
         }
-        
-        console.log('📍 최종 캔버스 좌표:', { canvasX, canvasY, mode: currentMode });
         
         // 현재 모드에 따라 적절한 main.js 함수 호출
         try {
+            this.mobileLog(`🚀 모드별 핸들러 호출: ${currentMode}`);
             switch(currentMode) {
                 case 'number':
                     this.handleNumberMode(canvasX, canvasY);
@@ -827,10 +826,11 @@ class MobileAnnotateShot {
                     this.handleShapeMode(canvasX, canvasY);
                     break;
                 default:
-                    console.log('❓ 알 수 없는 모드:', currentMode);
+                    this.mobileLog(`❓ 알 수 없는 모드: ${currentMode}`);
             }
         } catch (error) {
-            console.error('❌ 터치 액션 처리 오류:', error);
+            this.mobileLog(`❌ 터치 액션 처리 오류: ${error.message}`);
+            console.error('❌ 상세 오류:', error);
         }
     }
     
@@ -1348,6 +1348,49 @@ window.clearMobileDebugLog = function() {
         logDiv.textContent = '';
     }
 };
+
+window.copyMobileDebugLog = function() {
+    const logDiv = document.getElementById('mobileDebugLog');
+    if (logDiv && logDiv.textContent.trim()) {
+        // 클립보드 복사 시도
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(logDiv.textContent).then(() => {
+                // 복사 성공 알림
+                const originalText = logDiv.textContent;
+                logDiv.textContent = '✅ 클립보드에 복사되었습니다!\n\n' + originalText;
+                setTimeout(() => {
+                    logDiv.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('클립보드 복사 실패:', err);
+                // fallback: 텍스트 선택하여 수동 복사 가능하도록
+                selectAllText(logDiv);
+            });
+        } else {
+            // 구형 브라우저 대응: 텍스트 선택
+            selectAllText(logDiv);
+        }
+    } else {
+        console.log('복사할 로그가 없습니다');
+    }
+};
+
+function selectAllText(element) {
+    if (window.getSelection && document.createRange) {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // 모바일에서 텍스트 선택 알림
+        const originalText = element.textContent;
+        element.textContent = '📋 텍스트가 선택되었습니다. 길게 눌러서 복사하세요!\n\n' + originalText;
+        setTimeout(() => {
+            element.textContent = originalText;
+        }, 3000);
+    }
+}
 
 // 자동 초기화
 console.log('🚀 Mobile AnnotateShot 모듈 로딩 중...');
