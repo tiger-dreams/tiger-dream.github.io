@@ -20,35 +20,59 @@ class MobileAnnotateShot {
     }
     
     detectMobile() {
-        const userAgent = navigator.userAgent.toLowerCase();
-        const mobileKeywords = [
-            'android', 'webos', 'iphone', 'ipad', 'ipod', 
-            'blackberry', 'windows phone', 'mobile', 'opera mini'
+        const userAgent = navigator.userAgent;
+        console.log('🔍 User Agent 확인:', userAgent);
+        
+        // iPhone Safari에서 자주 사용되는 패턴들
+        const mobileChecks = [
+            // iPhone 감지
+            /iPhone/i.test(userAgent),
+            // iPad 감지 (iOS 13+ 에서는 desktop처럼 표시될 수 있음)
+            /iPad/i.test(userAgent),
+            // iPod 감지
+            /iPod/i.test(userAgent),
+            // Android 감지
+            /Android/i.test(userAgent),
+            // 기타 모바일 기기들
+            /webOS|BlackBerry|Windows Phone|Mobile|Opera Mini/i.test(userAgent),
+            // 터치 지원 확인 (iOS 13+ iPad 대응)
+            ('ontouchstart' in window) && window.innerWidth <= 1024
         ];
         
         // 강제 모바일 모드 확인
         const forceMobile = localStorage.getItem('dev-force-mobile') === 'true' || 
                            new URLSearchParams(window.location.search).get('mobile') === 'true';
         
-        this.isMobile = mobileKeywords.some(keyword => userAgent.includes(keyword)) || forceMobile;
+        this.isMobile = mobileChecks.some(check => check) || forceMobile;
+        
+        console.log('📱 모바일 감지 결과:', {
+            iPhone: /iPhone/i.test(userAgent),
+            iPad: /iPad/i.test(userAgent),
+            Android: /Android/i.test(userAgent),
+            touchSupport: 'ontouchstart' in window,
+            screenWidth: window.innerWidth,
+            forceMobile: forceMobile,
+            finalResult: this.isMobile
+        });
         
         if (this.isMobile) {
+            document.body.classList.remove('desktop-device');
             document.body.classList.add('mobile-device');
-            console.log('📱 모바일 기기 감지됨 - Mobile UI 활성화');
+            console.log('✅ 모바일 UI 활성화 - 클래스 추가됨');
         } else {
+            document.body.classList.remove('mobile-device');
             document.body.classList.add('desktop-device');
+            console.log('🖥️ 데스크톱 UI 유지');
         }
     }
     
     init() {
         if (this.isInitialized) return;
         
-        // DOM이 로드된 후 초기화
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.setupMobileUI());
-        } else {
-            this.setupMobileUI();
-        }
+        console.log('🚀 모바일 모듈 초기화 시작 - DOM 상태:', document.readyState);
+        
+        // 즉시 실행 (스크립트가 body 하단에 있으므로 DOM이 준비됨)
+        this.setupMobileUI();
         
         this.isInitialized = true;
     }
@@ -58,6 +82,9 @@ class MobileAnnotateShot {
         
         // 모바일 UI 요소 표시
         this.showMobileElements();
+        
+        // 데스크톱 전용 요소들 숨기기/조정
+        this.hideMobileIncompatibleElements();
         
         // 이미지 업로드 기능 설정
         this.setupImageUpload();
@@ -81,8 +108,50 @@ class MobileAnnotateShot {
         const mobileElements = document.querySelector('.mobile-only');
         if (mobileElements) {
             mobileElements.style.display = 'block';
-            console.log('📱 모바일 전용 UI 요소 표시');
+            mobileElements.style.visibility = 'visible';
+            mobileElements.style.opacity = '1';
+            console.log('✅ 모바일 전용 UI 요소 표시됨');
+            
+            // 개별 요소들도 확인
+            const fabButtons = document.querySelectorAll('.fab');
+            const mobileToolbar = document.querySelector('.mobile-toolbar');
+            
+            console.log('🔧 모바일 UI 요소 상태:', {
+                mobileElements: !!mobileElements,
+                fabButtons: fabButtons.length,
+                mobileToolbar: !!mobileToolbar,
+                display: mobileElements.style.display
+            });
+        } else {
+            console.error('❌ .mobile-only 요소를 찾을 수 없습니다');
         }
+    }
+    
+    hideMobileIncompatibleElements() {
+        // 데스크톱 전용 요소들을 모바일에서 숨기거나 조정
+        console.log('🔧 모바일 비호환 요소들 처리 중...');
+        
+        // Chrome 익스텐션 링크 숨기기 (CSS로도 처리되지만 확실하게)
+        const chromeLink = document.querySelector('.chrome-extension-link');
+        if (chromeLink) {
+            chromeLink.style.display = 'none';
+            console.log('✅ Chrome 익스텐션 링크 숨김');
+        }
+        
+        // 사이드바 초기 상태 조정 (모바일에서는 숨김)
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.classList.remove('mobile-open');
+            console.log('✅ 사이드바 초기 상태 조정');
+        }
+        
+        // 모바일 오버레이 준비
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        if (mobileOverlay) {
+            mobileOverlay.classList.remove('show');
+        }
+        
+        console.log('✅ 모바일 비호환 요소 처리 완료');
     }
     
     setupImageUpload() {
@@ -580,14 +649,30 @@ window.mobileApp = new MobileAnnotateShot();
 
 // 디버그 정보
 setTimeout(() => {
-    console.log('=== 📱 Mobile AnnotateShot 디버그 정보 ===');
+    console.log('=== 📱 Mobile AnnotateShot 최종 디버그 정보 ===');
     console.log('User Agent:', navigator.userAgent);
-    console.log('모바일 감지:', window.mobileApp?.isMobile);
-    console.log('강제 모바일 모드:', localStorage.getItem('dev-force-mobile') === 'true');
-    console.log('적용된 클래스:', document.body.className);
+    console.log('모바일 앱 상태:', {
+        모바일감지: window.mobileApp?.isMobile,
+        초기화완료: window.mobileApp?.isInitialized,
+        강제모드: localStorage.getItem('dev-force-mobile') === 'true'
+    });
+    console.log('DOM 상태:', {
+        body클래스: document.body.className,
+        모바일요소표시: document.querySelector('.mobile-only')?.style.display,
+        플로팅버튼: !!document.getElementById('fabImage'),
+        하단툴바: !!document.querySelector('.mobile-toolbar'),
+        Chrome링크숨김: document.querySelector('.chrome-extension-link')?.style.display === 'none'
+    });
+    console.log('화면 정보:', {
+        너비: window.innerWidth,
+        높이: window.innerHeight,
+        터치지원: 'ontouchstart' in window,
+        디바이스픽셀비: window.devicePixelRatio
+    });
     console.log('===');
-    console.log('테스트 명령어:');
-    console.log('- toggleMobileMode() : 모바일/데스크톱 모드 전환');
-    console.log('- ?mobile=true : URL로 모바일 모드 활성화');
-    console.log('=====================================');
-}, 1000);
+    console.log('iPhone Safari 문제 해결 테스트:');
+    console.log('1. toggleMobileMode() - 강제 모바일 모드');
+    console.log('2. 콘솔에서 위 정보 확인');
+    console.log('3. 모바일 UI 요소들이 보이는지 확인');
+    console.log('===============================================');
+}, 2000);

@@ -14,8 +14,6 @@
     
     <!-- Usage Monitoring -->
     <script src="usage-monitor.js"></script>
-    <!-- Mobile UI Module -->
-    <script src="src/mobile.js"></script>
     
     <style>
         :root {
@@ -2460,7 +2458,21 @@
         </div>
     </div>
 
-    <!-- 모바일 관련 스크립트는 mobile.js에서 처리됨 -->
+    <!-- Mobile UI Module - 모든 DOM이 로드된 후 실행 -->
+    <script src="src/mobile.js"></script>
+    
+    <!-- 디버그 스크립트 -->
+    <script>
+        // iPhone Safari 디버그 정보 출력
+        setTimeout(() => {
+            console.log('🔍 iPhone Safari 디버그 정보:');
+            console.log('User Agent:', navigator.userAgent);
+            console.log('Body 클래스:', document.body.className);
+            console.log('모바일 UI 요소 표시:', document.querySelector('.mobile-only')?.style.display);
+            console.log('플로팅 버튼 존재:', !!document.getElementById('fabImage'));
+            console.log('============================');
+        }, 2000);
+    </script>
 
 </body>
 </html>
