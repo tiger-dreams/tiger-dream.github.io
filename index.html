@@ -382,6 +382,17 @@
             max-height: 100%;
         }
 
+        #imageCanvas.transparent-background {
+            background-image: 
+                linear-gradient(45deg, #e0e0e0 25%, transparent 25%), 
+                linear-gradient(-45deg, #e0e0e0 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #e0e0e0 75%), 
+                linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+            background-size: 60px 60px;
+            background-position: 0 0, 0 30px, 30px -30px, -30px 0px;
+            background-color: #ffffff;
+        }
+
         .status-bar {
             background-color: var(--card);
             border-top: 1px solid var(--border);
@@ -785,16 +796,18 @@
                     <div class="style-section" id="backgroundColorSection" style="display: none;">
                         <div class="style-subtitle" data-lang-key="backgroundColor">배경색</div>
                         <select id="backgroundColorSelector" aria-label="Select background color">
+                            <option value="" data-lang-key="pleaseSelect">배경색을 선택해주세요</option>
+                            <option value="transparent" data-lang-key="transparent">투명</option>
                             <option value="white" data-lang-key="white">흰색</option>
                             <option value="light-gray" data-lang-key="lightGray">연한 회색</option>
                             <option value="gray" data-lang-key="gray">회색</option>
                             <option value="dark-gray" data-lang-key="darkGray">짙은 회색</option>
-                            <option value="transparent" data-lang-key="transparent">투명</option>
                         </select>
                     </div>
                     <div class="style-section" id="canvasSizeSection" style="display: none;">
                         <div class="style-subtitle" data-lang-key="canvasSize">캔버스 크기</div>
                         <select id="canvasSizeSelector" aria-label="Select canvas size">
+                            <option value="" data-lang-key="pleaseSelectSize">캔버스 크기를 선택해주세요</option>
                             <option value="1920x1080" data-lang-key="size1920x1080">Full HD (1920×1080)</option>
                             <option value="1280x720" data-lang-key="size1280x720">HD (1280×720)</option>
                             <option value="1200x800" data-lang-key="size1200x800">웹 표준 (1200×800)</option>
