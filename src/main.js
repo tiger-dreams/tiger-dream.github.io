@@ -1,6 +1,9 @@
 // 전역 상수 및 변수
         const MAX_WIDTH = 1400;
         const MAX_HEIGHT = 900;
+        
+        // 모바일 감지는 mobile.js에서 처리됨
+        const IS_MOBILE = () => document.body.classList.contains('mobile-device');
         const imageLoader = document.getElementById('imageLoader');
         const clipboardButton = document.getElementById('clipboardButton');
         const saveButton = document.getElementById('saveButton');
@@ -1154,6 +1157,8 @@
                 stopDrawing(e); // Finalize drawing a new shape
             }
         });
+
+        // 터치 이벤트는 mobile.js에서 처리됨
 
         // 키보드 이벤트 처리
         document.addEventListener('keydown', e => {

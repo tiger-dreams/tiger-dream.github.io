@@ -332,26 +332,68 @@
             transform: translateY(0);
         }
 
-        /* 모바일에서는 텍스트 숨김 */
-        @media (max-width: 768px) {
-            .chrome-extension-text {
-                display: none;
-            }
-            
-            .chrome-extension-link {
-                margin-right: 0.5rem !important;
-                padding: 0.5rem !important;
-                min-width: auto !important;
-            }
-            
-            .top-bar-actions {
-                gap: 0.25rem;
-            }
-            
-            /* 모바일에서는 라벨을 더 간결하게 */
-            .top-bar-actions label {
-                font-size: 0.75rem !important;
-            }
+        /* 모바일 전용 UI - User Agent 기반 */
+        .mobile-device .chrome-extension-link {
+            display: none !important; /* 모바일에서 완전히 숨김 */
+        }
+        
+        .mobile-device .top-bar-actions {
+            gap: 0.25rem;
+        }
+        
+        .mobile-device .top-bar-actions label {
+            font-size: 0.75rem !important;
+        }
+        
+        /* 모바일에서 리사이즈 옵션 숨기기 */
+        .mobile-device .top-resize-selector option:not([value=""]):not([value="auto"]) {
+            display: none;
+        }
+        
+        /* 모바일에서 불필요한 컨트롤들 숨기기 */
+        .mobile-device .sidebar .control-group:has(.top-resize-selector) label {
+            display: none;
+        }
+        
+        /* 모바일 상단바 완전 단순화 */
+        .mobile-device .top-bar {
+            justify-content: center;
+            padding: 1rem 3rem;
+            position: relative;
+            min-height: 60px;
+        }
+        
+        .mobile-device .top-bar::before {
+            content: "AnnotateShot";
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--foreground);
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        
+        /* 모바일에서 상단바의 모든 컨트롤 숨기기 */
+        .mobile-device .top-bar-actions {
+            display: none !important;
+        }
+        
+        .mobile-device .top-bar .chrome-extension-link,
+        .mobile-device .top-bar select,
+        .mobile-device .top-bar label {
+            display: none !important;
+        }
+        
+        /* 모바일에서 사이드바 헤더 텍스트 숨기기 */
+        .mobile-device .sidebar-header .logo-text {
+            display: none;
+        }
+        
+        .mobile-device .sidebar-header {
+            padding: 1rem;
+            text-align: center;
         }
 
         .top-resize-selector {
@@ -666,73 +708,461 @@
             font-size: 0.875rem;
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                left: -280px;
-                height: 100vh;
-                z-index: 30;
-            }
+        /* 모바일 전용 레이아웃 - User Agent 기반 */
+        .mobile-device .sidebar {
+            position: fixed;
+            left: -280px;
+            height: 100vh;
+            z-index: 30;
+            transition: left 0.3s ease;
+        }
 
-            .sidebar.mobile-open {
-                left: 0;
-            }
+        .mobile-device .sidebar.mobile-open {
+            left: 0;
+        }
 
-            .sidebar.collapsed {
-                left: -60px;
-            }
+        .mobile-device .sidebar.collapsed {
+            left: -60px;
+        }
 
-            .main-content {
-                width: 100%;
-            }
+        .mobile-device .main-content {
+            width: 100%;
+        }
 
-            .layer-sidebar {
-                position: fixed;
-                right: -280px;
-                height: 100vh;
-                z-index: 30;
-            }
+        .mobile-device .layer-sidebar {
+            position: fixed;
+            right: -280px;
+            height: 100vh;
+            z-index: 30;
+            transition: right 0.3s ease;
+        }
 
-            .layer-sidebar.mobile-open {
-                right: 0;
-            }
+        .mobile-device .layer-sidebar.mobile-open {
+            right: 0;
+        }
 
-            .layer-sidebar.collapsed {
-                right: -50px;
-            }
+        .mobile-device .layer-sidebar.collapsed {
+            right: -50px;
+        }
 
-            .mobile-overlay {
-                position: fixed;
-                inset: 0;
-                background-color: rgba(0, 0, 0, 0.5);
-                z-index: 25;
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity 0.3s;
-            }
+        .mobile-device .mobile-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 25;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
 
-            .mobile-overlay.show {
-                opacity: 1;
-                pointer-events: auto;
-            }
+        .mobile-device .mobile-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
 
-            .top-bar {
-                padding-left: 3rem;
-            }
+        .mobile-device .top-bar {
+            padding-left: 3rem;
+        }
 
-            .mobile-menu-btn {
-                position: fixed;
-                top: 1rem;
-                left: 1rem;
-                z-index: 35;
-                background-color: var(--primary);
-                color: var(--primary-foreground);
-                border: none;
-                padding: 0.5rem;
-                border-radius: var(--radius);
-                cursor: pointer;
-            }
+        .mobile-device .mobile-menu-btn {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 35;
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            padding: 0.75rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: block !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .mobile-device .mobile-menu-btn:hover {
+            background-color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        .mobile-device .mobile-menu-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 데스크톱에서는 모바일 요소들 숨기기 */
+        .desktop-device .mobile-menu-btn {
+            display: none !important;
+        }
+
+        .desktop-device .mobile-overlay {
+            display: none;
+        }
+
+        /* 모바일 터치 최적화 */
+        .mobile-device button, 
+        .mobile-device select, 
+        .mobile-device input[type="range"],
+        .mobile-device .button {
+            min-height: 44px !important;
+            min-width: 44px !important;
+            font-size: 16px !important; /* iOS 줌 방지 */
+            padding: 0.75rem 1rem !important;
+        }
+
+        .mobile-device .control-group button {
+            padding: 0.875rem 1.25rem !important;
+            font-size: 0.9rem !important;
+            border-radius: 8px !important;
+        }
+
+        .mobile-device .color-option {
+            width: 48px !important;
+            height: 48px !important;
+            border-radius: 50% !important;
+            border: 3px solid var(--border) !important;
+            margin: 0.25rem !important;
+        }
+
+        .mobile-device .size-display,
+        .mobile-device .number-count {
+            font-size: 1.1rem !important;
+            padding: 0.75rem !important;
+            min-height: 44px !important;
+        }
+
+        /* 모바일 전용 플로팅 버튼 */
+        .mobile-device .floating-action-buttons {
+            position: fixed;
+            bottom: 140px; /* 하단 툴바 위쪽으로 이동 */
+            right: 1rem; /* 오른쪽 여백 줄임 */
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem; /* 간격 줄임 */
+        }
+
+        .mobile-device .fab {
+            width: 48px; /* 크기 줄임 */
+            height: 48px; /* 크기 줄임 */
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem; /* 아이콘 크기 조정 */
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .mobile-device .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .mobile-device .fab:active {
+            transform: scale(0.95);
+        }
+
+        .mobile-device .fab.save {
+            background-color: var(--success-color);
+        }
+
+        .mobile-device .fab.undo {
+            background-color: var(--muted);
+            color: var(--muted-foreground);
+        }
+
+        /* 모바일에서 캔버스 터치 동작 최적화 */
+        .mobile-device .canvas-container {
+            touch-action: none; /* 브라우저 기본 터치 동작 방지 */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .mobile-device #imageCanvas {
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* 모바일 전용 하단 툴바 */
+        .mobile-device .mobile-toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 1rem;
+            z-index: 30;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .mobile-device .mobile-toolbar .toolbar-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem;
+            border: none;
+            background: transparent;
+            color: var(--muted-foreground);
+            font-size: 0.75rem;
+            cursor: pointer;
+            min-width: 44px;
+            min-height: 44px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .mobile-device .mobile-toolbar .toolbar-button.active {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+        }
+
+        .mobile-device .mobile-toolbar .toolbar-button:hover {
+            background-color: var(--muted);
+            color: var(--foreground);
+        }
+
+        /* 모바일에서 메인 콘텐츠 최대화 */
+        .mobile-device .main-content {
+            padding: 0 !important; /* 좌우 패딩 완전 제거 */
+            padding-bottom: 120px !important; /* 하단 툴바 공간만 확보 */
+            width: 100vw !important; /* 뷰포트 전체 너비 사용 */
+            margin: 0 !important;
+            max-width: none !important;
+            overflow-x: hidden !important; /* 좌우 스크롤 방지 */
+        }
+        
+        /* 모바일에서 캔버스 컨테이너 최대화 */
+        .mobile-device .canvas-container {
+            padding: 0 !important; /* 패딩 완전 제거 */
+            margin: 0 !important;
+            width: 100vw !important; /* 뷰포트 전체 너비 */
+            max-width: none !important;
+            justify-content: flex-start !important; /* 좌측 정렬로 변경 */
+            align-items: flex-start !important;
+            overflow-x: hidden !important;
+        }
+        
+        /* 모바일에서 캔버스 자체도 최대 너비 활용 - 100% 너비 */
+        .mobile-device #imageCanvas {
+            max-width: 100vw !important; /* 화면 전체 너비 */
+            width: 100vw !important; /* 강제로 전체 너비 */
+            height: auto !important;
+            margin: 0 !important;
+            border-radius: 0 !important; /* 모바일에서는 둥근 모서리 제거 */
+        }
+
+        /* 모바일 전용 모드 선택 패널 */
+        .mobile-device .mobile-mode-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            z-index: 50;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .mobile-device .mobile-mode-panel.show {
+            display: block;
+        }
+
+        .mobile-device .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .mobile-device .mode-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 100px;
+            background-color: var(--background);
+        }
+
+        .mobile-device .mode-card:hover,
+        .mobile-device .mode-card.active {
+            border-color: var(--primary);
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+        }
+
+        .mobile-device .mode-card .material-icons {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .mobile-device .mode-card .mode-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        /* 모바일 설정 패널 */
+        .mobile-device .mobile-settings-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            z-index: 60;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none;
+            min-width: 300px;
+        }
+        
+        .mobile-device .mobile-settings-panel.show {
+            display: block;
+        }
+        
+        .mobile-device .setting-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .mobile-device .setting-section:last-of-type {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .mobile-device .mobile-color-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+        
+        .mobile-device .mobile-color-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 3px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .mobile-device .mobile-color-btn:hover,
+        .mobile-device .mobile-color-btn.active {
+            transform: scale(1.1);
+            border-color: var(--foreground);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .mobile-device .mobile-color-btn.active::after {
+            content: "✓";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .mobile-device .mobile-size-slider input[type="range"] {
+            appearance: none;
+            height: 6px;
+            background: var(--muted);
+            outline: none;
+            border-radius: 3px;
+        }
+        
+        .mobile-device .mobile-size-slider input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .mobile-device .mobile-emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .mobile-device .mobile-emoji-btn {
+            width: 44px;
+            height: 44px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--background);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .mobile-device .mobile-emoji-btn:hover,
+        .mobile-device .mobile-emoji-btn.active {
+            border-color: var(--primary);
+            background-color: var(--primary);
+            transform: scale(1.05);
+        }
+        
+        .mobile-device .mobile-fill-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .mobile-device .mobile-fill-btn {
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--background);
+            color: var(--foreground);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        
+        .mobile-device .mobile-fill-btn:hover,
+        .mobile-device .mobile-fill-btn.active {
+            border-color: var(--primary);
+            background-color: var(--primary);
+            color: var(--primary-foreground);
         }
 
         /* Hide elements initially if no image */
@@ -1132,46 +1562,57 @@
             });
         }
 
-        // Mobile Sidebar Functionality (simplified)
+        // Mobile Sidebar Functionality - User Agent 기반
         function initializeSidebar() {
             const sidebar = document.getElementById('sidebar');
             const mobileMenuBtn = document.getElementById('mobileMenuBtn');
             const mobileOverlay = document.getElementById('mobileOverlay');
             
-            // Mobile functionality only
-            function checkMobile() {
-                const isMobile = window.innerWidth <= 768;
-                if (isMobile) {
-                    mobileMenuBtn.style.display = 'block';
-                } else {
-                    mobileMenuBtn.style.display = 'none';
-                    sidebar.classList.remove('mobile-open');
-                    mobileOverlay.classList.remove('show');
-                }
+            // User Agent 기반 모바일 감지 (main.js에서 이미 설정됨)
+            function isMobileDevice() {
+                const userAgent = navigator.userAgent.toLowerCase();
+                const mobileKeywords = [
+                    'android', 'webos', 'iphone', 'ipad', 'ipod', 
+                    'blackberry', 'windows phone', 'mobile', 'opera mini'
+                ];
+                return mobileKeywords.some(keyword => userAgent.includes(keyword));
             }
             
-            mobileMenuBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('mobile-open');
-                mobileOverlay.classList.toggle('show');
-            });
+            const isMobile = isMobileDevice();
             
-            mobileOverlay.addEventListener('click', () => {
-                sidebar.classList.remove('mobile-open');
-                mobileOverlay.classList.remove('show');
-            });
-            
-            window.addEventListener('resize', () => {
-                checkMobile();
+            // 모바일 기기에서만 모바일 UI 활성화
+            if (isMobile) {
+                console.log('모바일 UI 활성화 - 사이드바 기능 초기화');
                 
-                // Also trigger canvas resize if auto-resize is selected
+                mobileMenuBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('mobile-open');
+                    mobileOverlay.classList.toggle('show');
+                });
+                
+                mobileOverlay.addEventListener('click', () => {
+                    sidebar.classList.remove('mobile-open');
+                    mobileOverlay.classList.remove('show');
+                });
+                
+                // 모바일에서 뒤로가기 버튼으로 사이드바 닫기
+                window.addEventListener('popstate', () => {
+                    sidebar.classList.remove('mobile-open');
+                    mobileOverlay.classList.remove('show');
+                });
+            } else {
+                console.log('데스크톱 UI - 모바일 기능 비활성화');
+            }
+            
+            // 캔버스 리사이즈는 모든 기기에서 동작 (브라우저 크기 변경 시)
+            window.addEventListener('resize', () => {
+                // Canvas resize trigger는 유지
                 if (typeof window.triggerCanvasResize === 'function') {
                     clearTimeout(window.resizeTimeout);
                     window.resizeTimeout = setTimeout(() => {
                         window.triggerCanvasResize();
-                    }, 100); // Debounce resize events
+                    }, 100);
                 }
             });
-            checkMobile();
         }
 
         // Layer Sidebar Functionality
@@ -2118,6 +2559,157 @@
             const observer = new MutationObserver(updateCanvasContainer);
             observer.observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
         });
+
+        // 모바일 UI는 별도 mobile.js에서 처리됨
     </script>
+
+    <!-- 모바일 전용 UI 컴포넌트들 -->
+    <div class="mobile-only" style="display: none;">
+        <!-- 플로팅 액션 버튼들 -->
+        <div class="floating-action-buttons">
+            <button class="fab" id="fabImage" title="이미지 업로드">
+                <span class="material-icons">add_photo_alternate</span>
+            </button>
+            <button class="fab save" id="fabSave" title="저장">
+                <span class="material-icons">save</span>
+            </button>
+            <button class="fab undo" id="fabUndo" title="되돌리기">
+                <span class="material-icons">undo</span>
+            </button>
+            <button class="fab" id="fabSettings" title="스타일 설정">
+                <span class="material-icons">palette</span>
+            </button>
+        </div>
+        
+        <!-- 모바일 전용 숨겨진 파일 입력 -->
+        <input type="file" id="mobileImageInput" accept="image/*" capture="environment" style="display: none;">
+    </div>
+
+        <!-- 모바일 하단 툴바 -->
+        <div class="mobile-toolbar">
+            <button class="toolbar-button" data-mode="number">
+                <span class="material-icons">format_list_numbered</span>
+                <span>숫자</span>
+            </button>
+            <button class="toolbar-button" data-mode="shape">
+                <span class="material-icons">crop_square</span>
+                <span>도형</span>
+            </button>
+            <button class="toolbar-button" data-mode="text">
+                <span class="material-icons">text_fields</span>
+                <span>텍스트</span>
+            </button>
+            <button class="toolbar-button" data-mode="emoji">
+                <span class="material-icons">sentiment_satisfied</span>
+                <span>이모지</span>
+            </button>
+        </div>
+
+        <!-- 모바일 모드 선택 패널 -->
+        <div class="mobile-mode-panel" id="mobileModePanel">
+            <h3 style="margin-top: 0; text-align: center;">편집 모드 선택</h3>
+            <div class="mode-grid">
+                <div class="mode-card" onclick="selectMobileMode('number')">
+                    <span class="material-icons">format_list_numbered</span>
+                    <div class="mode-name">숫자 모드</div>
+                </div>
+                <div class="mode-card" onclick="selectMobileMode('shape')">
+                    <span class="material-icons">crop_square</span>
+                    <div class="mode-name">도형 모드</div>
+                </div>
+                <div class="mode-card" onclick="selectMobileMode('text')">
+                    <span class="material-icons">text_fields</span>
+                    <div class="mode-name">텍스트 모드</div>
+                </div>
+                <div class="mode-card" onclick="selectMobileMode('emoji')">
+                    <span class="material-icons">sentiment_satisfied</span>
+                    <div class="mode-name">이모지 모드</div>
+                </div>
+            </div>
+            <button onclick="hideMobileModePanel()" style="margin-top: 1.5rem; width: 100%; padding: 1rem; background-color: var(--muted); border: none; border-radius: 8px; color: var(--foreground); font-size: 1rem;">닫기</button>
+        </div>
+        
+        <!-- 모바일 설정 패널 -->
+        <div class="mobile-settings-panel" id="mobileSettingsPanel">
+            <h3 style="margin-top: 0; text-align: center; color: var(--foreground);">스타일 설정</h3>
+            
+            <!-- 색상 선택 -->
+            <div class="setting-section">
+                <h4 style="margin: 0 0 1rem 0; color: var(--foreground); font-size: 1rem;">색상</h4>
+                <div class="mobile-color-grid">
+                    <button class="mobile-color-btn" data-color="#FF0000" style="background: #FF0000;" title="빨간색"></button>
+                    <button class="mobile-color-btn" data-color="#FF8000" style="background: #FF8000;" title="주황색"></button>
+                    <button class="mobile-color-btn" data-color="#00FF00" style="background: #00FF00;" title="녹색"></button>
+                    <button class="mobile-color-btn" data-color="#0000FF" style="background: #0000FF;" title="파란색"></button>
+                    <button class="mobile-color-btn" data-color="#FF00FF" style="background: #FF00FF;" title="자주색"></button>
+                    <button class="mobile-color-btn" data-color="#00FFFF" style="background: #00FFFF;" title="청록색"></button>
+                    <button class="mobile-color-btn" data-color="#FFFF00" style="background: #FFFF00;" title="노란색"></button>
+                    <button class="mobile-color-btn" data-color="#000000" style="background: #000000;" title="검은색"></button>
+                </div>
+            </div>
+            
+            <!-- 크기 조정 -->
+            <div class="setting-section">
+                <h4 style="margin: 0 0 1rem 0; color: var(--foreground); font-size: 1rem;">크기</h4>
+                <div class="mobile-size-slider">
+                    <input type="range" id="mobileSizeSlider" min="10" max="70" step="5" value="20" style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.5rem;">
+                        <span>10px</span>
+                        <span id="mobileSizeValue">20px</span>
+                        <span>70px</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 이모지 선택 (이모지 모드일 때만 표시) -->
+            <div class="setting-section" id="emojiSection" style="display: none;">
+                <h4 style="margin: 0 0 1rem 0; color: var(--foreground); font-size: 1rem;">이모지 선택</h4>
+                <div class="mobile-emoji-grid">
+                    <button class="mobile-emoji-btn" data-emoji="😀">😀</button>
+                    <button class="mobile-emoji-btn" data-emoji="😍">😍</button>
+                    <button class="mobile-emoji-btn" data-emoji="🤔">🤔</button>
+                    <button class="mobile-emoji-btn" data-emoji="👍">👍</button>
+                    <button class="mobile-emoji-btn" data-emoji="👎">👎</button>
+                    <button class="mobile-emoji-btn" data-emoji="❤️">❤️</button>
+                    <button class="mobile-emoji-btn" data-emoji="⭐">⭐</button>
+                    <button class="mobile-emoji-btn" data-emoji="🔥">🔥</button>
+                    <button class="mobile-emoji-btn" data-emoji="💯">💯</button>
+                    <button class="mobile-emoji-btn" data-emoji="✅">✅</button>
+                    <button class="mobile-emoji-btn" data-emoji="❌">❌</button>
+                    <button class="mobile-emoji-btn" data-emoji="⚠️">⚠️</button>
+                </div>
+            </div>
+            
+            <!-- 도형 채우기 옵션 (도형 모드일 때만 표시) -->
+            <div class="setting-section" id="shapeSection" style="display: none;">
+                <h4 style="margin: 0 0 1rem 0; color: var(--foreground); font-size: 1rem;">채우기 옵션</h4>
+                <div class="mobile-fill-options">
+                    <button class="mobile-fill-btn active" data-fill="none">테두리만</button>
+                    <button class="mobile-fill-btn" data-fill="solid">채우기</button>
+                    <button class="mobile-fill-btn" data-fill="blur">흐림</button>
+                    <button class="mobile-fill-btn" data-fill="mosaic">모자이크</button>
+                </div>
+            </div>
+            
+            <button onclick="hideMobileSettingsPanel()" style="margin-top: 1.5rem; width: 100%; padding: 1rem; background-color: var(--muted); border: none; border-radius: 8px; color: var(--foreground); font-size: 1rem;">닫기</button>
+        </div>
+    </div>
+
+    <!-- Mobile UI Module - 모든 DOM이 로드된 후 실행 -->
+    <script src="src/mobile.js"></script>
+    
+    <!-- 디버그 스크립트 -->
+    <script>
+        // iPhone Safari 디버그 정보 출력
+        setTimeout(() => {
+            console.log('🔍 iPhone Safari 디버그 정보:');
+            console.log('User Agent:', navigator.userAgent);
+            console.log('Body 클래스:', document.body.className);
+            console.log('모바일 UI 요소 표시:', document.querySelector('.mobile-only')?.style.display);
+            console.log('플로팅 버튼 존재:', !!document.getElementById('fabImage'));
+            console.log('============================');
+        }, 2000);
+    </script>
+
 </body>
 </html>

@@ -1,0 +1,18 @@
+{
+  "name": "annotateshot",
+  "version": "2.3.1",
+  "description": "AnnotateShot - 이미지 주석 도구",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "jest-environment-jsdom": "^29.0.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"]
+  }
+}
