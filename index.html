@@ -407,9 +407,25 @@
             display: none !important;
         }
         
-        /* 모바일에서 사이드바 헤더 텍스트 숨기기 */
+        /* 모바일에서 사이드바 헤더 조정 */
         .mobile-device .sidebar-header .logo-text {
+            display: block; /* 텍스트는 다시 표시 */
+        }
+        
+        /* 모바일에서 "이미지편집" 텍스트만 숨김 */
+        .mobile-device .desktop-text {
             display: none;
+        }
+        
+        /* 모바일에서 아이콘을 이미지로 교체 */
+        .mobile-device .logo-icon {
+            font-size: 0; /* Material Icons 텍스트 숨김 */
+            width: 1.5rem;
+            height: 1.5rem;
+            background-image: url('extension/icon.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
         }
         
         .mobile-device .sidebar-header {
@@ -1338,7 +1354,9 @@
             <div class="sidebar-header">
                 <div class="logo-section">
                     <span class="material-icons logo-icon">edit</span>
-                    <h1 class="logo-text">AnnotateShot</h1>
+                    <h1 class="logo-text">
+                        <span class="desktop-text">이미지편집 </span>AnnotateShot
+                    </h1>
                 </div>
             </div>
 
