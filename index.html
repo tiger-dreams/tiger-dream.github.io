@@ -2498,6 +2498,7 @@
                     'scale50': '원본 대비 50% 축소',
                     'scale70': '원본 대비 70% 축소',
                     'uploadImagePrompt': 'AnnotateShot 서비스 이용 방법\n1. 번호, 도형, 텍스트를 입력해야하는 이미지를 불러오세요. 클립보드 이미지도 가능합니다.\n2. 아무곳이나 클릭해보세요.\n3. 저장이 필요하면 저장하기 버튼을 눌러서 로컬 PC로 저장할 수 있습니다. 혹은 이미지 우측 클릭 후 이미지 복사를 하셔도 괜찮습니다.',
+                    'mobileUploadImagePrompt': 'AnnotateShot 모바일 사용법\n1. 하단 📷 버튼으로 갤러리에서 이미지를 불러오세요\n2. 숫자 모드: 화면을 터치하여 순차 번호 추가\n3. 이모지 모드: 하단 😀 버튼으로 선택 후 터치하여 추가\n4. 텍스트 모드: 화면을 터치하면 텍스트 입력창이 나타남\n5. 끌어서 이동: 모든 주석을 드래그하여 위치 이동 가능\n6. 우측 상단 💾 버튼으로 완성된 이미지를 저장하세요',
                     'blankCanvasPrompt': '빈 캔버스 모드 (멀티 이미지)\n1. 배경색을 선택하세요.\n2. 여러 이미지를 업로드하여 레이어로 구성하세요.\n3. 각 이미지를 드래그하여 위치를 조정할 수 있습니다.',
                     'imageLoaded': '이미지 로드됨: {width} x {height}',
                     'imageLayerAdded': '이미지 레이어 {layerNumber} 추가됨: {width} x {height}',
@@ -2602,6 +2603,7 @@
                     'scale50': 'Scale 50%',
                     'scale70': 'Scale 70%',
                     'uploadImagePrompt': 'How to use AnnotateShot\n1. Load an image that needs numbers, shapes, or text annotations. Clipboard images are supported.\n2. Click anywhere on the image.\n3. When you need to save, click the Save button to download to your local PC. You can also right-click the image and copy it.',
+                    'mobileUploadImagePrompt': 'AnnotateShot Mobile Guide\n1. Tap 📷 button to load image from gallery\n2. Number mode: Touch screen to add sequential numbers\n3. Emoji mode: Tap 😀 button to select, then touch to add\n4. Text mode: Touch screen to open text input dialog\n5. Drag to move: All annotations can be dragged to new positions\n6. Tap 💾 button (top-right) to save your annotated image',
                     'blankCanvasPrompt': 'Blank Canvas Mode (Multi Image)\n1. Select a background color.\n2. Upload multiple images to compose as layers.\n3. Drag each image to adjust its position.',
                     'imageLoaded': 'Image loaded: {width} x {height}',
                     'imageLayerAdded': 'Image layer {layerNumber} added: {width} x {height}',
@@ -2647,7 +2649,11 @@
                 
                 // Handle special cases like prompt text with line breaks
                 if (key === 'uploadImagePrompt') {
-                    element.innerHTML = translatedText.replace(/\n/g, '<br>');
+                    // 모바일 기기에서는 모바일용 텍스트 사용
+                    const isMobile = document.body.classList.contains('mobile-device');
+                    const actualKey = isMobile ? 'mobileUploadImagePrompt' : 'uploadImagePrompt';
+                    const actualText = translate(actualKey);
+                    element.innerHTML = actualText.replace(/\n/g, '<br>');
                 } else {
                     element.textContent = translatedText;
                 }
