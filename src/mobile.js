@@ -738,19 +738,14 @@ class MobileAnnotateShot {
         const currentMode = document.getElementById('modeSelector')?.value || 'number';
         
         const emojiSection = document.getElementById('emojiSection');
-        const shapeSection = document.getElementById('shapeSection');
         
         this.mobileLog(`⚙️ 설정 패널 모드 조정: ${currentMode}`);
-        this.mobileLog(`📋 UI 요소 상태: emojiSection=${!!emojiSection}, shapeSection=${!!shapeSection}`);
+        this.mobileLog(`📋 UI 요소 상태: emojiSection=${!!emojiSection}`);
         
         // 모든 섹션 숨기기
         if (emojiSection) {
             emojiSection.style.display = 'none';
             this.mobileLog('🔧 이모지 섹션 숨김');
-        }
-        if (shapeSection) {
-            shapeSection.style.display = 'none';
-            this.mobileLog('🔧 도형 섹션 숨김');
         }
         
         // 현재 모드에 따라 관련 섹션 표시
@@ -761,14 +756,6 @@ class MobileAnnotateShot {
                     this.mobileLog('✅ 이모지 섹션 표시');
                 } else {
                     this.mobileLog('❌ 이모지 섹션을 찾을 수 없음');
-                }
-                break;
-            case 'shape':
-                if (shapeSection) {
-                    shapeSection.style.display = 'block';
-                    this.mobileLog('✅ 도형 섹션 표시');
-                } else {
-                    this.mobileLog('❌ 도형 섹션을 찾을 수 없음');
                 }
                 break;
             case 'number':
@@ -922,6 +909,13 @@ class MobileAnnotateShot {
             mobileToolbar.addEventListener('click', (e) => {
                 const button = e.target.closest('.toolbar-button');
                 if (button && button.dataset.mode) {
+                    // 이모지 모드 클릭 시 레이어 표시
+                    if (button.dataset.mode === 'emoji') {
+                        this.showEmojiLayer();
+                        return;
+                    }
+                    
+                    // 다른 모드들은 기존대로 처리
                     const modeSelector = document.getElementById('modeSelector');
                     if (modeSelector) {
                         modeSelector.value = button.dataset.mode;
@@ -934,6 +928,70 @@ class MobileAnnotateShot {
         
         this.updateToolbarState();
         console.log('✅ 하단 툴바 설정 완료');
+        
+        // 이모지 레이어 이벤트 설정
+        this.setupEmojiLayer();
+    }
+    
+    // 이모지 선택 레이어 표시
+    showEmojiLayer() {
+        const emojiLayer = document.getElementById('emojiLayer');
+        if (emojiLayer) {
+            emojiLayer.style.display = 'block';
+            this.mobileLog('😀 이모지 선택 레이어 표시');
+            
+            // 이모지 모드로 전환
+            const modeSelector = document.getElementById('modeSelector');
+            if (modeSelector) {
+                modeSelector.value = 'emoji';
+                modeSelector.dispatchEvent(new Event('change'));
+                this.updateToolbarState();
+            }
+        }
+    }
+    
+    // 이모지 선택 레이어 숨김
+    hideEmojiLayer() {
+        const emojiLayer = document.getElementById('emojiLayer');
+        if (emojiLayer) {
+            emojiLayer.style.display = 'none';
+            this.mobileLog('😀 이모지 선택 레이어 숨김');
+        }
+    }
+    
+    // 이모지 레이어 이벤트 설정
+    setupEmojiLayer() {
+        // 닫기 버튼 이벤트
+        const closeBtn = document.getElementById('emojiCloseBtn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                this.hideEmojiLayer();
+            });
+        }
+        
+        // 이모지 버튼들 이벤트
+        const emojiButtons = document.querySelectorAll('.emoji-layer-btn');
+        emojiButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // 모든 버튼에서 selected 클래스 제거
+                emojiButtons.forEach(b => b.classList.remove('selected'));
+                // 클릭된 버튼에 selected 클래스 추가
+                btn.classList.add('selected');
+                
+                const emoji = btn.dataset.emoji;
+                this.mobileLog(`😀 이모지 선택: ${emoji}`);
+                
+                // 현재 이모지 설정
+                this.changeEmoji(emoji);
+                
+                // 짧은 지연 후 레이어 닫기 (사용자가 선택을 확인할 수 있도록)
+                setTimeout(() => {
+                    this.hideEmojiLayer();
+                }, 300);
+            });
+        });
+        
+        this.mobileLog('✅ 이모지 레이어 이벤트 설정 완료');
     }
     
     updateToolbarState() {
@@ -1059,9 +1117,6 @@ class MobileAnnotateShot {
                     break;
                 case 'text':
                     this.handleTextMode(x, y);
-                    break;
-                case 'shape':
-                    this.handleShapeMode(x, y);
                     break;
                 default:
                     this.mobileLog(`❓ 지원하지 않는 모드: ${currentMode} - 숫자 모드로 처리`);
@@ -1235,8 +1290,11 @@ class MobileAnnotateShot {
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
             ctx.fill();
             
+            // 배경 색상에 따른 텍스트 색상 결정 (대비 개선)
+            const textColor = this.getContrastTextColor(color);
+            
             // 숫자 텍스트
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = textColor;
             ctx.font = `bold ${radius}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -1247,6 +1305,41 @@ class MobileAnnotateShot {
             
         } catch (error) {
             this.mobileLog(`❌ 숫자 그리기 오류: ${error.message}`);
+        }
+    }
+    
+    // 배경 색상에 따른 대비 텍스트 색상 계산
+    getContrastTextColor(backgroundColor) {
+        try {
+            // hex 색상을 RGB로 변환
+            let color = backgroundColor;
+            if (color.startsWith('#')) {
+                color = color.slice(1);
+            }
+            
+            // 3자리 hex를 6자리로 확장
+            if (color.length === 3) {
+                color = color.split('').map(c => c + c).join('');
+            }
+            
+            // RGB 값 추출
+            const r = parseInt(color.substr(0, 2), 16);
+            const g = parseInt(color.substr(2, 2), 16);
+            const b = parseInt(color.substr(4, 2), 16);
+            
+            // 상대적 휘도 계산 (WCAG 가이드라인)
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            
+            // 휘도가 0.5보다 크면 어두운 텍스트, 작으면 밝은 텍스트
+            const textColor = luminance > 0.5 ? '#000000' : '#FFFFFF';
+            
+            this.mobileLog(`🎨 대비 색상 계산: 배경=${backgroundColor} → 텍스트=${textColor} (휘도=${luminance.toFixed(2)})`);
+            
+            return textColor;
+            
+        } catch (error) {
+            this.mobileLog(`❌ 대비 색상 계산 오류: ${error.message}`);
+            return '#FFFFFF'; // 기본값으로 흰색 반환
         }
     }
     
@@ -1263,9 +1356,9 @@ class MobileAnnotateShot {
             }
             
             // 숫자 모드와 크기를 맞추기 위해 반지름 크기를 폰트 크기로 변환
-            // 숫자 모드는 반지름을 사용하므로, 이모지는 반지름 * 1.5 정도로 설정
+            // 숫자 모드는 원 배경이 있어서 시각적으로 크므로, 이모지는 더 크게 설정
             const radius = parseInt(size) || 20;
-            const fontSize = Math.round(radius * 1.5);
+            const fontSize = Math.round(radius * 3.0);
             
             this.mobileLog(`📏 크기 변환: 반지름=${radius}px → 폰트크기=${fontSize}px`);
             
@@ -1572,16 +1665,6 @@ class MobileAnnotateShot {
         this.drawEmojiDirectly(x, y, currentEmoji, currentSize);
     }
     
-    handleShapeMode(x, y) {
-        console.log('🔷 도형 모드 처리 (드래그 시작):', x, y);
-        
-        // 도형은 드래그로 그려야 하므로 시작 좌표만 저장
-        this.shapeStartX = x;
-        this.shapeStartY = y;
-        this.shapeDragging = true;
-        
-        console.log('🔷 도형 드래그 시작점 설정:', { x, y });
-    }
     
     safeRedrawCanvas() {
         console.log('🎨 안전한 캔버스 다시 그리기 시작');
@@ -1652,9 +1735,6 @@ class MobileAnnotateShot {
                 case 'emoji':
                     this.drawEmoji(ctx, annotation);
                     break;
-                case 'shape':
-                    this.drawShape(ctx, annotation);
-                    break;
             }
         } catch (error) {
             console.error('❌ 주석 그리기 오류:', error, annotation);
@@ -1676,8 +1756,11 @@ class MobileAnnotateShot {
             ctx.fill();
             console.log(`✅ 배경 원 그리기: (${annotation.x}, ${annotation.y}), 반지름: ${radius}, 색상: ${annotation.color}`);
             
+            // 배경 색상에 따른 텍스트 색상 결정 (대비 개선)
+            const textColor = this.getContrastTextColor(annotation.color);
+            
             // 숫자 텍스트
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = textColor;
             ctx.font = `bold ${size}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -1710,35 +1793,6 @@ class MobileAnnotateShot {
         ctx.fillText(annotation.emoji, annotation.x, annotation.y);
     }
     
-    drawShape(ctx, annotation) {
-        const width = annotation.endX - annotation.startX;
-        const height = annotation.endY - annotation.startY;
-        
-        ctx.strokeStyle = annotation.color;
-        ctx.lineWidth = annotation.lineWidth === 'thin' ? 1 : annotation.lineWidth === 'thick' ? 5 : 3;
-        
-        switch(annotation.shape) {
-            case 'rectangle':
-                ctx.strokeRect(annotation.startX, annotation.startY, width, height);
-                if (annotation.fill === 'solid') {
-                    ctx.fillStyle = annotation.color;
-                    ctx.fillRect(annotation.startX, annotation.startY, width, height);
-                }
-                break;
-            case 'circle':
-                const radius = Math.sqrt(width * width + height * height) / 2;
-                const centerX = annotation.startX + width / 2;
-                const centerY = annotation.startY + height / 2;
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-                ctx.stroke();
-                if (annotation.fill === 'solid') {
-                    ctx.fillStyle = annotation.color;
-                    ctx.fill();
-                }
-                break;
-        }
-    }
     
     
     handleTouchMove(e) {
