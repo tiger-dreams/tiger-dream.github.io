@@ -174,6 +174,7 @@ class MobileAnnotateShot {
     
     setupImageUpload() {
         this.mobileLog('📷 MVP 이미지 업로드 설정 시작');
+        this.mobileLog(`🔍 기기 감지: iOS=${this.isIOS()}, Android=${this.isAndroid()}`);
         
         const fabImage = document.getElementById('fabImage');
         const mobileImageInput = document.getElementById('mobileImageInput');
@@ -183,8 +184,9 @@ class MobileAnnotateShot {
             return;
         }
         
-        // 파일 선택을 위한 단순한 설정
+        // 파일 선택을 위한 기본 설정
         mobileImageInput.setAttribute('accept', 'image/*');
+        mobileImageInput.setAttribute('multiple', 'false'); // 단일 파일만
         
         // 이미지 업로드 버튼 클릭 - 갤러리/카메라 선택
         fabImage.addEventListener('click', (e) => {
@@ -192,13 +194,8 @@ class MobileAnnotateShot {
             e.stopPropagation();
             this.mobileLog('📷 이미지 업로드 버튼 클릭됨');
             
-            // iOS에서 갤러리/카메라 선택 다이얼로그 표시
-            if (this.isIOS()) {
-                this.showImageSourceSelector();
-            } else {
-                // Android에서는 기본 파일 선택기 사용
-                mobileImageInput.click();
-            }
+            // 모든 모바일 기기에서 갤러리/카메라 선택 다이얼로그 표시
+            this.showImageSourceSelector();
         });
         
         // 파일 선택 이벤트
@@ -331,6 +328,10 @@ class MobileAnnotateShot {
         return /iPad|iPhone|iPod/.test(navigator.userAgent);
     }
     
+    isAndroid() {
+        return /Android/.test(navigator.userAgent);
+    }
+    
     showImageSourceSelector() {
         this.mobileLog('📱 이미지 소스 선택 다이얼로그 표시');
         
@@ -362,6 +363,8 @@ class MobileAnnotateShot {
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         `;
         
+        const galleryText = this.isIOS() ? '🖼️ 사진 보관함' : '🖼️ 갤러리';
+        
         dialog.innerHTML = `
             <h3 style="margin: 0 0 1.5rem 0; color: #333; font-size: 1.2rem;">이미지 가져오기</h3>
             <div style="display: flex; flex-direction: column; gap: 0.8rem;">
@@ -369,7 +372,7 @@ class MobileAnnotateShot {
                     📷 카메라로 촬영
                 </button>
                 <button id="selectGallery" style="padding: 1rem; border: none; border-radius: 10px; background: #34C759; color: white; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
-                    🖼️ 사진 보관함
+                    ${galleryText}
                 </button>
                 <button id="cancelSelection" style="padding: 0.8rem; border: none; border-radius: 10px; background: #F2F2F7; color: #8E8E93; font-size: 0.9rem; cursor: pointer; margin-top: 0.5rem;">
                     취소
@@ -384,7 +387,14 @@ class MobileAnnotateShot {
         document.getElementById('selectCamera').addEventListener('click', () => {
             this.mobileLog('📷 카메라 선택됨');
             const input = document.getElementById('mobileImageInput');
-            input.setAttribute('capture', 'environment');
+            
+            // 안드로이드와 iOS 모두 지원하는 카메라 설정
+            if (this.isIOS()) {
+                input.setAttribute('capture', 'environment');
+            } else {
+                // 안드로이드에서는 capture="camera" 사용
+                input.setAttribute('capture', 'camera');
+            }
             input.setAttribute('accept', 'image/*');
             input.click();
             document.body.removeChild(overlay);
