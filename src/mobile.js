@@ -650,32 +650,7 @@ class MobileAnnotateShot {
         
         if (fabSettings) {
             fabSettings.addEventListener('click', () => {
-                // 디버그 패널 표시/숨김 토글
-                const debugPanel = document.getElementById('mobileDebugPanel');
-                if (debugPanel) {
-                    if (debugPanel.style.display === 'none' || !debugPanel.style.display) {
-                        debugPanel.style.display = 'block';
-                        // 디버그 로그 함수 직접 구현
-                        const logDebug = (message) => {
-                            const logDiv = document.getElementById('mobileDebugLog');
-                            if (logDiv) {
-                                const time = new Date().toLocaleTimeString();
-                                logDiv.textContent += `[${time}] ${message}\n`;
-                                logDiv.scrollTop = logDiv.scrollHeight;
-                            }
-                        };
-                        
-                        logDebug('📱 Debug panel opened');
-                        logDebug(`Undo function exists: ${typeof window.undo === 'function'}`);
-                        logDebug(`UndoButton exists: ${!!document.getElementById('undoButton')}`);
-                        logDebug(`Body classes: ${document.body.className}`);
-                        logDebug(`Current language: ${localStorage.getItem('language') || 'auto'}`);
-                        logDebug(`uploadImagePrompt element: ${!!document.querySelector('[data-lang-key="uploadImagePrompt"]')}`);
-                        logDebug(`Translate function exists: ${typeof window.translate === 'function'}`);
-                    } else {
-                        debugPanel.style.display = 'none';
-                    }
-                }
+                this.showMobileSettingsPanel();
             });
         }
         

@@ -110,11 +110,11 @@
             
             console.log('🖥️ 데스크톱 모드 활성화');
             
-            // 모바일 전용 요소 DOM에서 완전 제거 (디버그 패널 제외)
+            // 모바일 전용 요소 DOM에서 완전 제거 (설정 패널과 디버그 패널 제외)
             const mobileSelectors = [
                 '.mobile-only', '.mobile-toolbar', '.floating-action-buttons', 
-                '.emoji-layer', '.fab', '.mobile-mode-panel', '.mobile-settings-panel',
-                '#mobileModePanel', '#mobileSettingsPanel'
+                '.emoji-layer', '.fab', '.mobile-mode-panel',
+                '#mobileModePanel'
             ];
             
             mobileSelectors.forEach(selector => {
