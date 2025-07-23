@@ -19,6 +19,12 @@ class MobileAnnotateShot {
         this.touchMoved = false;
         this.touchThreshold = 10; // 10px 이상 움직이면 스크롤로 간주
         
+        // 드래그 앤 드롭을 위한 변수들
+        this.isDragging = false;
+        this.dragTarget = null;
+        this.dragOffsetX = 0;
+        this.dragOffsetY = 0;
+        
         // 모바일 감지
         this.detectMobile();
         
@@ -915,6 +921,8 @@ class MobileAnnotateShot {
         this.mobileLog('👆 터치 시작 감지됨');
         this.touchActive = true;
         this.touchMoved = false;
+        this.isDragging = false;
+        this.dragTarget = null;
         
         const touch = e.touches[0];
         const canvas = e.target;
@@ -940,6 +948,16 @@ class MobileAnnotateShot {
         this.pendingTouchY = y;
         
         this.mobileLog(`📐 좌표계산: raw(${rawX.toFixed(1)},${rawY.toFixed(1)}) → final(${x.toFixed(1)},${y.toFixed(1)}) scale(${scaleX.toFixed(2)},${scaleY.toFixed(2)})`);
+        
+        // 기존 주석과 히트 테스트 수행
+        const hitResult = this.hitTestAnnotation(x, y);
+        if (hitResult) {
+            // 주석을 터치한 경우 - 드래그 준비
+            this.dragTarget = hitResult;
+            this.dragOffsetX = x - hitResult.annotation.x;
+            this.dragOffsetY = y - hitResult.annotation.y;
+            this.mobileLog(`🫱 드래그 타겟 설정: ${hitResult.annotation.type} #${hitResult.annotation.number || 'N/A'}`);
+        }
         
         // touchstart에서는 주석 추가하지 않음 (touchend에서 처리)
     }
@@ -1008,6 +1026,108 @@ class MobileAnnotateShot {
         
         // 직접 캔버스에 그리기 (MVP 버전)
         this.drawNumberDirectly(x, y, numberObj.number, currentColor, currentSize);
+    }
+    
+    // 터치 위치에 주석이 있는지 확인하는 히트 테스트
+    hitTestAnnotation(x, y) {
+        if (!window.clicks || !Array.isArray(window.clicks)) {
+            return null;
+        }
+        
+        // 역순으로 검사 (최신 주석이 위에 있으므로)
+        for (let i = window.clicks.length - 1; i >= 0; i--) {
+            const annotation = window.clicks[i];
+            
+            if (this.isPointInAnnotation(x, y, annotation)) {
+                this.mobileLog(`🎯 주석 히트: #${annotation.number || annotation.text || annotation.emoji} at (${annotation.x.toFixed(1)},${annotation.y.toFixed(1)})`);
+                return { annotation, index: i };
+            }
+        }
+        
+        return null;
+    }
+    
+    // 점이 주석 영역 안에 있는지 확인
+    isPointInAnnotation(x, y, annotation) {
+        const size = parseInt(annotation.size) || 20;
+        
+        switch (annotation.type) {
+            case 'number':
+                // 원형 영역 (반지름 = size)
+                const radius = size;
+                const distance = Math.sqrt(
+                    Math.pow(x - annotation.x, 2) + 
+                    Math.pow(y - annotation.y, 2)
+                );
+                return distance <= radius;
+                
+            case 'text':
+                // 텍스트 영역 (대략적인 사각형)
+                const textWidth = annotation.text.length * size * 0.6; // 대략적인 너비
+                const textHeight = size;
+                return (
+                    x >= annotation.x - 5 && 
+                    x <= annotation.x + textWidth + 5 &&
+                    y >= annotation.y - textHeight && 
+                    y <= annotation.y + 5
+                );
+                
+            case 'emoji':
+                // 이모지 영역 (정사각형)
+                const halfSize = size / 2;
+                return (
+                    x >= annotation.x - halfSize && 
+                    x <= annotation.x + halfSize &&
+                    y >= annotation.y - halfSize && 
+                    y <= annotation.y + halfSize
+                );
+                
+            default:
+                return false;
+        }
+    }
+    
+    // 캔버스와 모든 주석을 다시 그리는 함수
+    redrawCanvasWithAnnotations() {
+        try {
+            const canvas = document.getElementById('imageCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (!canvas || !ctx || !window.currentImage) {
+                this.mobileLog('❌ 캔버스 재그리기 실패: 필요한 요소 없음');
+                return;
+            }
+            
+            // 캔버스 지우기
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 배경 이미지 다시 그리기 (현재 설정된 크기로)
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            const img = window.currentImage;
+            
+            // 이미지를 캔버스에 맞춰 크롭하여 그리기 (이전과 동일한 방식)
+            const widthRatio = canvasWidth / img.width;
+            const heightRatio = canvasHeight / img.height;
+            const ratio = Math.max(widthRatio, heightRatio);
+            
+            const scaledWidth = img.width * ratio;
+            const scaledHeight = img.height * ratio;
+            const offsetX = (canvasWidth - scaledWidth) / 2;
+            const offsetY = (canvasHeight - scaledHeight) / 2;
+            
+            ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+            
+            // 모든 주석 다시 그리기
+            if (window.clicks && Array.isArray(window.clicks)) {
+                window.clicks.forEach((annotation, index) => {
+                    this.drawAnnotation(ctx, annotation);
+                });
+            }
+            
+        } catch (error) {
+            this.mobileLog(`❌ 캔버스 재그리기 오류: ${error.message}`);
+        }
     }
     
     drawNumberDirectly(x, y, number, color, size) {
@@ -1501,6 +1621,7 @@ class MobileAnnotateShot {
         if (!this.touchActive) return;
         
         const touch = e.touches[0];
+        const canvas = e.target;
         
         // 터치 이동 거리 계산
         if (this.touchStartX !== null && this.touchStartY !== null) {
@@ -1508,23 +1629,54 @@ class MobileAnnotateShot {
             const deltaY = Math.abs(touch.clientY - this.touchStartY);
             const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
             
-            // 임계값을 초과하면 스크롤/드래그로 간주
+            // 임계값을 초과하면 이동으로 간주
             if (distance > this.touchThreshold) {
                 this.touchMoved = true;
-                this.mobileLog(`📱 터치 이동 감지: ${distance.toFixed(1)}px (임계값: ${this.touchThreshold}px)`);
+                
+                // 드래그 타겟이 있으면 드래그 모드로 전환
+                if (this.dragTarget && !this.isDragging) {
+                    this.isDragging = true;
+                    this.mobileLog(`🫱 드래그 시작: ${this.dragTarget.annotation.type} #${this.dragTarget.annotation.number || 'N/A'}`);
+                }
+                
+                // 드래그 중이면 주석 위치 업데이트
+                if (this.isDragging && this.dragTarget) {
+                    // 캔버스 좌표 계산
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    
+                    const rawX = touch.clientX - rect.left;
+                    const rawY = touch.clientY - rect.top;
+                    const newX = rawX * scaleX - this.dragOffsetX;
+                    const newY = rawY * scaleY - this.dragOffsetY;
+                    
+                    // 주석 위치 업데이트
+                    this.dragTarget.annotation.x = newX;
+                    this.dragTarget.annotation.y = newY;
+                    
+                    // 캔버스 다시 그리기
+                    this.redrawCanvasWithAnnotations();
+                    
+                    this.mobileLog(`🫱 드래그 중: (${newX.toFixed(1)},${newY.toFixed(1)})`);
+                } else if (!this.dragTarget) {
+                    this.mobileLog(`📱 일반 터치 이동 감지: ${distance.toFixed(1)}px (임계값: ${this.touchThreshold}px)`);
+                }
             }
         }
-        
-        // MVP에서는 도형 드래그 기능 생략
-        // 필요시 향후 추가 가능
     }
     
     handleTouchEnd(e) {
         this.touchActive = false;
         
-        // 터치가 이동하지 않았다면 주석 추가 (탭으로 간주)
-        if (!this.touchMoved && this.pendingTouchX !== null && this.pendingTouchY !== null) {
-            this.mobileLog('👆 터치 탭 감지 - 주석 추가');
+        // 드래그 완료 처리
+        if (this.isDragging && this.dragTarget) {
+            this.mobileLog(`🫱 드래그 완료: ${this.dragTarget.annotation.type} #${this.dragTarget.annotation.number || 'N/A'} → (${this.dragTarget.annotation.x.toFixed(1)},${this.dragTarget.annotation.y.toFixed(1)})`);
+            this.showToast('✅ 주석이 이동되었습니다', 'success');
+        }
+        // 터치가 이동하지 않았고 드래그 타겟이 없다면 새 주석 추가
+        else if (!this.touchMoved && !this.dragTarget && this.pendingTouchX !== null && this.pendingTouchY !== null) {
+            this.mobileLog('👆 터치 탭 감지 - 새 주석 추가');
             
             try {
                 this.mobileLog(`🚀 triggerCanvasClick 호출 시작`);
@@ -1534,11 +1686,23 @@ class MobileAnnotateShot {
                 this.mobileLog(`❌ triggerCanvasClick 오류: ${error.message}`);
                 console.error('triggerCanvasClick 상세 오류:', error);
             }
-        } else if (this.touchMoved) {
+        }
+        // 터치 이동이 있었지만 드래그가 아닌 경우
+        else if (this.touchMoved && !this.isDragging) {
             this.mobileLog('👆 터치 이동 감지됨 - 주석 추가 취소 (스크롤로 간주)');
         }
+        // 기존 주석을 탭했지만 이동하지 않은 경우
+        else if (!this.touchMoved && this.dragTarget) {
+            this.mobileLog('👆 기존 주석 탭 - 이동 없음');
+        }
         
-        // 상태 초기화
+        // 드래그 상태 초기화
+        this.isDragging = false;
+        this.dragTarget = null;
+        this.dragOffsetX = 0;
+        this.dragOffsetY = 0;
+        
+        // 터치 상태 초기화
         this.touchStartX = null;
         this.touchStartY = null;
         this.touchMoved = false;
