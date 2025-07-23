@@ -412,20 +412,21 @@
             display: block; /* 텍스트는 다시 표시 */
         }
         
-        /* 모바일에서 "이미지편집" 텍스트만 숨김 */
-        .mobile-device .desktop-text {
-            display: none;
+        /* 모바일에서 "이미지편집" 텍스트만 숨김 - 더 강한 선택자 */
+        .mobile-device .sidebar-header .logo-text .desktop-text {
+            display: none !important;
         }
         
-        /* 모바일에서 아이콘을 이미지로 교체 */
-        .mobile-device .logo-icon {
-            font-size: 0; /* Material Icons 텍스트 숨김 */
-            width: 1.5rem;
-            height: 1.5rem;
-            background-image: url('extension/icon.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
+        /* 모바일에서 아이콘을 이미지로 교체 - 더 강한 선택자 */
+        .mobile-device .sidebar-header .logo-icon {
+            font-size: 0 !important; /* Material Icons 텍스트 숨김 */
+            width: 1.5rem !important;
+            height: 1.5rem !important;
+            background-image: url('extension/icon.png') !important;
+            background-size: contain !important;
+            background-repeat: no-repeat !important;
+            background-position: center !important;
+            display: inline-block !important;
         }
         
         .mobile-device .sidebar-header {
@@ -2724,9 +2725,6 @@
             </button>
             <button class="fab" id="fabSettings" title="스타일 설정">
                 <span class="material-icons">palette</span>
-            </button>
-            <button class="fab debug" id="fabDebug" title="디버그 로그" style="background-color: #FF4444;">
-                <span class="material-icons">bug_report</span>
             </button>
         </div>
         

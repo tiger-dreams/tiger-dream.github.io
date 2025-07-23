@@ -587,12 +587,6 @@ class MobileAnnotateShot {
             });
         }
         
-        const fabDebug = document.getElementById('fabDebug');
-        if (fabDebug) {
-            fabDebug.addEventListener('click', () => {
-                this.toggleMobileDebugPanel();
-            });
-        }
         
         // 설정 패널 이벤트 설정
         this.setupSettingsPanel();
@@ -600,35 +594,6 @@ class MobileAnnotateShot {
         console.log('✅ 플로팅 버튼 설정 완료');
     }
     
-    toggleMobileDebugPanel() {
-        const panel = document.getElementById('mobileDebugPanel');
-        if (panel) {
-            const isVisible = panel.style.display === 'block' && panel.classList.contains('show');
-            
-            if (!isVisible) {
-                panel.style.display = 'block';
-                panel.classList.add('show');
-                panel.style.position = 'fixed';
-                panel.style.bottom = '140px';
-                panel.style.left = '10px';
-                panel.style.right = '10px';
-                panel.style.zIndex = '9999';
-                panel.style.background = '#000';
-                panel.style.color = '#fff';
-                panel.style.padding = '10px';
-                panel.style.borderRadius = '8px';
-                panel.style.maxHeight = '200px';
-                panel.style.overflow = 'auto';
-                this.mobileLog('🐛 모바일 디버그 패널 활성화');
-            } else {
-                panel.style.display = 'none';
-                panel.classList.remove('show');
-                console.log('🐛 모바일 디버그 패널 비활성화');
-            }
-        } else {
-            console.error('❌ mobileDebugPanel을 찾을 수 없음');
-        }
-    }
     
     mobileLog(message) {
         // 콘솔에도 로그
