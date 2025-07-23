@@ -180,14 +180,19 @@ class MobileAnnotateShot {
         // 파일 선택을 위한 단순한 설정
         mobileImageInput.setAttribute('accept', 'image/*');
         
-        // 이미지 업로드 버튼 클릭 - 단순화
+        // 이미지 업로드 버튼 클릭 - 갤러리/카메라 선택
         fabImage.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             this.mobileLog('📷 이미지 업로드 버튼 클릭됨');
             
-            // 단순하게 파일 선택만
-            mobileImageInput.click();
+            // iOS에서 갤러리/카메라 선택 다이얼로그 표시
+            if (this.isIOS()) {
+                this.showImageSourceSelector();
+            } else {
+                // Android에서는 기본 파일 선택기 사용
+                mobileImageInput.click();
+            }
         });
         
         // 파일 선택 이벤트
@@ -280,7 +285,7 @@ class MobileAnnotateShot {
                 canvas.style.display = 'block';
                 canvas.style.visibility = 'visible';
                 canvas.style.position = 'absolute';
-                canvas.style.top = '60px';
+                canvas.style.top = '40px';
                 canvas.style.left = '0';
                 canvas.style.zIndex = '1';
                 
@@ -299,7 +304,7 @@ class MobileAnnotateShot {
                 window.clicks = [];
                 window.clickCount = 0;
                 
-                this.mobileLog(`✅ MVP 이미지 로드 완료: ${width}x${height}`);
+                this.mobileLog(`✅ MVP 이미지 로드 완료: ${canvasWidth}x${canvasHeight}`);
                 this.showToast('✅ 이미지가 로드되었습니다', 'success');
                 
             } catch (error) {
@@ -321,6 +326,8 @@ class MobileAnnotateShot {
     }
     
     showImageSourceSelector() {
+        this.mobileLog('📱 이미지 소스 선택 다이얼로그 표시');
+        
         const overlay = document.createElement('div');
         overlay.className = 'mobile-image-source-overlay';
         overlay.style.cssText = `
@@ -329,8 +336,8 @@ class MobileAnnotateShot {
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 9999;
+            background: rgba(0,0,0,0.6);
+            z-index: 10000;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -340,25 +347,25 @@ class MobileAnnotateShot {
         const dialog = document.createElement('div');
         dialog.className = 'mobile-image-source-dialog';
         dialog.style.cssText = `
-            background: var(--card);
-            border-radius: 12px;
-            padding: 2rem;
-            max-width: 300px;
+            background: #fff;
+            border-radius: 16px;
+            padding: 1.5rem;
+            max-width: 280px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         `;
         
         dialog.innerHTML = `
-            <h3 style="margin: 0 0 1.5rem 0; color: var(--foreground);">이미지 선택</h3>
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-                <button id="selectCamera" style="padding: 1rem; border: none; border-radius: 8px; background: var(--primary); color: var(--primary-foreground); font-size: 1rem; cursor: pointer;">
+            <h3 style="margin: 0 0 1.5rem 0; color: #333; font-size: 1.2rem;">이미지 가져오기</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                <button id="selectCamera" style="padding: 1rem; border: none; border-radius: 10px; background: #007AFF; color: white; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
                     📷 카메라로 촬영
                 </button>
-                <button id="selectGallery" style="padding: 1rem; border: none; border-radius: 8px; background: var(--muted); color: var(--foreground); font-size: 1rem; cursor: pointer;">
-                    🖼️ 갤러리에서 선택
+                <button id="selectGallery" style="padding: 1rem; border: none; border-radius: 10px; background: #34C759; color: white; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
+                    🖼️ 사진 보관함
                 </button>
-                <button id="cancelSelection" style="padding: 0.75rem; border: none; border-radius: 8px; background: transparent; color: var(--muted-foreground); font-size: 0.9rem; cursor: pointer;">
+                <button id="cancelSelection" style="padding: 0.8rem; border: none; border-radius: 10px; background: #F2F2F7; color: #8E8E93; font-size: 0.9rem; cursor: pointer; margin-top: 0.5rem;">
                     취소
                 </button>
             </div>
@@ -369,28 +376,34 @@ class MobileAnnotateShot {
         
         // 카메라 선택
         document.getElementById('selectCamera').addEventListener('click', () => {
+            this.mobileLog('📷 카메라 선택됨');
             const input = document.getElementById('mobileImageInput');
             input.setAttribute('capture', 'environment');
+            input.setAttribute('accept', 'image/*');
             input.click();
             document.body.removeChild(overlay);
         });
         
         // 갤러리 선택
         document.getElementById('selectGallery').addEventListener('click', () => {
+            this.mobileLog('🖼️ 갤러리 선택됨');
             const input = document.getElementById('mobileImageInput');
             input.removeAttribute('capture');
+            input.setAttribute('accept', 'image/*');
             input.click();
             document.body.removeChild(overlay);
         });
         
         // 취소
         document.getElementById('cancelSelection').addEventListener('click', () => {
+            this.mobileLog('❌ 이미지 선택 취소됨');
             document.body.removeChild(overlay);
         });
         
         // 배경 클릭으로 닫기
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
+                this.mobileLog('❌ 배경 클릭으로 선택 취소됨');
                 document.body.removeChild(overlay);
             }
         });
@@ -500,7 +513,7 @@ class MobileAnnotateShot {
     calculateImageSize(originalWidth, originalHeight, maxWidth, maxHeight) {
         // MVP: 캔버스를 100% 채우도록 크기 조정
         const availableWidth = window.innerWidth; // 전체 너비 사용
-        const availableHeight = window.innerHeight - 120; // 상단바(60px) + 하단 플로팅버튼(60px) 제외
+        const availableHeight = window.innerHeight - 100; // 상단바(40px) + 하단 플로팅버튼(60px) 제외
         
         // 가로세로 비율을 유지하면서 캔버스를 최대한 채우도록 계산
         const widthRatio = availableWidth / originalWidth;
