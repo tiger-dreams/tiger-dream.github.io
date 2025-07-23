@@ -6,6 +6,12 @@
 
 class MobileAnnotateShot {
     constructor() {
+        // 데스크톱에서 모바일 모드 비활성화
+        if (window.DISABLE_MOBILE_MODE) {
+            console.log('🖥️ 데스크톱 모드 - 모바일 기능 완전 비활성화');
+            return;
+        }
+        
         this.isMobile = false;
         this.isInitialized = false;
         this.touchActive = false;
@@ -576,14 +582,100 @@ class MobileAnnotateShot {
         
         if (fabUndo) {
             fabUndo.addEventListener('click', () => {
-                const undoButton = document.getElementById('undoButton');
-                if (undoButton) undoButton.click();
+                // 디버그 로그 함수
+                const logDebug = (message) => {
+                    const logDiv = document.getElementById('mobileDebugLog');
+                    if (logDiv) {
+                        const time = new Date().toLocaleTimeString();
+                        logDiv.textContent += `[${time}] ${message}\n`;
+                        logDiv.scrollTop = logDiv.scrollHeight;
+                    }
+                    console.log(message);
+                };
+                
+                logDebug('🔄 Undo 버튼 클릭됨');
+                
+                // 1. 현재 상태 저장
+                const beforeClicksLength = window.clicks ? window.clicks.length : 0;
+                const beforeUndoStackLength = window.undoStack ? window.undoStack.length : 0;
+                logDebug(`🔍 Undo 전 상태: clicks=${beforeClicksLength}, undoStack=${beforeUndoStackLength}`);
+                
+                // 2. 모바일 전용 undo 로직 구현
+                if (window.undoStack && window.undoStack.length > 0) {
+                    try {
+                        // undoStack에서 이전 상태 복원
+                        const previousState = window.undoStack.pop();
+                        
+                        // 상태 복원
+                        window.clicks = previousState.clicks || [];
+                        window.clickCount = previousState.clickCount || 0;
+                        
+                        logDebug(`🔄 모바일 undo 실행: clicks=${window.clicks.length}, undoStack=${window.undoStack.length}`);
+                        
+                        // 캔버스 다시 그리기
+                        const canvas = document.getElementById('imageCanvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // 현재 이미지 다시 그리기
+                        if (window.currentImage) {
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(window.currentImage, 0, 0, canvas.width, canvas.height);
+                            
+                            // 모든 주석 다시 그리기
+                            const self = this;
+                            window.clicks.forEach(click => {
+                                if (click.type === 'number') {
+                                    self.drawNumberDirectly(click.x, click.y, click.number, click.color, click.size);
+                                } else if (click.type === 'emoji') {
+                                    self.drawEmojiDirectly(click.x, click.y, click.emoji, click.size);
+                                }
+                            });
+                            
+                            logDebug('✅ 모바일 캔버스 복원 완료');
+                        }
+                        
+                        // 3. 변화 확인
+                        const afterClicksLength = window.clicks ? window.clicks.length : 0;
+                        const afterUndoStackLength = window.undoStack ? window.undoStack.length : 0;
+                        logDebug(`🔍 Undo 후 상태: clicks=${afterClicksLength}, undoStack=${afterUndoStackLength}`);
+                        
+                    } catch (error) {
+                        logDebug(`❌ 모바일 undo 에러: ${error.message}`);
+                    }
+                } else {
+                    logDebug('❌ undoStack 비어있음 - undo 불가');
+                }
             });
         }
         
         if (fabSettings) {
             fabSettings.addEventListener('click', () => {
-                this.showMobileSettingsPanel();
+                // 디버그 패널 표시/숨김 토글
+                const debugPanel = document.getElementById('mobileDebugPanel');
+                if (debugPanel) {
+                    if (debugPanel.style.display === 'none' || !debugPanel.style.display) {
+                        debugPanel.style.display = 'block';
+                        // 디버그 로그 함수 직접 구현
+                        const logDebug = (message) => {
+                            const logDiv = document.getElementById('mobileDebugLog');
+                            if (logDiv) {
+                                const time = new Date().toLocaleTimeString();
+                                logDiv.textContent += `[${time}] ${message}\n`;
+                                logDiv.scrollTop = logDiv.scrollHeight;
+                            }
+                        };
+                        
+                        logDebug('📱 Debug panel opened');
+                        logDebug(`Undo function exists: ${typeof window.undo === 'function'}`);
+                        logDebug(`UndoButton exists: ${!!document.getElementById('undoButton')}`);
+                        logDebug(`Body classes: ${document.body.className}`);
+                        logDebug(`Current language: ${localStorage.getItem('language') || 'auto'}`);
+                        logDebug(`uploadImagePrompt element: ${!!document.querySelector('[data-lang-key="uploadImagePrompt"]')}`);
+                        logDebug(`Translate function exists: ${typeof window.translate === 'function'}`);
+                    } else {
+                        debugPanel.style.display = 'none';
+                    }
+                }
             });
         }
         
@@ -1094,6 +1186,21 @@ class MobileAnnotateShot {
     handleNumberMode(x, y) {
         this.mobileLog(`🔢 MVP 숫자모드 처리: (${x.toFixed(1)},${y.toFixed(1)})`);
         
+        // undoStack에 현재 상태 저장 (추가 전)
+        if (!window.undoStack) {
+            window.undoStack = [];
+            this.mobileLog('✅ undoStack 초기화');
+        }
+        
+        // 현재 상태를 undoStack에 저장
+        const currentState = {
+            clicks: window.clicks ? [...window.clicks] : [],
+            clickCount: window.clickCount || 0,
+            image: window.currentImage || null
+        };
+        window.undoStack.push(currentState);
+        this.mobileLog(`💾 undoStack에 상태 저장: clicks=${currentState.clicks.length}, total=${window.undoStack.length}`);
+        
         // MVP 버전에서는 간단하게 처리
         if (!window.clicks) {
             window.clicks = [];
@@ -1600,6 +1707,21 @@ class MobileAnnotateShot {
     handleEmojiMode(x, y) {
         this.mobileLog(`😀 이모지 모드 처리: (${x.toFixed(1)},${y.toFixed(1)})`);
         
+        // undoStack에 현재 상태 저장 (추가 전)
+        if (!window.undoStack) {
+            window.undoStack = [];
+            this.mobileLog('✅ undoStack 초기화');
+        }
+        
+        // 현재 상태를 undoStack에 저장
+        const currentState = {
+            clicks: window.clicks ? [...window.clicks] : [],
+            clickCount: window.clickCount || 0,
+            image: window.currentImage || null
+        };
+        window.undoStack.push(currentState);
+        this.mobileLog(`💾 undoStack에 상태 저장: clicks=${currentState.clicks.length}, total=${window.undoStack.length}`);
+        
         if (!window.clicks) {
             window.clicks = [];
             this.mobileLog('✅ clicks 배열 초기화');
@@ -1939,6 +2061,16 @@ class MobileAnnotateShot {
         window.currentSize = '20';
         
         this.mobileLog('✅ MVP 기본 설정 완료 - 숫자 모드 전용');
+        
+        // 모바일용 초기 텍스트 적용
+        setTimeout(() => {
+            const uploadPromptElement = document.getElementById('uploadPromptText');
+            if (uploadPromptElement && typeof window.translate === 'function') {
+                const mobileText = window.translate('mobileUploadImagePrompt');
+                uploadPromptElement.innerHTML = mobileText.replace(/\n/g, '<br>');
+                this.mobileLog('📱 모바일 초기 텍스트 적용 완료');
+            }
+        }, 300);
     }
     
     preventCanvasReset() {
