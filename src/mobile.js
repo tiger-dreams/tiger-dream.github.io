@@ -13,6 +13,12 @@ class MobileAnnotateShot {
         this.shapeStartX = null;
         this.shapeStartY = null;
         
+        // 터치 감도 조절을 위한 변수들
+        this.touchStartX = null;
+        this.touchStartY = null;
+        this.touchMoved = false;
+        this.touchThreshold = 10; // 10px 이상 움직이면 스크롤로 간주
+        
         // 모바일 감지
         this.detectMobile();
         
@@ -243,23 +249,32 @@ class MobileAnnotateShot {
                     return;
                 }
                 
-                // 전체화면 크기 계산
-                const maxWidth = window.innerWidth;
-                const maxHeight = window.innerHeight - 180; // 상단바(60px) + 하단바(120px) 제외
+                // MVP: 전체화면 캔버스 크기 계산
+                const { width: canvasWidth, height: canvasHeight } = this.calculateImageSize(img.width, img.height);
                 
-                const { width, height } = this.calculateImageSize(img.width, img.height, maxWidth, maxHeight);
+                // 캔버스 크기를 화면에 맞춤
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                canvas.style.width = canvasWidth + 'px';
+                canvas.style.height = canvasHeight + 'px';
                 
-                // 캔버스 크기 설정
-                canvas.width = width;
-                canvas.height = height;
-                canvas.style.width = width + 'px';
-                canvas.style.height = height + 'px';
+                // 이미지를 캔버스에 맞춰 크롭하여 그리기
+                const widthRatio = canvasWidth / img.width;
+                const heightRatio = canvasHeight / img.height;
+                const ratio = Math.max(widthRatio, heightRatio); // 캔버스를 채우는 비율
                 
-                // 이미지 그리기
-                ctx.clearRect(0, 0, width, height);
-                ctx.drawImage(img, 0, 0, width, height);
+                const scaledWidth = img.width * ratio;
+                const scaledHeight = img.height * ratio;
                 
-                this.mobileLog(`🎨 캔버스에 이미지 그리기: ${width}x${height}`);
+                // 중앙 정렬을 위한 오프셋 계산
+                const offsetX = (canvasWidth - scaledWidth) / 2;
+                const offsetY = (canvasHeight - scaledHeight) / 2;
+                
+                // 캔버스 지우고 이미지 그리기 (중앙 정렬, 크롭)
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+                ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+                
+                this.mobileLog(`🎨 캔버스에 이미지 그리기: 캔버스=${canvasWidth}x${canvasHeight}, 이미지=${scaledWidth.toFixed(0)}x${scaledHeight.toFixed(0)}, 오프셋=(${offsetX.toFixed(0)},${offsetY.toFixed(0)})`);
                 
                 // 캔버스가 실제로 보이도록 강제 설정
                 canvas.style.display = 'block';
@@ -483,28 +498,37 @@ class MobileAnnotateShot {
     }
     
     calculateImageSize(originalWidth, originalHeight, maxWidth, maxHeight) {
-        // 인스타그램 스타일 전체화면 활용 (여백 없음)
+        // MVP: 캔버스를 100% 채우도록 크기 조정
         const availableWidth = window.innerWidth; // 전체 너비 사용
-        const availableHeight = window.innerHeight - 180; // 상단바(60px) + 하단바(120px) 제외
+        const availableHeight = window.innerHeight - 120; // 상단바(60px) + 하단 플로팅버튼(60px) 제외
         
-        const finalMaxWidth = Math.min(maxWidth || availableWidth, availableWidth);
-        const finalMaxHeight = Math.min(maxHeight || availableHeight, availableHeight);
+        // 가로세로 비율을 유지하면서 캔버스를 최대한 채우도록 계산
+        const widthRatio = availableWidth / originalWidth;
+        const heightRatio = availableHeight / originalHeight;
         
-        const ratio = Math.min(finalMaxWidth / originalWidth, finalMaxHeight / originalHeight, 1);
+        // 더 큰 비율을 사용하여 캔버스를 완전히 채움 (크롭될 수 있음)
+        const ratio = Math.max(widthRatio, heightRatio);
         
         const result = {
             width: Math.floor(originalWidth * ratio),
             height: Math.floor(originalHeight * ratio)
         };
         
-        console.log('📏 모바일 이미지 크기 계산:', {
+        // 캔버스 크기는 사용 가능한 공간에 맞춤
+        const canvasSize = {
+            width: availableWidth,
+            height: availableHeight
+        };
+        
+        this.mobileLog('📏 MVP 이미지 크기 계산:', {
             original: `${originalWidth}x${originalHeight}`,
             available: `${availableWidth}x${availableHeight}`,
-            final: `${result.width}x${result.height}`,
+            image: `${result.width}x${result.height}`,
+            canvas: `${canvasSize.width}x${canvasSize.height}`,
             ratio: ratio.toFixed(2)
         });
         
-        return result;
+        return canvasSize; // 캔버스 크기 반환 (이미지는 중앙 정렬로 크롭)
     }
     
     setupFloatingButtons() {
@@ -848,22 +872,43 @@ class MobileAnnotateShot {
         
         console.log('👆 터치 이벤트 설정 시작');
         
-        // 터치 이벤트 핸들러들
-        canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
-        canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-        canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
-        canvas.addEventListener('touchcancel', (e) => this.handleTouchCancel(e), { passive: false });
+        // 터치 이벤트 핸들러들 (스크롤 방지를 위해 preventDefault 사용)
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // 스크롤 방지
+            this.handleTouchStart(e);
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            if (!this.touchMoved) {
+                e.preventDefault(); // 주석 모드에서만 스크롤 방지
+            }
+            this.handleTouchMove(e);
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.handleTouchEnd(e);
+        }, { passive: false });
+        
+        canvas.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            this.handleTouchCancel(e);
+        }, { passive: false });
         
         console.log('✅ 터치 이벤트 설정 완료');
     }
     
     handleTouchStart(e) {
-        this.mobileLog('👆 터치 이벤트 감지됨');
-        e.preventDefault();
+        this.mobileLog('👆 터치 시작 감지됨');
         this.touchActive = true;
+        this.touchMoved = false;
         
         const touch = e.touches[0];
         const canvas = e.target;
+        
+        // 터치 시작 좌표 저장 (스크롤 감지용)
+        this.touchStartX = touch.clientX;
+        this.touchStartY = touch.clientY;
         
         this.mobileLog(`📊 터치 초기: touches=${e.touches.length}, target=${canvas.id}`);
         
@@ -877,18 +922,13 @@ class MobileAnnotateShot {
         const x = rawX * scaleX;
         const y = rawY * scaleY;
         
-        this.mobileLog(`📐 좌표계산: raw(${rawX.toFixed(1)},${rawY.toFixed(1)}) → final(${x.toFixed(1)},${y.toFixed(1)}) scale(${scaleX.toFixed(2)},${scaleY.toFixed(2)})`);
-        this.mobileLog(`🎯 모드: ${document.getElementById('modeSelector')?.value}`);
+        // 터치 좌표 저장 (터치 종료시 사용)
+        this.pendingTouchX = x;
+        this.pendingTouchY = y;
         
-        // main.js의 마우스 이벤트와 동일한 방식으로 처리
-        this.mobileLog(`🚀 triggerCanvasClick 호출 시작`);
-        try {
-            this.triggerCanvasClick(x, y);
-            this.mobileLog(`✅ triggerCanvasClick 호출 완료`);
-        } catch (error) {
-            this.mobileLog(`❌ triggerCanvasClick 오류: ${error.message}`);
-            console.error('triggerCanvasClick 상세 오류:', error);
-        }
+        this.mobileLog(`📐 좌표계산: raw(${rawX.toFixed(1)},${rawY.toFixed(1)}) → final(${x.toFixed(1)},${y.toFixed(1)}) scale(${scaleX.toFixed(2)},${scaleY.toFixed(2)})`);
+        
+        // touchstart에서는 주석 추가하지 않음 (touchend에서 처리)
     }
     
     triggerCanvasClick(x, y) {
@@ -1266,64 +1306,53 @@ class MobileAnnotateShot {
     
     handleTouchMove(e) {
         if (!this.touchActive) return;
-        e.preventDefault();
         
         const touch = e.touches[0];
-        const canvas = e.target;
         
-        // 캔버스 좌표 계산 (스케일링 고려)
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        
-        const x = (touch.clientX - rect.left) * scaleX;
-        const y = (touch.clientY - rect.top) * scaleY;
-        
-        // 도형 모드에서 드래그 중인 경우 미리보기 처리
-        if (this.shapeDragging && typeof this.shapeStartX !== 'undefined') {
-            console.log('🔷 도형 드래그 중:', { startX: this.shapeStartX, startY: this.shapeStartY, currentX: x, currentY: y });
+        // 터치 이동 거리 계산
+        if (this.touchStartX !== null && this.touchStartY !== null) {
+            const deltaX = Math.abs(touch.clientX - this.touchStartX);
+            const deltaY = Math.abs(touch.clientY - this.touchStartY);
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
             
-            // main.js의 도형 미리보기 함수가 있다면 호출
-            if (typeof window.drawShapePreview === 'function') {
-                window.drawShapePreview(this.shapeStartX, this.shapeStartY, x, y);
+            // 임계값을 초과하면 스크롤/드래그로 간주
+            if (distance > this.touchThreshold) {
+                this.touchMoved = true;
+                this.mobileLog(`📱 터치 이동 감지: ${distance.toFixed(1)}px (임계값: ${this.touchThreshold}px)`);
             }
         }
+        
+        // MVP에서는 도형 드래그 기능 생략
+        // 필요시 향후 추가 가능
     }
     
     handleTouchEnd(e) {
-        e.preventDefault();
         this.touchActive = false;
         
-        // 도형 드래그가 완료된 경우
-        if (this.shapeDragging && typeof this.shapeStartX !== 'undefined') {
-            const touch = e.changedTouches[0];
-            const canvas = e.target;
+        // 터치가 이동하지 않았다면 주석 추가 (탭으로 간주)
+        if (!this.touchMoved && this.pendingTouchX !== null && this.pendingTouchY !== null) {
+            this.mobileLog('👆 터치 탭 감지 - 주석 추가');
             
-            // 캔버스 좌표 계산 (스케일링 고려)
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            
-            const endX = (touch.clientX - rect.left) * scaleX;
-            const endY = (touch.clientY - rect.top) * scaleY;
-            
-            console.log('🔷 도형 드래그 완료:', { 
-                startX: this.shapeStartX, 
-                startY: this.shapeStartY, 
-                endX, 
-                endY 
-            });
-            
-            // 도형 생성
-            this.createShape(this.shapeStartX, this.shapeStartY, endX, endY);
-            
-            // 드래그 상태 초기화
-            this.shapeDragging = false;
-            delete this.shapeStartX;
-            delete this.shapeStartY;
+            try {
+                this.mobileLog(`🚀 triggerCanvasClick 호출 시작`);
+                this.triggerCanvasClick(this.pendingTouchX, this.pendingTouchY);
+                this.mobileLog(`✅ triggerCanvasClick 호출 완료`);
+            } catch (error) {
+                this.mobileLog(`❌ triggerCanvasClick 오류: ${error.message}`);
+                console.error('triggerCanvasClick 상세 오류:', error);
+            }
+        } else if (this.touchMoved) {
+            this.mobileLog('👆 터치 이동 감지됨 - 주석 추가 취소 (스크롤로 간주)');
         }
         
-        console.log('👆 터치 종료');
+        // 상태 초기화
+        this.touchStartX = null;
+        this.touchStartY = null;
+        this.touchMoved = false;
+        this.pendingTouchX = null;
+        this.pendingTouchY = null;
+        
+        this.mobileLog('👆 터치 종료');
     }
     
     createShape(startX, startY, endX, endY) {
