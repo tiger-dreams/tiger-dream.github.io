@@ -1020,10 +1020,24 @@ class MobileAnnotateShot {
         
         this.mobileLog(`✅ 좌표 검증 통과: (${x.toFixed(1)},${y.toFixed(1)})`);
         
-        // MVP 버전에서는 숫자 모드만 처리 - 직접 호출
+        // 현재 모드에 따라 적절한 핸들러 호출
+        const currentMode = document.getElementById('modeSelector')?.value || 'number';
         try {
-            this.mobileLog(`🚀 MVP 숫자 모드 직접 처리`);
-            this.handleNumberMode(x, y);
+            this.mobileLog(`🚀 모드별 핸들러 호출: ${currentMode}`);
+            switch(currentMode) {
+                case 'number':
+                    this.handleNumberMode(x, y);
+                    break;
+                case 'emoji':
+                    this.handleEmojiMode(x, y);
+                    break;
+                case 'text':
+                    this.handleTextMode(x, y);
+                    break;
+                default:
+                    this.mobileLog(`❓ 지원하지 않는 모드: ${currentMode} - 숫자 모드로 처리`);
+                    this.handleNumberMode(x, y);
+            }
         } catch (error) {
             this.mobileLog(`❌ 터치 액션 처리 오류: ${error.message}`);
             console.error('❌ 상세 오류:', error);
@@ -1043,9 +1057,11 @@ class MobileAnnotateShot {
             this.mobileLog('✅ clickCount 초기화');
         }
         
-        // 간단한 설정값
-        const currentColor = '#FF0000'; // 빨간색 고정
-        const currentSize = '20'; // 20px 고정
+        // 현재 설정된 값 사용 (더 이상 고정값 사용 안함)
+        const currentColor = window.currentColor || '#FF0000';
+        const currentSize = window.currentSize || '20';
+        
+        this.mobileLog(`🎨 사용할 설정: 색상=${currentColor}, 크기=${currentSize}px`);
         
         // 숫자 객체 생성
         const numberObj = {
@@ -1203,6 +1219,35 @@ class MobileAnnotateShot {
             
         } catch (error) {
             this.mobileLog(`❌ 숫자 그리기 오류: ${error.message}`);
+        }
+    }
+    
+    drawEmojiDirectly(x, y, emoji, size) {
+        this.mobileLog(`😀 이모지 직접 그리기: ${emoji} at (${x.toFixed(1)},${y.toFixed(1)})`);
+        
+        try {
+            const canvas = document.getElementById('imageCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (!canvas || !ctx) {
+                this.mobileLog('❌ 캔버스를 찾을 수 없음');
+                return;
+            }
+            
+            const fontSize = parseInt(size) || 20;
+            
+            // 이모지 그리기
+            ctx.save();
+            ctx.font = `${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, x, y);
+            ctx.restore();
+            
+            this.mobileLog(`✅ 이모지 그리기 완료: ${emoji}`);
+            
+        } catch (error) {
+            this.mobileLog(`❌ 이모지 그리기 오류: ${error.message}`);
         }
     }
     
@@ -1463,12 +1508,17 @@ class MobileAnnotateShot {
     }
     
     handleEmojiMode(x, y) {
-        console.log('😀 이모지 모드 처리:', x, y);
+        this.mobileLog(`😀 이모지 모드 처리: (${x.toFixed(1)},${y.toFixed(1)})`);
         
-        if (typeof window.clicks === 'undefined') window.clicks = [];
+        if (!window.clicks) {
+            window.clicks = [];
+            this.mobileLog('✅ clicks 배열 초기화');
+        }
         
         const currentEmoji = window.currentEmoji || '😀';
         const currentSize = window.currentSize || '20';
+        
+        this.mobileLog(`🎨 사용할 설정: 이모지=${currentEmoji}, 크기=${currentSize}px`);
         
         // 이모지 객체 생성
         const emojiObj = {
@@ -1482,10 +1532,11 @@ class MobileAnnotateShot {
         
         window.clicks.push(emojiObj);
         
-        console.log('✅ 이모지 추가됨:', emojiObj);
+        this.mobileLog(`✅ 이모지 추가: ${currentEmoji} at (${x.toFixed(1)},${y.toFixed(1)}) 크기:${currentSize}px`);
+        this.mobileLog(`📊 총 주석수: ${window.clicks.length}`);
         
-        // 캔버스 다시 그리기 - 더 안전한 방법
-        this.safeRedrawCanvas();
+        // 직접 캔버스에 그리기
+        this.drawEmojiDirectly(x, y, currentEmoji, currentSize);
     }
     
     handleShapeMode(x, y) {
@@ -1819,11 +1870,11 @@ class MobileAnnotateShot {
             this.mobileLog('✅ 숫자 모드로 설정');
         }
         
-        // MVP에서는 하단 툴바 숨기기 (모드 전환 불필요)
+        // MVP에서도 하단 툴바 표시 (숫자, 이모지 모드 지원)
         const mobileToolbar = document.querySelector('.mobile-toolbar');
         if (mobileToolbar) {
-            mobileToolbar.style.display = 'none';
-            this.mobileLog('🔧 하단 툴바 숨김 (MVP)');
+            mobileToolbar.style.display = 'flex';
+            this.mobileLog('🔧 하단 툴바 표시 (숫자, 이모지 모드 지원)');
         }
         
         // 기본 변수 초기화
