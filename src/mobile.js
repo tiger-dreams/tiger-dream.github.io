@@ -710,11 +710,15 @@ class MobileAnnotateShot {
         const overlay = document.getElementById('mobileOverlay');
         
         if (panel && overlay) {
+            this.mobileLog('⚙️ 설정 패널 열기 시작');
+            
             // 현재 모드에 따라 패널 내용 조정
             this.updateSettingsPanelForCurrentMode();
             
             panel.classList.add('show');
             overlay.classList.add('show');
+            
+            this.mobileLog('✅ 설정 패널 표시 완료');
             
             // 현재 설정값들로 UI 초기화
             this.syncSettingsPanelWithCurrentValues();
@@ -736,21 +740,43 @@ class MobileAnnotateShot {
         const emojiSection = document.getElementById('emojiSection');
         const shapeSection = document.getElementById('shapeSection');
         
+        this.mobileLog(`⚙️ 설정 패널 모드 조정: ${currentMode}`);
+        this.mobileLog(`📋 UI 요소 상태: emojiSection=${!!emojiSection}, shapeSection=${!!shapeSection}`);
+        
         // 모든 섹션 숨기기
-        if (emojiSection) emojiSection.style.display = 'none';
-        if (shapeSection) shapeSection.style.display = 'none';
+        if (emojiSection) {
+            emojiSection.style.display = 'none';
+            this.mobileLog('🔧 이모지 섹션 숨김');
+        }
+        if (shapeSection) {
+            shapeSection.style.display = 'none';
+            this.mobileLog('🔧 도형 섹션 숨김');
+        }
         
         // 현재 모드에 따라 관련 섹션 표시
         switch(currentMode) {
             case 'emoji':
-                if (emojiSection) emojiSection.style.display = 'block';
+                if (emojiSection) {
+                    emojiSection.style.display = 'block';
+                    this.mobileLog('✅ 이모지 섹션 표시');
+                } else {
+                    this.mobileLog('❌ 이모지 섹션을 찾을 수 없음');
+                }
                 break;
             case 'shape':
-                if (shapeSection) shapeSection.style.display = 'block';
+                if (shapeSection) {
+                    shapeSection.style.display = 'block';
+                    this.mobileLog('✅ 도형 섹션 표시');
+                } else {
+                    this.mobileLog('❌ 도형 섹션을 찾을 수 없음');
+                }
+                break;
+            case 'number':
+                this.mobileLog('📱 숫자 모드 - 기본 설정만 표시');
                 break;
         }
         
-        console.log('⚙️ 설정 패널을 모드에 맞게 조정:', currentMode);
+        this.mobileLog(`✅ 설정 패널 조정 완료: ${currentMode} 모드`);
     }
     
     syncSettingsPanelWithCurrentValues() {
@@ -1034,6 +1060,9 @@ class MobileAnnotateShot {
                 case 'text':
                     this.handleTextMode(x, y);
                     break;
+                case 'shape':
+                    this.handleShapeMode(x, y);
+                    break;
                 default:
                     this.mobileLog(`❓ 지원하지 않는 모드: ${currentMode} - 숫자 모드로 처리`);
                     this.handleNumberMode(x, y);
@@ -1129,14 +1158,13 @@ class MobileAnnotateShot {
                 );
                 
             case 'emoji':
-                // 이모지 영역 (정사각형)
-                const halfSize = size / 2;
-                return (
-                    x >= annotation.x - halfSize && 
-                    x <= annotation.x + halfSize &&
-                    y >= annotation.y - halfSize && 
-                    y <= annotation.y + halfSize
+                // 이모지 영역 (원형으로 변경, 숫자 모드와 동일)
+                const emojiRadius = size; // 숫자 모드와 동일한 크기
+                const emojiDistance = Math.sqrt(
+                    Math.pow(x - annotation.x, 2) + 
+                    Math.pow(y - annotation.y, 2)
                 );
+                return emojiDistance <= emojiRadius;
                 
             default:
                 return false;
@@ -1234,7 +1262,12 @@ class MobileAnnotateShot {
                 return;
             }
             
-            const fontSize = parseInt(size) || 20;
+            // 숫자 모드와 크기를 맞추기 위해 반지름 크기를 폰트 크기로 변환
+            // 숫자 모드는 반지름을 사용하므로, 이모지는 반지름 * 1.5 정도로 설정
+            const radius = parseInt(size) || 20;
+            const fontSize = Math.round(radius * 1.5);
+            
+            this.mobileLog(`📏 크기 변환: 반지름=${radius}px → 폰트크기=${fontSize}px`);
             
             // 이모지 그리기
             ctx.save();
@@ -1244,7 +1277,7 @@ class MobileAnnotateShot {
             ctx.fillText(emoji, x, y);
             ctx.restore();
             
-            this.mobileLog(`✅ 이모지 그리기 완료: ${emoji}`);
+            this.mobileLog(`✅ 이모지 그리기 완료: ${emoji} (크기: ${fontSize}px)`);
             
         } catch (error) {
             this.mobileLog(`❌ 이모지 그리기 오류: ${error.message}`);
