@@ -915,39 +915,21 @@ class MobileAnnotateShot {
             target: canvas
         };
         
-        // main.js의 getMousePos 함수가 있다면 사용
-        let canvasX, canvasY;
-        if (typeof window.getMousePos === 'function') {
-            const pos = window.getMousePos(canvas, mouseEvent);
-            canvasX = pos.x;
-            canvasY = pos.y;
-            this.mobileLog(`📍 getMousePos 사용: (${canvasX.toFixed(1)},${canvasY.toFixed(1)})`);
-        } else {
-            // 직접 계산
-            canvasX = x;
-            canvasY = y;
-            this.mobileLog(`📍 직접계산 사용: (${canvasX.toFixed(1)},${canvasY.toFixed(1)})`);
+        // MVP에서는 간단하게 전달받은 좌표 사용
+        const canvasX = x;
+        const canvasY = y;
+        this.mobileLog(`📍 MVP 좌표 사용: (${canvasX.toFixed(1)},${canvasY.toFixed(1)})`);
+        
+        // 좌표가 유효한지 확인
+        if (typeof canvasX !== 'number' || typeof canvasY !== 'number') {
+            this.mobileLog(`❌ 좌표가 유효하지 않음: x=${typeof canvasX}, y=${typeof canvasY}`);
+            return;
         }
         
-        // 현재 모드에 따라 적절한 main.js 함수 호출
+        // MVP 버전에서는 숫자 모드만 처리
         try {
-            this.mobileLog(`🚀 모드별 핸들러 호출: ${currentMode}`);
-            switch(currentMode) {
-                case 'number':
-                    this.handleNumberMode(canvasX, canvasY);
-                    break;
-                case 'text':
-                    this.handleTextMode(canvasX, canvasY);
-                    break;
-                case 'emoji':
-                    this.handleEmojiMode(canvasX, canvasY);
-                    break;
-                case 'shape':
-                    this.handleShapeMode(canvasX, canvasY);
-                    break;
-                default:
-                    this.mobileLog(`❓ 알 수 없는 모드: ${currentMode}`);
-            }
+            this.mobileLog(`🚀 MVP 숫자 모드 처리`);
+            this.handleNumberMode(canvasX, canvasY);
         } catch (error) {
             this.mobileLog(`❌ 터치 액션 처리 오류: ${error.message}`);
             console.error('❌ 상세 오류:', error);
@@ -1426,9 +1408,13 @@ class MobileAnnotateShot {
         if (modeSelector) {
             modeSelector.value = 'number';
             this.mobileLog('✅ 숫자 모드로 설정');
-            
-            // 툴바 상태 업데이트
-            this.updateToolbarState();
+        }
+        
+        // MVP에서는 하단 툴바 숨기기 (모드 전환 불필요)
+        const mobileToolbar = document.querySelector('.mobile-toolbar');
+        if (mobileToolbar) {
+            mobileToolbar.style.display = 'none';
+            this.mobileLog('🔧 하단 툴바 숨김 (MVP)');
         }
         
         // 기본 변수 초기화
@@ -1437,7 +1423,7 @@ class MobileAnnotateShot {
         window.currentColor = '#FF0000';
         window.currentSize = '20';
         
-        this.mobileLog('✅ MVP 기본 설정 완료');
+        this.mobileLog('✅ MVP 기본 설정 완료 - 숫자 모드 전용');
     }
     
     showMessage(message, type = 'info') {
