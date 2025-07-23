@@ -104,6 +104,9 @@ class MobileAnnotateShot {
         // 모바일 최적화 설정
         this.optimizeForMobile();
         
+        // MVP 설정 - 숫자 모드로 기본 설정
+        this.setupMVPDefaults();
+        
         console.log('✅ 모바일 UI 설정 완료');
     }
     
@@ -158,49 +161,124 @@ class MobileAnnotateShot {
     }
     
     setupImageUpload() {
-        console.log('📷 이미지 업로드 기능 설정 중...');
+        this.mobileLog('📷 MVP 이미지 업로드 설정 시작');
         
         const fabImage = document.getElementById('fabImage');
         const mobileImageInput = document.getElementById('mobileImageInput');
         
         if (!fabImage || !mobileImageInput) {
-            console.error('❌ 이미지 업로드 요소를 찾을 수 없음');
+            this.mobileLog('❌ 이미지 업로드 요소를 찾을 수 없음');
             return;
         }
         
-        // 파일 선택을 위한 개선된 설정
+        // 파일 선택을 위한 단순한 설정
         mobileImageInput.setAttribute('accept', 'image/*');
-        mobileImageInput.setAttribute('capture', 'environment'); // 후면 카메라 우선
         
-        // 이미지 업로드 버튼 클릭
+        // 이미지 업로드 버튼 클릭 - 단순화
         fabImage.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('📷 이미지 업로드 버튼 클릭됨');
+            this.mobileLog('📷 이미지 업로드 버튼 클릭됨');
             
-            // iOS에서 갤러리/카메라 선택을 위해 capture 속성 임시 제거
-            if (this.isIOS()) {
-                this.showImageSourceSelector();
-            } else {
-                mobileImageInput.click();
-            }
+            // 단순하게 파일 선택만
+            mobileImageInput.click();
         });
         
         // 파일 선택 이벤트
         mobileImageInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                console.log('📷 이미지 파일 선택됨:', file.name, file.type, file.size);
-                this.handleImageFile(file);
+                this.mobileLog(`📷 파일선택: ${file.name} (${Math.round(file.size/1024)}KB)`);
+                this.handleImageFileMVP(file);
             } else {
-                console.log('❌ 파일 선택 취소됨');
+                this.mobileLog('❌ 파일 선택 취소됨');
             }
             
-            // 입력 초기화 (같은 파일 재선택 가능)
+            // 입력 초기화
             e.target.value = '';
         });
         
-        console.log('✅ 이미지 업로드 기능 설정 완료');
+        this.mobileLog('✅ MVP 이미지 업로드 설정 완료');
+    }
+    
+    handleImageFileMVP(file) {
+        this.mobileLog(`📷 MVP 이미지 처리 시작: ${file.name} (${Math.round(file.size/1024)}KB)`);
+        
+        if (!file.type.startsWith('image/')) {
+            this.mobileLog('❌ 이미지 파일이 아닙니다');
+            this.showToast('❌ 이미지 파일만 선택 가능합니다', 'error');
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            this.mobileLog('📷 파일 읽기 완료');
+            this.loadImageToCanvasMVP(e.target.result);
+        };
+        
+        reader.onerror = (e) => {
+            this.mobileLog(`❌ 파일 읽기 오류: ${e.message || 'Unknown error'}`);
+            this.showToast('❌ 이미지를 읽을 수 없습니다', 'error');
+        };
+        
+        reader.readAsDataURL(file);
+    }
+    
+    loadImageToCanvasMVP(imageDataUrl) {
+        this.mobileLog('🎨 MVP 캔버스 이미지 로드 시작');
+        
+        const img = new Image();
+        
+        img.onload = () => {
+            this.mobileLog(`✅ 이미지 로드 완료: ${img.width}x${img.height}`);
+            
+            try {
+                // 캔버스 찾기
+                const canvas = document.getElementById('imageCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                if (!canvas || !ctx) {
+                    this.mobileLog('❌ 캔버스를 찾을 수 없음');
+                    return;
+                }
+                
+                // 전체화면 크기 계산
+                const maxWidth = window.innerWidth;
+                const maxHeight = window.innerHeight - 180; // 상단바(60px) + 하단바(120px) 제외
+                
+                const { width, height } = this.calculateImageSize(img.width, img.height, maxWidth, maxHeight);
+                
+                // 캔버스 크기 설정
+                canvas.width = width;
+                canvas.height = height;
+                canvas.style.width = width + 'px';
+                canvas.style.height = height + 'px';
+                
+                // 이미지 그리기
+                ctx.clearRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // 전역 변수 초기화 (MVP 버전에서만 필요한 것들)
+                window.currentImage = img;
+                window.clicks = [];
+                window.clickCount = 0;
+                
+                this.mobileLog(`✅ MVP 이미지 로드 완료: ${width}x${height}`);
+                this.showToast('✅ 이미지가 로드되었습니다', 'success');
+                
+            } catch (error) {
+                this.mobileLog(`❌ 캔버스 로드 오류: ${error.message}`);
+                this.showToast('❌ 이미지를 로드할 수 없습니다', 'error');
+            }
+        };
+        
+        img.onerror = (e) => {
+            this.mobileLog('❌ 이미지 객체 로드 오류');
+            this.showToast('❌ 잘못된 이미지 파일입니다', 'error');
+        };
+        
+        img.src = imageDataUrl;
     }
     
     isIOS() {
@@ -416,8 +494,7 @@ class MobileAnnotateShot {
         
         if (fabSave) {
             fabSave.addEventListener('click', () => {
-                const saveButton = document.getElementById('saveButton');
-                if (saveButton) saveButton.click();
+                this.saveImageMVP();
             });
         }
         
@@ -842,25 +919,23 @@ class MobileAnnotateShot {
     }
     
     handleNumberMode(x, y) {
-        this.mobileLog(`🔢 숫자모드 처리: (${x.toFixed(1)},${y.toFixed(1)})`);
+        this.mobileLog(`🔢 MVP 숫자모드 처리: (${x.toFixed(1)},${y.toFixed(1)})`);
         
-        // main.js 전역 변수 상태 확인
-        this.mobileLog(`📊 전역변수: clicks=${window.clicks ? window.clicks.length : 'undefined'}, count=${window.clickCount}, image=${!!window.currentImage}`);
-        
-        // main.js의 전역 변수들 초기화
-        if (typeof window.clicks === 'undefined') {
+        // MVP 버전에서는 간단하게 처리
+        if (!window.clicks) {
             window.clicks = [];
             this.mobileLog('✅ clicks 배열 초기화');
         }
-        if (typeof window.clickCount === 'undefined') {
+        if (!window.clickCount) {
             window.clickCount = 0;
             this.mobileLog('✅ clickCount 초기화');
         }
         
-        const currentColor = window.currentColor || '#FF0000';
-        const currentSize = window.currentSize || '20';
+        // 간단한 설정값
+        const currentColor = '#FF0000'; // 빨간색 고정
+        const currentSize = '20'; // 20px 고정
         
-        // 숫자 객체 생성 (main.js와 동일한 구조)
+        // 숫자 객체 생성
         const numberObj = {
             type: 'number',
             x: x,
@@ -874,11 +949,89 @@ class MobileAnnotateShot {
         window.clicks.push(numberObj);
         window.clickCount++;
         
-        this.mobileLog(`✅ 숫자추가: #${numberObj.number} at (${x.toFixed(1)},${y.toFixed(1)}) 색상:${currentColor} 크기:${currentSize}`);
+        this.mobileLog(`✅ MVP 숫자추가: #${numberObj.number} at (${x.toFixed(1)},${y.toFixed(1)})`);
         this.mobileLog(`📊 총 주석수: ${window.clicks.length}`);
         
-        // 캔버스 다시 그리기 - 더 안전한 방법
-        this.safeRedrawCanvas();
+        // 직접 캔버스에 그리기 (MVP 버전)
+        this.drawNumberDirectly(x, y, numberObj.number, currentColor, currentSize);
+    }
+    
+    drawNumberDirectly(x, y, number, color, size) {
+        this.mobileLog(`🎨 MVP 숫자 직접 그리기: #${number} at (${x.toFixed(1)},${y.toFixed(1)})`);
+        
+        try {
+            const canvas = document.getElementById('imageCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (!canvas || !ctx) {
+                this.mobileLog('❌ 캔버스를 찾을 수 없음');
+                return;
+            }
+            
+            const radius = parseInt(size) || 20;
+            
+            // 배경 원 그리기
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // 숫자 텍스트
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `bold ${radius}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(number.toString(), x, y);
+            ctx.restore();
+            
+            this.mobileLog(`✅ MVP 숫자 그리기 완료: #${number}`);
+            
+        } catch (error) {
+            this.mobileLog(`❌ 숫자 그리기 오류: ${error.message}`);
+        }
+    }
+    
+    saveImageMVP() {
+        this.mobileLog('💾 MVP 이미지 저장 시작');
+        
+        try {
+            const canvas = document.getElementById('imageCanvas');
+            if (!canvas) {
+                this.mobileLog('❌ 캔버스를 찾을 수 없음');
+                this.showToast('❌ 저장할 이미지가 없습니다', 'error');
+                return;
+            }
+            
+            // 캔버스를 이미지로 변환
+            canvas.toBlob((blob) => {
+                if (!blob) {
+                    this.mobileLog('❌ 이미지 변환 실패');
+                    this.showToast('❌ 이미지 저장에 실패했습니다', 'error');
+                    return;
+                }
+                
+                // 다운로드 링크 생성
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `annotateshot_${new Date().getTime()}.png`;
+                
+                // 자동 다운로드 실행
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                this.mobileLog('✅ MVP 이미지 저장 완료');
+                this.showToast('✅ 이미지가 저장되었습니다', 'success');
+                
+            }, 'image/png');
+            
+        } catch (error) {
+            this.mobileLog(`❌ 저장 오류: ${error.message}`);
+            this.showToast('❌ 이미지 저장에 실패했습니다', 'error');
+        }
     }
     
     handleTextMode(x, y) {
@@ -1227,6 +1380,28 @@ class MobileAnnotateShot {
         }
         
         console.log('⚙️ 모바일 최적화 설정 완료');
+    }
+    
+    setupMVPDefaults() {
+        this.mobileLog('🚀 MVP 기본 설정 시작');
+        
+        // 숫자 모드로 강제 설정
+        const modeSelector = document.getElementById('modeSelector');
+        if (modeSelector) {
+            modeSelector.value = 'number';
+            this.mobileLog('✅ 숫자 모드로 설정');
+            
+            // 툴바 상태 업데이트
+            this.updateToolbarState();
+        }
+        
+        // 기본 변수 초기화
+        window.clicks = [];
+        window.clickCount = 0;
+        window.currentColor = '#FF0000';
+        window.currentSize = '20';
+        
+        this.mobileLog('✅ MVP 기본 설정 완료');
     }
     
     showMessage(message, type = 'info') {
