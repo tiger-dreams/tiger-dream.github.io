@@ -407,6 +407,23 @@
             display: none !important;
         }
         
+        /* 데스크톱에서 모바일 전용 요소 완전 숨김 */
+        .mobile-only {
+            display: none !important;
+        }
+        
+        /* 모바일에서만 모바일 전용 요소 표시 */
+        .mobile-device .mobile-only {
+            display: block !important;
+        }
+        
+        /* 데스크톱에서 모바일 툴바 강제 숨김 */
+        body:not(.mobile-device) .mobile-toolbar,
+        body:not(.mobile-device) .floating-action-buttons,
+        body:not(.mobile-device) .emoji-layer {
+            display: none !important;
+        }
+        
         /* 모바일에서 사이드바 헤더 조정 */
         .mobile-device .sidebar-header .logo-text {
             display: block; /* 텍스트는 다시 표시 */
