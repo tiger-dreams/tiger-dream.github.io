@@ -15,6 +15,14 @@
     <!-- Usage Monitoring -->
     <script src="usage-monitor.js"></script>
     
+    <!-- Device Detection & Dynamic CSS Loading -->
+    <script src="src/device-detector.js"></script>
+    
+    <!-- External CSS Files -->
+    <link rel="stylesheet" href="src/styles/common.css" id="common-css">
+    <link rel="stylesheet" href="src/styles/desktop.css" id="desktop-css">
+    <link rel="stylesheet" href="src/styles/mobile.css" id="mobile-css" disabled>
+    
     <style>
         :root {
             /* Light theme colors */
@@ -1373,7 +1381,7 @@
                 <div class="logo-section">
                     <span class="material-icons logo-icon">edit</span>
                     <h1 class="logo-text">
-                        <span class="desktop-text">이미지편집 </span>AnnotateShot
+                        <span class="desktop-text">AnnotateShot
                     </h1>
                 </div>
             </div>
@@ -2900,6 +2908,51 @@
 
     <!-- Mobile UI Module - 모든 DOM이 로드된 후 실행 -->
     <script src="src/mobile.js"></script>
+    
+    <!-- 모바일 디버그 스크립트 -->
+    <script>
+        function copyMobileDebugLog() {
+            const logDiv = document.getElementById('mobileDebugLog');
+            if (logDiv && logDiv.textContent) {
+                try {
+                    // 모바일에서 안전한 복사 방법
+                    const textArea = document.createElement('textarea');
+                    textArea.value = logDiv.textContent;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-9999px';
+                    textArea.style.top = '-9999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    if (successful) {
+                        alert('디버그 로그가 클립보드에 복사되었습니다!');
+                    } else {
+                        alert('복사 실패 - 수동으로 선택해서 복사하세요');
+                    }
+                } catch (err) {
+                    alert('복사 기능 사용 불가 - 로그를 수동으로 복사하세요');
+                }
+            }
+        }
+        
+        function clearMobileDebugLog() {
+            const logDiv = document.getElementById('mobileDebugLog');
+            if (logDiv) {
+                logDiv.textContent = '';
+            }
+        }
+        
+        function hideMobileDebugPanel() {
+            const panel = document.getElementById('mobileDebugPanel');
+            if (panel) {
+                panel.style.display = 'none';
+            }
+        }
+    </script>
     
     <!-- 디버그 스크립트 -->
     <script>

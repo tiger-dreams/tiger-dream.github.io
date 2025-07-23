@@ -2828,8 +2828,15 @@
             console.log('initializeDefaultCanvas called:', { 
                 currentImage: !!currentImage, 
                 imageLayers: imageLayers.length, 
-                canvasMode: canvasMode 
+                canvasMode: canvasMode,
+                isMobileDevice: document.body.classList.contains('mobile-device')
             });
+            
+            // 모바일에서 이중 호출 방지
+            if (document.body.classList.contains('mobile-device') && window.mobileDefaultCanvasInitialized) {
+                console.log('모바일 기본 캔버스 이미 초기화됨 - 건너뛰기');
+                return;
+            }
             
             if (!currentImage && imageLayers.length === 0) {
                 if (canvasMode === 'multi') {
@@ -2840,6 +2847,11 @@
                     // 싱글 모드: 기본 안내 화면 표시
                     console.log('Initializing single mode canvas');
                     drawSingleModeDefaultCanvas();
+                }
+                
+                // 모바일에서 초기화 완료 플래그 설정
+                if (document.body.classList.contains('mobile-device')) {
+                    window.mobileDefaultCanvasInitialized = true;
                 }
             } else {
                 console.log('Skipping initialization - image already exists');
