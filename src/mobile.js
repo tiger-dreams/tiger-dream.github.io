@@ -119,6 +119,9 @@ class MobileAnnotateShot {
         // MVP 설정 - 숫자 모드로 기본 설정
         this.setupMVPDefaults();
         
+        // 모바일에서 설정 변경으로 인한 캔버스 리셋 방지
+        this.preventCanvasReset();
+        
         console.log('✅ 모바일 UI 설정 완료');
     }
     
@@ -784,70 +787,97 @@ class MobileAnnotateShot {
     }
     
     changeColor(color) {
-        console.log('🎨 색상 변경:', color);
+        this.mobileLog(`🎨 모바일 색상 변경: ${color}`);
         
-        // main.js의 전역 변수 업데이트
+        // main.js의 전역 변수 업데이트 (이벤트 발생 방지)
         if (typeof window.currentColor !== 'undefined') {
             window.currentColor = color;
+            this.mobileLog(`✅ currentColor 업데이트: ${color}`);
         }
         
-        // 색상 선택기 업데이트
+        // 색상 선택기는 업데이트하지만 change 이벤트는 발생시키지 않음
         const colorSelector = document.getElementById('colorSelector');
         if (colorSelector) {
+            // 이벤트 리스너를 일시적으로 제거
+            const originalValue = colorSelector.value;
             colorSelector.value = color;
-            colorSelector.dispatchEvent(new Event('change'));
+            
+            this.mobileLog(`🔧 colorSelector 업데이트: ${originalValue} → ${color}`);
+            
+            // main.js의 change 이벤트를 발생시키지 않음 (캔버스 리셋 방지)
+            // colorSelector.dispatchEvent(new Event('change')); // 주석 처리
         }
         
         this.showToast('색상이 변경되었습니다', 'success');
     }
     
     changeSize(size) {
-        console.log('📏 크기 변경:', size);
+        this.mobileLog(`📏 모바일 크기 변경: ${size}px`);
         
-        // main.js의 전역 변수 업데이트
+        // main.js의 전역 변수 업데이트 (이벤트 발생 방지)
         if (typeof window.currentSize !== 'undefined') {
             window.currentSize = size;
+            this.mobileLog(`✅ currentSize 업데이트: ${size}px`);
         }
         
-        // 크기 선택기 업데이트
+        // 크기 선택기는 업데이트하지만 change 이벤트는 발생시키지 않음
         const sizeSelector = document.getElementById('sizeSelector');
         if (sizeSelector) {
+            const originalValue = sizeSelector.value;
             sizeSelector.value = size;
-            sizeSelector.dispatchEvent(new Event('change'));
+            
+            this.mobileLog(`🔧 sizeSelector 업데이트: ${originalValue} → ${size}`);
+            
+            // main.js의 change 이벤트를 발생시키지 않음 (캔버스 리셋 방지)
+            // sizeSelector.dispatchEvent(new Event('change')); // 주석 처리
         }
+        
+        this.showToast(`크기가 ${size}px로 변경되었습니다`, 'success');
     }
     
     changeEmoji(emoji) {
-        console.log('😀 이모지 변경:', emoji);
+        this.mobileLog(`😀 모바일 이모지 변경: ${emoji}`);
         
-        // main.js의 전역 변수 업데이트
+        // main.js의 전역 변수 업데이트 (이벤트 발생 방지)
         if (typeof window.currentEmoji !== 'undefined') {
             window.currentEmoji = emoji;
+            this.mobileLog(`✅ currentEmoji 업데이트: ${emoji}`);
         }
         
-        // 이모지 선택기 업데이트
+        // 이모지 선택기는 업데이트하지만 change 이벤트는 발생시키지 않음
         const emojiSelector = document.getElementById('emojiSelector');
         if (emojiSelector) {
+            const originalValue = emojiSelector.value;
             emojiSelector.value = emoji;
-            emojiSelector.dispatchEvent(new Event('change'));
+            
+            this.mobileLog(`🔧 emojiSelector 업데이트: ${originalValue} → ${emoji}`);
+            
+            // main.js의 change 이벤트를 발생시키지 않음 (캔버스 리셋 방지)
+            // emojiSelector.dispatchEvent(new Event('change')); // 주석 처리
         }
         
         this.showToast(`이모지가 ${emoji}로 변경되었습니다`, 'success');
     }
     
     changeFillType(fill) {
-        console.log('🎨 채우기 옵션 변경:', fill);
+        this.mobileLog(`🎨 모바일 채우기 옵션 변경: ${fill}`);
         
-        // main.js의 전역 변수 업데이트
+        // main.js의 전역 변수 업데이트 (이벤트 발생 방지)
         if (typeof window.currentFill !== 'undefined') {
             window.currentFill = fill;
+            this.mobileLog(`✅ currentFill 업데이트: ${fill}`);
         }
         
-        // 채우기 선택기 업데이트
+        // 채우기 선택기는 업데이트하지만 change 이벤트는 발생시키지 않음
         const fillSelector = document.getElementById('fillSelector');
         if (fillSelector) {
+            const originalValue = fillSelector.value;
             fillSelector.value = fill;
-            fillSelector.dispatchEvent(new Event('change'));
+            
+            this.mobileLog(`🔧 fillSelector 업데이트: ${originalValue} → ${fill}`);
+            
+            // main.js의 change 이벤트를 발생시키지 않음 (캔버스 리셋 방지)
+            // fillSelector.dispatchEvent(new Event('change')); // 주석 처리
         }
         
         const fillNames = {
@@ -1803,6 +1833,38 @@ class MobileAnnotateShot {
         window.currentSize = '20';
         
         this.mobileLog('✅ MVP 기본 설정 완료 - 숫자 모드 전용');
+    }
+    
+    preventCanvasReset() {
+        this.mobileLog('🛡️ 캔버스 리셋 방지 설정 시작');
+        
+        // main.js의 캔버스 리셋을 일으키는 이벤트들을 모니터링
+        const selectors = ['#colorSelector', '#sizeSelector', '#emojiSelector', '#fillSelector', '#modeSelector'];
+        
+        selectors.forEach(selector => {
+            const element = document.querySelector(selector);
+            if (element) {
+                // 기존 이벤트 리스너들을 확인하고 모바일에서는 캔버스 보존
+                element.addEventListener('change', (e) => {
+                    if (this.isMobile) {
+                        this.mobileLog(`🛡️ 모바일에서 ${selector} 변경 감지 - 캔버스 보존 모드`);
+                        
+                        // 모바일에서는 이미지와 주석을 보존하며 설정만 변경
+                        if (window.currentImage && window.clicks) {
+                            this.mobileLog(`🛡️ 이미지와 주석 보존: 이미지=${!!window.currentImage}, 주석=${window.clicks.length}개`);
+                            
+                            // 설정 변경 후 캔버스 재그리기
+                            setTimeout(() => {
+                                this.redrawCanvasWithAnnotations();
+                                this.mobileLog('🛡️ 캔버스 보존 재그리기 완료');
+                            }, 50);
+                        }
+                    }
+                });
+            }
+        });
+        
+        this.mobileLog('✅ 캔버스 리셋 방지 설정 완료');
     }
     
     showMessage(message, type = 'info') {
