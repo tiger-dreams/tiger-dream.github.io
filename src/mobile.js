@@ -892,7 +892,13 @@ class MobileAnnotateShot {
     }
     
     triggerCanvasClick(x, y) {
-        this.mobileLog(`🎯 캔버스클릭 트리거: (${x.toFixed(1)},${y.toFixed(1)})`);
+        this.mobileLog(`🎯 캔버스클릭 트리거 시작: x=${x}, y=${y}, 타입: x=${typeof x}, y=${typeof y}`);
+        
+        // 입력 파라미터 유효성 검사
+        if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) {
+            this.mobileLog(`❌ 입력 좌표가 유효하지 않음: x=${typeof x}(${x}), y=${typeof y}(${y})`);
+            return;
+        }
         
         // main.js의 캔버스 클릭 이벤트와 동일한 로직 실행
         const canvas = document.getElementById('imageCanvas');
@@ -901,35 +907,12 @@ class MobileAnnotateShot {
             return;
         }
         
-        // main.js의 전역 변수들 확인
-        const currentMode = document.getElementById('modeSelector')?.value || 'number';
-        this.mobileLog(`🎯 현재모드: ${currentMode}`);
+        this.mobileLog(`✅ 좌표 검증 통과: (${x.toFixed(1)},${y.toFixed(1)})`);
         
-        // 마우스 이벤트 객체를 만들어서 main.js의 기존 이벤트 핸들러 호출
-        const mouseEvent = {
-            preventDefault: () => {},
-            clientX: x + canvas.getBoundingClientRect().left,
-            clientY: y + canvas.getBoundingClientRect().top,
-            offsetX: x,
-            offsetY: y,
-            target: canvas
-        };
-        
-        // MVP에서는 간단하게 전달받은 좌표 사용
-        const canvasX = x;
-        const canvasY = y;
-        this.mobileLog(`📍 MVP 좌표 사용: (${canvasX.toFixed(1)},${canvasY.toFixed(1)})`);
-        
-        // 좌표가 유효한지 확인
-        if (typeof canvasX !== 'number' || typeof canvasY !== 'number') {
-            this.mobileLog(`❌ 좌표가 유효하지 않음: x=${typeof canvasX}, y=${typeof canvasY}`);
-            return;
-        }
-        
-        // MVP 버전에서는 숫자 모드만 처리
+        // MVP 버전에서는 숫자 모드만 처리 - 직접 호출
         try {
-            this.mobileLog(`🚀 MVP 숫자 모드 처리`);
-            this.handleNumberMode(canvasX, canvasY);
+            this.mobileLog(`🚀 MVP 숫자 모드 직접 처리`);
+            this.handleNumberMode(x, y);
         } catch (error) {
             this.mobileLog(`❌ 터치 액션 처리 오류: ${error.message}`);
             console.error('❌ 상세 오류:', error);
