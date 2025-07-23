@@ -1057,35 +1057,215 @@ class MobileAnnotateShot {
                 return;
             }
             
-            // 캔버스를 이미지로 변환
-            canvas.toBlob((blob) => {
-                if (!blob) {
-                    this.mobileLog('❌ 이미지 변환 실패');
-                    this.showToast('❌ 이미지 저장에 실패했습니다', 'error');
-                    return;
-                }
-                
-                // 다운로드 링크 생성
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `annotateshot_${new Date().getTime()}.png`;
-                
-                // 자동 다운로드 실행
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                
-                this.mobileLog('✅ MVP 이미지 저장 완료');
-                this.showToast('✅ 이미지가 저장되었습니다', 'success');
-                
-            }, 'image/png');
+            // 모바일 환경에서 최적화된 저장 방법 선택
+            if (this.isMobile) {
+                this.saveImageMobile(canvas);
+            } else {
+                this.saveImageDesktop(canvas);
+            }
             
         } catch (error) {
             this.mobileLog(`❌ 저장 오류: ${error.message}`);
             this.showToast('❌ 이미지 저장에 실패했습니다', 'error');
         }
+    }
+    
+    saveImageMobile(canvas) {
+        this.mobileLog('📱 모바일 이미지 저장 방식 시작');
+        
+        // iOS와 Android에서 갤러리 저장을 위한 최적화된 방법
+        if (navigator.share && this.canUseWebShare()) {
+            // Web Share API 사용 (iOS Safari 지원)
+            this.saveWithWebShare(canvas);
+        } else if (this.isIOS() && this.canUseLongPress()) {
+            // iOS에서 길게 누르기 저장 방식
+            this.saveWithLongPress(canvas);
+        } else {
+            // 기본 다운로드 방식 (fallback)
+            this.saveWithDownload(canvas);
+        }
+    }
+    
+    canUseWebShare() {
+        // Web Share API가 파일 공유를 지원하는지 확인
+        return navigator.share && navigator.canShare && 
+               typeof navigator.canShare === 'function';
+    }
+    
+    canUseLongPress() {
+        // iOS에서 길게 누르기 저장이 가능한지 확인
+        return this.isIOS() && 'ontouchstart' in window;
+    }
+    
+    async saveWithWebShare(canvas) {
+        this.mobileLog('🔗 Web Share API를 사용한 저장 시작');
+        
+        try {
+            canvas.toBlob(async (blob) => {
+                if (!blob) {
+                    this.mobileLog('❌ 이미지 변환 실패');
+                    this.saveWithDownload(canvas);
+                    return;
+                }
+                
+                const fileName = `annotateshot_${new Date().getTime()}.png`;
+                const file = new File([blob], fileName, { type: 'image/png' });
+                
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'AnnotateShot 이미지',
+                            text: 'AnnotateShot으로 편집한 이미지입니다.'
+                        });
+                        this.mobileLog('✅ Web Share로 공유 완료');
+                        this.showToast('✅ 이미지 공유 완료', 'success');
+                    } catch (shareError) {
+                        this.mobileLog(`❌ Web Share 오류: ${shareError.message}`);
+                        this.saveWithLongPress(canvas);
+                    }
+                } else {
+                    this.mobileLog('❌ Web Share 파일 공유 미지원');
+                    this.saveWithLongPress(canvas);
+                }
+            }, 'image/png');
+            
+        } catch (error) {
+            this.mobileLog(`❌ Web Share 처리 오류: ${error.message}`);
+            this.saveWithLongPress(canvas);
+        }
+    }
+    
+    saveWithLongPress(canvas) {
+        this.mobileLog('👆 길게 누르기 저장 방식 시작');
+        
+        try {
+            // 이미지를 새 창에서 열어서 길게 누르기로 저장할 수 있도록 함
+            const dataURL = canvas.toDataURL('image/png');
+            
+            // 저장 안내 모달 표시
+            this.showSaveInstructionsModal(dataURL);
+            
+        } catch (error) {
+            this.mobileLog(`❌ 길게 누르기 저장 오류: ${error.message}`);
+            this.saveWithDownload(canvas);
+        }
+    }
+    
+    showSaveInstructionsModal(dataURL) {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 10001;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        `;
+        
+        const imageContainer = document.createElement('div');
+        imageContainer.style.cssText = `
+            background: white;
+            border-radius: 16px;
+            padding: 1rem;
+            max-width: 90%;
+            max-height: 70%;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        `;
+        
+        const img = document.createElement('img');
+        img.src = dataURL;
+        img.style.cssText = `
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+        `;
+        
+        const instructions = document.createElement('div');
+        instructions.style.cssText = `
+            margin-top: 1rem;
+            color: #333;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        `;
+        
+        const deviceInstructions = this.isIOS() 
+            ? '📱 이미지를 길게 눌러서 "사진에 저장"을 선택하세요'
+            : '📱 이미지를 길게 눌러서 "이미지 저장"을 선택하세요';
+            
+        instructions.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 0.5rem;">갤러리에 저장하기</div>
+            <div>${deviceInstructions}</div>
+        `;
+        
+        const closeButton = document.createElement('button');
+        closeButton.textContent = '닫기';
+        closeButton.style.cssText = `
+            margin-top: 1rem;
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 8px;
+            background: #007AFF;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+        `;
+        
+        closeButton.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+        });
+        
+        imageContainer.appendChild(img);
+        imageContainer.appendChild(instructions);
+        imageContainer.appendChild(closeButton);
+        overlay.appendChild(imageContainer);
+        
+        document.body.appendChild(overlay);
+        
+        this.mobileLog('📋 갤러리 저장 안내 모달 표시됨');
+        this.showToast('💡 이미지를 길게 눌러서 갤러리에 저장하세요', 'info');
+    }
+    
+    saveWithDownload(canvas) {
+        this.mobileLog('💾 기본 다운로드 방식으로 저장');
+        
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                this.mobileLog('❌ 이미지 변환 실패');
+                this.showToast('❌ 이미지 저장에 실패했습니다', 'error');
+                return;
+            }
+            
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `annotateshot_${new Date().getTime()}.png`;
+            
+            // 모바일에서는 새 탭에서 열기
+            if (this.isMobile) {
+                link.target = '_blank';
+                this.showToast('💡 새 탭에서 이미지를 길게 눌러 저장하세요', 'info');
+            }
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            this.mobileLog('✅ 다운로드 링크 실행 완료');
+        }, 'image/png');
+    }
+    
+    saveImageDesktop(canvas) {
+        // 데스크톱에서는 기존 방식 사용
+        this.saveWithDownload(canvas);
     }
     
     handleTextMode(x, y) {
