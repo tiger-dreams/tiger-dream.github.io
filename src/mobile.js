@@ -259,6 +259,26 @@ class MobileAnnotateShot {
                 ctx.clearRect(0, 0, width, height);
                 ctx.drawImage(img, 0, 0, width, height);
                 
+                this.mobileLog(`🎨 캔버스에 이미지 그리기: ${width}x${height}`);
+                
+                // 캔버스가 실제로 보이도록 강제 설정
+                canvas.style.display = 'block';
+                canvas.style.visibility = 'visible';
+                canvas.style.position = 'absolute';
+                canvas.style.top = '60px';
+                canvas.style.left = '0';
+                canvas.style.zIndex = '1';
+                
+                this.mobileLog(`📐 캔버스 스타일: display=${canvas.style.display}, visibility=${canvas.style.visibility}`);
+                
+                // 캔버스 컨테이너도 보이도록 설정
+                const canvasContainer = document.querySelector('.canvas-container');
+                if (canvasContainer) {
+                    canvasContainer.style.display = 'block';
+                    canvasContainer.style.visibility = 'visible';
+                    this.mobileLog(`📦 캔버스 컨테이너 표시 설정`);
+                }
+                
                 // 전역 변수 초기화 (MVP 버전에서만 필요한 것들)
                 window.currentImage = img;
                 window.clicks = [];
@@ -527,14 +547,30 @@ class MobileAnnotateShot {
     toggleMobileDebugPanel() {
         const panel = document.getElementById('mobileDebugPanel');
         if (panel) {
-            if (panel.style.display === 'none' || !panel.classList.contains('show')) {
+            const isVisible = panel.style.display === 'block' && panel.classList.contains('show');
+            
+            if (!isVisible) {
                 panel.style.display = 'block';
                 panel.classList.add('show');
+                panel.style.position = 'fixed';
+                panel.style.bottom = '140px';
+                panel.style.left = '10px';
+                panel.style.right = '10px';
+                panel.style.zIndex = '9999';
+                panel.style.background = '#000';
+                panel.style.color = '#fff';
+                panel.style.padding = '10px';
+                panel.style.borderRadius = '8px';
+                panel.style.maxHeight = '200px';
+                panel.style.overflow = 'auto';
                 this.mobileLog('🐛 모바일 디버그 패널 활성화');
             } else {
                 panel.style.display = 'none';
                 panel.classList.remove('show');
+                console.log('🐛 모바일 디버그 패널 비활성화');
             }
+        } else {
+            console.error('❌ mobileDebugPanel을 찾을 수 없음');
         }
     }
     
