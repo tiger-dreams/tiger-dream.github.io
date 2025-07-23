@@ -851,11 +851,9 @@ class MobileAnnotateShot {
     changeEmoji(emoji) {
         this.mobileLog(`😀 모바일 이모지 변경: ${emoji}`);
         
-        // main.js의 전역 변수 업데이트 (이벤트 발생 방지)
-        if (typeof window.currentEmoji !== 'undefined') {
-            window.currentEmoji = emoji;
-            this.mobileLog(`✅ currentEmoji 업데이트: ${emoji}`);
-        }
+        // main.js의 전역 변수 강제 업데이트
+        window.currentEmoji = emoji;
+        this.mobileLog(`✅ currentEmoji 강제 업데이트: ${emoji}`);
         
         // 이모지 선택기는 업데이트하지만 change 이벤트는 발생시키지 않음
         const emojiSelector = document.getElementById('emojiSelector');
@@ -1202,19 +1200,20 @@ class MobileAnnotateShot {
                 return distance <= radius;
                 
             case 'text':
-                // 텍스트 영역 (대략적인 사각형)
-                const textWidth = annotation.text.length * size * 0.6; // 대략적인 너비
-                const textHeight = size;
+                // 텍스트 영역 (개선된 사각형 계산)
+                const textWidth = annotation.text.length * size * 0.7; // 더 정확한 너비
+                const textHeight = size * 1.2; // 높이도 조금 더 크게
                 return (
-                    x >= annotation.x - 5 && 
-                    x <= annotation.x + textWidth + 5 &&
-                    y >= annotation.y - textHeight && 
-                    y <= annotation.y + 5
+                    x >= annotation.x - textWidth/2 - 10 && 
+                    x <= annotation.x + textWidth/2 + 10 &&
+                    y >= annotation.y - textHeight/2 - 10 && 
+                    y <= annotation.y + textHeight/2 + 10
                 );
                 
             case 'emoji':
-                // 이모지 영역 (원형으로 변경, 숫자 모드와 동일)
-                const emojiRadius = size; // 숫자 모드와 동일한 크기
+                // 이모지 영역 (실제 이모지 크기에 맞춰 조정)
+                // 이모지는 fontSize = radius * 3.0으로 그려지므로 히트 영역도 크게 설정
+                const emojiRadius = size * 1.5; // 더 큰 히트 영역
                 const emojiDistance = Math.sqrt(
                     Math.pow(x - annotation.x, 2) + 
                     Math.pow(y - annotation.y, 2)
@@ -1786,11 +1785,15 @@ class MobileAnnotateShot {
     
     drawEmoji(ctx, annotation) {
         const size = parseInt(annotation.size) || 20;
+        // drawEmojiDirectly와 동일한 크기 계산 적용
+        const fontSize = Math.round(size * 3.0);
         
-        ctx.font = `${size}px Arial`;
+        ctx.font = `${fontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(annotation.emoji, annotation.x, annotation.y);
+        
+        console.log(`✅ 이모지 다시그리기: ${annotation.emoji} 크기=${fontSize}px (원본=${size}px)`);
     }
     
     
