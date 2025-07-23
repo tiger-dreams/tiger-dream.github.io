@@ -84,7 +84,7 @@
             });
             
             // 모바일 감지 후 번역 다시 실행 (모바일용 텍스트 적용)
-            setTimeout(() => {
+            const updateMobileText = () => {
                 if (typeof window.applyLanguage === 'function') {
                     window.applyLanguage();
                     console.log('📱 모바일용 번역 적용 완료');
@@ -95,9 +95,16 @@
                 if (uploadPromptElement && typeof window.translate === 'function') {
                     const mobileText = window.translate('mobileUploadImagePrompt');
                     uploadPromptElement.innerHTML = mobileText.replace(/\n/g, '<br>');
-                    console.log('📱 초기 화면 텍스트 직접 업데이트 완료');
+                    uploadPromptElement.style.display = 'block';
+                    uploadPromptElement.style.width = '100%';
+                    console.log('📱 초기 화면 텍스트 직접 업데이트 완료:', mobileText.substring(0, 50) + '...');
                 }
-            }, 200);
+            };
+            
+            // 여러 번 시도하여 확실히 적용
+            setTimeout(updateMobileText, 100);
+            setTimeout(updateMobileText, 300);
+            setTimeout(updateMobileText, 500);
             
         } else {
             // 데스크톱 기기
