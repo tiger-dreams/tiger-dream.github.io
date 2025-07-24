@@ -1039,36 +1039,49 @@ class MobileAnnotateShot {
     setupTouchEvents() {
         const canvas = document.getElementById('imageCanvas');
         if (!canvas) {
-            console.error('❌ 캔버스를 찾을 수 없음');
+            this.mobileLog('❌ imageCanvas를 찾을 수 없음 - 재시도 중...');
+            // 잠시 후 재시도
+            setTimeout(() => {
+                this.setupTouchEvents();
+            }, 100);
             return;
         }
         
-        console.log('👆 터치 이벤트 설정 시작');
+        this.mobileLog('👆 터치 이벤트 설정 시작: ' + canvas.tagName + '#' + canvas.id);
         
-        // 터치 이벤트 핸들러들 (스크롤 방지를 위해 preventDefault 사용)
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // 스크롤 방지
+        // 기존 이벤트 리스너 제거 (중복 방지)
+        canvas.removeEventListener('touchstart', this.boundTouchStart);
+        canvas.removeEventListener('touchmove', this.boundTouchMove);
+        canvas.removeEventListener('touchend', this.boundTouchEnd);
+        canvas.removeEventListener('touchcancel', this.boundTouchCancel);
+        
+        // 바인딩된 함수 저장 (제거를 위해)
+        this.boundTouchStart = (e) => {
+            e.preventDefault();
             this.handleTouchStart(e);
-        }, { passive: false });
-        
-        canvas.addEventListener('touchmove', (e) => {
+        };
+        this.boundTouchMove = (e) => {
             if (!this.touchMoved) {
-                e.preventDefault(); // 주석 모드에서만 스크롤 방지
+                e.preventDefault();
             }
             this.handleTouchMove(e);
-        }, { passive: false });
-        
-        canvas.addEventListener('touchend', (e) => {
+        };
+        this.boundTouchEnd = (e) => {
             e.preventDefault();
             this.handleTouchEnd(e);
-        }, { passive: false });
-        
-        canvas.addEventListener('touchcancel', (e) => {
+        };
+        this.boundTouchCancel = (e) => {
             e.preventDefault();
             this.handleTouchCancel(e);
-        }, { passive: false });
+        };
         
-        console.log('✅ 터치 이벤트 설정 완료');
+        // 터치 이벤트 핸들러들 등록
+        canvas.addEventListener('touchstart', this.boundTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', this.boundTouchMove, { passive: false });
+        canvas.addEventListener('touchend', this.boundTouchEnd, { passive: false });
+        canvas.addEventListener('touchcancel', this.boundTouchCancel, { passive: false });
+        
+        this.mobileLog('✅ 터치 이벤트 설정 완료: ' + canvas.id);
     }
     
     handleTouchStart(e) {
@@ -2046,6 +2059,26 @@ class MobileAnnotateShot {
                 this.mobileLog('📱 모바일 초기 텍스트 적용 완료');
             }
         }, 300);
+    }
+    
+    // 캔버스 ID 변경 후 터치 이벤트 재등록
+    reinitializeAfterCanvasSwap() {
+        this.mobileLog('🔄 캔버스 교체 후 터치 이벤트 재등록 시작');
+        
+        // 기존 이벤트 리스너 제거 (필요한 경우)
+        const oldCanvas = document.getElementById('pcImageCanvas');
+        if (oldCanvas) {
+            // 기존 PC 캔버스의 이벤트 리스너는 그대로 두고
+            this.mobileLog('🗑️ 기존 PC 캔버스 유지');
+        }
+        
+        // 새로운 캔버스에 터치 이벤트 설정
+        this.setupTouchEvents();
+        
+        // 기타 모바일 최적화 재적용
+        this.optimizeForMobile();
+        
+        this.mobileLog('✅ 캔버스 교체 후 재초기화 완료');
     }
     
     preventCanvasReset() {
