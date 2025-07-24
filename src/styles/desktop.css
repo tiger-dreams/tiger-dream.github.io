@@ -11,6 +11,12 @@
 .mobile-mode-panel,
 .mobile-settings-panel,
 .mobile-debug-panel,
+.mobile-canvas,
+.mobile-empty-state,
+.mobile-prompt-text,
+#mobileCanvasContainer,
+#mobileImageCanvas,
+#mobileUploadPromptText,
 [class*="mobile-"] {
     display: none !important;
     visibility: hidden !important;

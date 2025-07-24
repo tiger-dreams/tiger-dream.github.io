@@ -75,6 +75,24 @@
             
             console.log('📱 모바일 모드 활성화');
             
+            // 캔버스 시스템 완전 교체 (PC → 모바일)
+            const pcCanvas = document.getElementById('imageCanvas');
+            const mobileCanvas = document.getElementById('mobileImageCanvas');
+            const pcContainer = document.getElementById('canvasContainer');
+            const mobileContainer = document.getElementById('mobileCanvasContainer');
+            
+            if (pcCanvas && mobileCanvas && pcContainer && mobileContainer) {
+                // PC 캔버스 ID 변경 (백업용)
+                pcCanvas.id = 'pcImageCanvas';
+                pcContainer.id = 'pcCanvasContainer';
+                
+                // 모바일 캔버스를 메인 캔버스로 설정
+                mobileCanvas.id = 'imageCanvas';
+                mobileContainer.id = 'canvasContainer';
+                
+                console.log('📱 캔버스 시스템 모바일로 교체 완료');
+            }
+            
             // 모바일 전용 요소 표시
             const mobileElements = document.querySelectorAll('.mobile-only');
             mobileElements.forEach(el => {
@@ -83,70 +101,8 @@
                 }
             });
             
-            // 모바일 감지 후 번역 다시 실행 (모바일용 텍스트 적용)
-            const updateMobileText = () => {
-                if (typeof window.applyLanguage === 'function') {
-                    window.applyLanguage();
-                    console.log('📱 모바일용 번역 적용 완료');
-                }
-                
-                // 추가로 uploadImagePrompt 요소 직접 업데이트
-                const uploadPromptElement = document.getElementById('uploadPromptText');
-                if (uploadPromptElement && typeof window.translate === 'function') {
-                    const mobileText = window.translate('mobileUploadImagePrompt');
-                    uploadPromptElement.innerHTML = mobileText.replace(/\n/g, '<br>');
-                    uploadPromptElement.style.display = 'block';
-                    uploadPromptElement.style.width = '100%';
-                    console.log('📱 초기 화면 텍스트 직접 업데이트 완료:', mobileText.substring(0, 50) + '...');
-                }
-            };
-            
-            // 여러 번 시도하여 확실히 적용
-            setTimeout(updateMobileText, 100);
-            setTimeout(updateMobileText, 300);
-            setTimeout(updateMobileText, 500);
-            setTimeout(updateMobileText, 1000);
-            
-            // 모바일 텍스트 완전 교체 (번역 시스템 완전 차단)
-            const forceMobileText = () => {
-                const uploadPromptElement = document.getElementById('uploadPromptText');
-                if (uploadPromptElement) {
-                    // 번역 속성 완전 제거
-                    uploadPromptElement.removeAttribute('data-lang-key');
-                    uploadPromptElement.setAttribute('data-mobile-text', 'true');
-                    
-                    // 완전히 새로운 모바일 텍스트로 교체
-                    uploadPromptElement.innerHTML = `
-                        AnnotateShot 모바일 사용법<br>
-                        1. 하단 📷 버튼으로 갤러리에서 이미지를 불러오세요<br>
-                        2. 숫자 모드: 화면을 터치하여 순차 번호 추가<br>
-                        3. 이모지 모드: 하단 😀 버튼으로 선택 후 터치하여 추가<br>
-                        4. 텍스트 모드: 화면을 터치하면 텍스트 입력창이 나타남<br>
-                        5. 끌어서 이동: 모든 주석을 드래그하여 위치 이동 가능<br>
-                        6. 우측 상단 💾 버튼으로 완성된 이미지를 저장하세요
-                    `;
-                    uploadPromptElement.style.color = 'rgba(255, 255, 255, 0.7)';
-                    uploadPromptElement.style.textAlign = 'center';
-                    uploadPromptElement.style.fontSize = '1rem';
-                    uploadPromptElement.style.lineHeight = '1.6';
-                    uploadPromptElement.style.padding = '0 1rem';
-                    console.log('📱 모바일 텍스트 완전 교체 및 번역 차단 완료');
-                }
-            };
-            
-            // 여러 시점에서 강제 적용
-            setTimeout(forceMobileText, 500);
-            setTimeout(forceMobileText, 1500);
-            setTimeout(forceMobileText, 3000);
-            
-            // applyLanguage 함수 실행 후에도 다시 적용
-            const originalApplyLanguage = window.applyLanguage;
-            if (originalApplyLanguage) {
-                window.applyLanguage = function() {
-                    originalApplyLanguage.apply(this, arguments);
-                    setTimeout(forceMobileText, 100);
-                };
-            }
+            // 모바일 전용 캔버스 시스템 사용으로 번역 시스템 우회 불필요
+            console.log('📱 모바일 전용 UI 완전 분리 완료 - 번역 시스템 간섭 없음');
             
         } else {
             // 데스크톱 기기
