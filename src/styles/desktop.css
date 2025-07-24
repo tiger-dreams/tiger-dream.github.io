@@ -3,11 +3,15 @@
    PC 브라우저에서만 사용되는 스타일
    ========================================== */
 
-/* 모바일 전용 요소 완전 숨김 */
+/* 모바일 전용 요소 완전 숨김 (강화) */
 .mobile-only,
 .mobile-toolbar,
 .floating-action-buttons,
-.emoji-layer {
+.emoji-layer,
+.mobile-mode-panel,
+.mobile-settings-panel,
+.mobile-debug-panel,
+[class*="mobile-"] {
     display: none !important;
     visibility: hidden !important;
     height: 0 !important;
@@ -15,6 +19,9 @@
     overflow: hidden !important;
     position: absolute !important;
     left: -9999px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -9999 !important;
 }
 
 /* 데스크톱 레이아웃 */
