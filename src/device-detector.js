@@ -91,6 +91,19 @@
                 mobileContainer.id = 'canvasContainer';
                 
                 console.log('📱 캔버스 시스템 모바일로 교체 완료');
+                
+                // 모바일 터치 이벤트 재등록 (모바일 앱 로드 대기)
+                const initMobileTouchEvents = () => {
+                    if (window.mobileApp && typeof window.mobileApp.reinitializeAfterCanvasSwap === 'function') {
+                        window.mobileApp.reinitializeAfterCanvasSwap();
+                        console.log('📱 모바일 터치 이벤트 재등록 완료');
+                    } else {
+                        console.log('⚠️ 모바일 앱 로딩 대기 중... 재시도');
+                        setTimeout(initMobileTouchEvents, 200);
+                    }
+                };
+                
+                setTimeout(initMobileTouchEvents, 300);
             }
             
             // 모바일 전용 요소 표시
