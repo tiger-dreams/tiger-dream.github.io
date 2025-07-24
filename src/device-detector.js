@@ -107,10 +107,14 @@
             setTimeout(updateMobileText, 500);
             setTimeout(updateMobileText, 1000);
             
-            // 모바일 텍스트 완전 교체 (번역 시스템 무시하고 직접 적용)
-            setTimeout(() => {
+            // 모바일 텍스트 완전 교체 (번역 시스템 완전 차단)
+            const forceMobileText = () => {
                 const uploadPromptElement = document.getElementById('uploadPromptText');
                 if (uploadPromptElement) {
+                    // 번역 속성 완전 제거
+                    uploadPromptElement.removeAttribute('data-lang-key');
+                    uploadPromptElement.setAttribute('data-mobile-text', 'true');
+                    
                     // 완전히 새로운 모바일 텍스트로 교체
                     uploadPromptElement.innerHTML = `
                         AnnotateShot 모바일 사용법<br>
@@ -126,10 +130,23 @@
                     uploadPromptElement.style.fontSize = '1rem';
                     uploadPromptElement.style.lineHeight = '1.6';
                     uploadPromptElement.style.padding = '0 1rem';
-                    uploadPromptElement.setAttribute('data-lang-key', ''); // 번역 시스템에서 제외
-                    console.log('📱 모바일 텍스트 완전 교체 완료');
+                    console.log('📱 모바일 텍스트 완전 교체 및 번역 차단 완료');
                 }
-            }, 2000);
+            };
+            
+            // 여러 시점에서 강제 적용
+            setTimeout(forceMobileText, 500);
+            setTimeout(forceMobileText, 1500);
+            setTimeout(forceMobileText, 3000);
+            
+            // applyLanguage 함수 실행 후에도 다시 적용
+            const originalApplyLanguage = window.applyLanguage;
+            if (originalApplyLanguage) {
+                window.applyLanguage = function() {
+                    originalApplyLanguage.apply(this, arguments);
+                    setTimeout(forceMobileText, 100);
+                };
+            }
             
         } else {
             // 데스크톱 기기
