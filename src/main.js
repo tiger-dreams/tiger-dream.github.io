@@ -1743,6 +1743,10 @@
             // 싱글 모드에서는 currentImage를 배경으로 그리고 주석들을 위에 그림
             if (currentImage) {
                 ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+            } else {
+                // currentImage가 없을 때 기본 배경 그리기
+                ctx.fillStyle = '#e0e0e0';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
             
             // Draw annotation layers
