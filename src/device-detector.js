@@ -6,15 +6,15 @@
 (function() {
     'use strict';
     
-    // User Agent 기반 모바일 감지 (개발자 도구 모바일 시뮬레이터 제외)
+    // User Agent 기반 모바일 감지 (Safari 지원 강화)
     function isMobileDevice() {
         const userAgent = navigator.userAgent.toLowerCase();
         
-        // 개발자 도구의 모바일 시뮬레이터 감지
-        const isDevToolsEmulation = window.chrome && window.chrome.runtime && window.chrome.runtime.onConnect;
+        // Safari 모바일 특별 감지
+        const isSafariMobile = /iphone|ipad|ipod/.test(userAgent) && /safari/.test(userAgent);
         
-        // 실제 화면 크기로 추가 검증
-        const isActualMobile = window.innerWidth <= 768 && 'ontouchstart' in window;
+        // 실제 화면 크기로 추가 검증 (Safari는 더 관대하게)
+        const isActualMobile = window.innerWidth <= 768 && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
         
         const mobileKeywords = [
             'android', 'webos', 'iphone', 'ipad', 'ipod', 
@@ -23,8 +23,8 @@
         
         const hasMobileKeyword = mobileKeywords.some(keyword => userAgent.includes(keyword));
         
-        // 개발자 도구 시뮬레이터가 아니고, 모바일 키워드가 있으며, 실제 모바일 환경일 때만 true
-        return hasMobileKeyword && !isDevToolsEmulation && isActualMobile;
+        // Safari 모바일이거나, 모바일 키워드가 있으면서 실제 모바일 환경일 때 true
+        return isSafariMobile || (hasMobileKeyword && isActualMobile);
     }
     
     // CSS 파일 동적 로딩
@@ -105,6 +105,26 @@
             setTimeout(updateMobileText, 100);
             setTimeout(updateMobileText, 300);
             setTimeout(updateMobileText, 500);
+            setTimeout(updateMobileText, 1000);
+            
+            // 기존 번역 시스템 활용하여 모바일 텍스트 강제 적용
+            setTimeout(() => {
+                const uploadPromptElement = document.getElementById('uploadPromptText');
+                if (uploadPromptElement && typeof window.translate === 'function') {
+                    const mobileText = window.translate('mobileUploadImagePrompt');
+                    if (mobileText && mobileText !== 'mobileUploadImagePrompt') {
+                        uploadPromptElement.innerHTML = mobileText.replace(/\n/g, '<br>');
+                        uploadPromptElement.style.color = 'rgba(255, 255, 255, 0.7)';
+                        uploadPromptElement.style.textAlign = 'center';
+                        uploadPromptElement.style.fontSize = '1rem';
+                        uploadPromptElement.style.lineHeight = '1.6';
+                        uploadPromptElement.style.padding = '0 1rem';
+                        console.log('📱 모바일 번역 텍스트 강제 적용 완료');
+                    } else {
+                        console.log('⚠️ 번역 함수 또는 모바일 텍스트 없음');
+                    }
+                }
+            }, 1500);
             
         } else {
             // 데스크톱 기기
