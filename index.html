@@ -1654,12 +1654,30 @@
 
             <!-- Canvas Area -->
             <div class="canvas-area">
-                <div class="canvas-container empty" id="canvasContainer">
+                <!-- PC 전용 캔버스 -->
+                <div class="canvas-container empty desktop-canvas" id="canvasContainer">
                     <div class="empty-state" id="emptyState">
                         <div class="material-icons">image</div>
                         <div id="uploadPromptText" data-lang-key="uploadImagePrompt">이미지를 업로드하거나 클립보드에서 붙여넣기하세요</div>
                     </div>
                     <canvas id="imageCanvas" style="display: none;"></canvas>
+                </div>
+                
+                <!-- 모바일 전용 캔버스 -->
+                <div class="canvas-container empty mobile-canvas" id="mobileCanvasContainer">
+                    <div class="empty-state mobile-empty-state" id="mobileEmptyState">
+                        <div class="material-icons">image</div>
+                        <div id="mobileUploadPromptText" class="mobile-prompt-text">
+                            AnnotateShot 모바일 사용법<br>
+                            1. 하단 📷 버튼으로 갤러리에서 이미지를 불러오세요<br>
+                            2. 숫자 모드: 화면을 터치하여 순차 번호 추가<br>
+                            3. 이모지 모드: 하단 😀 버튼으로 선택 후 터치하여 추가<br>
+                            4. 텍스트 모드: 화면을 터치하면 텍스트 입력창이 나타남<br>
+                            5. 끌어서 이동: 모든 주석을 드래그하여 위치 이동 가능<br>
+                            6. 우측 상단 💾 버튼으로 완성된 이미지를 저장하세요
+                        </div>
+                    </div>
+                    <canvas id="mobileImageCanvas" style="display: none;"></canvas>
                 </div>
             </div>
 
