@@ -28,12 +28,24 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
 }
 
-.top-bar h1, .top-bar .logo-text {
+/* 기존 텍스트 모두 숨기기 */
+.top-bar h2, .top-bar h1, .top-bar .logo-text {
+    display: none !important;
+}
+
+/* 모바일 전용 타이틀 추가 */
+.top-bar::after {
+    content: "AnnotateShot" !important;
     color: #FFFFFF !important;
     font-size: 1.2rem !important;
     font-weight: 600 !important;
     margin: 0 !important;
     text-align: center !important;
+}
+
+/* 상단 바의 모든 액션 숨김 */
+.top-bar-actions {
+    display: none !important;
 }
 
 /* 데스크톱 텍스트 숨김 */
