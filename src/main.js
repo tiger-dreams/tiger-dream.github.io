@@ -2483,6 +2483,19 @@
             else drawShape(x1, y1, x2, y2, currentShape, currentColor, currentFill);
         }
 
+        // 자동 파일명 생성 함수
+        function generateFileName() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            return `annotateshot_${year}-${month}-${day}_${hours}-${minutes}-${seconds}.png`;
+        }
+
         // 저장 함수
         function saveImage() {
             if (!currentImage) {
@@ -2490,8 +2503,7 @@
                 return;
             }
             try {
-                let fileName = prompt(translate('enterFileName'), "interactive_image") || "interactive_image";
-                fileName += ".png";
+                const fileName = generateFileName();
                 canvas.toBlob(blob => {
                     const url = URL.createObjectURL(blob);
                     downloadImage(url, fileName);
