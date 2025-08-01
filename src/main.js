@@ -112,9 +112,45 @@
         }
 
         function loadImageFromDataUrl(dataUrl) {
+            console.log('loadImageFromDataUrl 호출, 데이터 크기:', Math.round(dataUrl.length / 1024), 'KB');
+            
             currentImage = new Image();
-            currentImage.onload = applyImageToCanvas;
-            currentImage.src = dataUrl;
+            currentImage.onload = () => {
+                console.log('이미지 로드 성공:', currentImage.width + 'x' + currentImage.height);
+                
+                // 로딩 메시지 제거
+                const loadingMessage = document.getElementById('extension-loading-message');
+                if (loadingMessage) {
+                    loadingMessage.remove();
+                }
+                
+                try {
+                    applyImageToCanvas();
+                    messageDiv.textContent = translate('imageLoaded');
+                } catch (error) {
+                    console.error('캔버스 적용 오류:', error);
+                    messageDiv.textContent = '이미지 캔버스 적용 실패: ' + error.message;
+                }
+            };
+            
+            currentImage.onerror = (error) => {
+                console.error('이미지 로드 실패:', error);
+                
+                // 로딩 메시지 제거
+                const loadingMessage = document.getElementById('extension-loading-message');
+                if (loadingMessage) {
+                    loadingMessage.remove();
+                }
+                
+                messageDiv.textContent = '이미지 로드 실패: 손상된 이미지 데이터';
+            };
+            
+            try {
+                currentImage.src = dataUrl;
+            } catch (error) {
+                console.error('이미지 src 설정 오류:', error);
+                messageDiv.textContent = '이미지 데이터 처리 실패: ' + error.message;
+            }
         }
 
         function drawCanvasBackground() {
@@ -237,6 +273,56 @@
             if (typeof window.updateLayerList === 'function') {
                 window.updateLayerList();
             }
+            
+            // 이미지 로드 후 스크롤 위치 확실히 초기화
+            const scrollToTop = () => {
+                const canvasContainer = canvas.parentElement;
+                if (canvasContainer && canvasContainer.classList.contains('canvas-container')) {
+                    // 강력한 스크롤 초기화
+                    canvasContainer.scrollTop = 0;
+                    canvasContainer.scrollLeft = 0;
+                    
+                    // 브라우저의 스크롤 복원 기능 비활성화
+                    if ('scrollRestoration' in history) {
+                        history.scrollRestoration = 'manual';
+                    }
+                    
+                    // 스크롤 이벤트를 강제로 발생시켜 브라우저가 위치를 인식하도록 함
+                    canvasContainer.dispatchEvent(new Event('scroll'));
+                    
+                    // 스크롤이 제대로 초기화되지 않았다면 강제로 다시 시도
+                    if (canvasContainer.scrollTop !== 0) {
+                        canvasContainer.style.scrollBehavior = 'auto';
+                        canvasContainer.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                        canvasContainer.style.scrollBehavior = '';
+                    }
+                }
+                
+                // 모든 가능한 스크롤 컨테이너 초기화
+                document.body.scrollTop = 0;
+                document.documentElement.scrollTop = 0;
+                window.scrollTo(0, 0);
+                
+                const canvasArea = document.querySelector('.canvas-area');
+                if (canvasArea) {
+                    canvasArea.scrollTop = 0;
+                    canvasArea.scrollLeft = 0;
+                }
+                
+                const mainContent = document.querySelector('.main-content');
+                if (mainContent) {
+                    mainContent.scrollTop = 0;
+                    mainContent.scrollLeft = 0;
+                }
+            };
+            
+            // 더 적극적으로 여러 번 시도
+            scrollToTop(); // 즉시 실행
+            setTimeout(scrollToTop, 10);
+            setTimeout(scrollToTop, 50);
+            setTimeout(scrollToTop, 100);
+            setTimeout(scrollToTop, 200);
+            setTimeout(scrollToTop, 500); // 추가 지연 시간
             
             resetDrawingState();
             messageDiv.textContent = translate('imageLoaded', { width, height });
@@ -528,6 +614,23 @@
         function triggerCanvasResize() {
             if (currentImage && resizeSelector.value === 'default') {
                 applyImageToCanvas();
+                
+                // 리사이즈 후 스크롤 위치 초기화
+                const scrollToTop = () => {
+                    const canvasContainer = canvas.parentElement;
+                    if (canvasContainer && canvasContainer.classList.contains('canvas-container')) {
+                        canvasContainer.scrollTop = 0;
+                        canvasContainer.scrollLeft = 0;
+                    }
+                    document.body.scrollTop = 0;
+                    document.documentElement.scrollTop = 0;
+                    window.scrollTo(0, 0);
+                };
+                
+                scrollToTop();
+                setTimeout(scrollToTop, 50);
+                setTimeout(scrollToTop, 100);
+                setTimeout(scrollToTop, 200);
             }
         }
         
@@ -720,18 +823,27 @@
                 case "scale70": 
                     return { width: Math.floor(width * 0.7), height: Math.floor(height * 0.7) };
                 default:
-                    // Auto-resize: fit to viewport while maintaining aspect ratio
+                    // Auto-resize: fit to viewport width, but allow full height with scrolling
                     const sidebarWidth = getSidebarWidth();
                     const layerSidebarWidth = getLayerSidebarWidth();
                     const availableWidth = window.innerWidth - sidebarWidth - layerSidebarWidth - 64; // Subtract sidebars + padding
-                    const availableHeight = window.innerHeight - 100; // Subtract header and padding
                     
-                    // Use the smaller of MAX dimensions or available viewport space
+                    // Use available width but don't restrict height (allow scrolling for tall images)
                     const maxWidth = Math.min(MAX_WIDTH, Math.max(400, availableWidth));
-                    const maxHeight = Math.min(MAX_HEIGHT, Math.max(300, availableHeight));
                     
-                    const scale = Math.min(maxWidth / width, maxHeight / height, 1); // Don't scale up
-                    return { width: Math.floor(width * scale), height: Math.floor(height * scale) };
+                    // 높이가 2000px 이상일 경우 너비를 1024px로 제한하여 너무 좁아지는 것 방지
+                    let finalMaxWidth = maxWidth;
+                    if (height >= 2000) {
+                        finalMaxWidth = Math.min(1024, maxWidth);
+                    }
+                    
+                    // 높이 제한 완전 제거 - 폭만 맞추고 높이는 비율 유지
+                    const scale = Math.min(finalMaxWidth / width, 1);
+                    
+                    const finalWidth = Math.floor(width * scale);
+                    const finalHeight = Math.floor(height * scale);
+                    
+                    return { width: finalWidth, height: finalHeight };
             }
         }
 
@@ -750,6 +862,22 @@
             // while the internal resolution is higher for sharp rendering on high-DPI screens.
             canvas.style.width = `${width}px`;
             canvas.style.height = `${height}px`;
+
+            // 캔버스 크기 변경 시 컨테이너를 상단으로 스크롤
+            const scrollToTop = () => {
+                const canvasContainer = canvas.parentElement;
+                if (canvasContainer && canvasContainer.classList.contains('canvas-container')) {
+                    canvasContainer.scrollTop = 0;
+                    canvasContainer.scrollLeft = 0;
+                }
+                document.body.scrollTop = 0;
+                document.documentElement.scrollTop = 0;
+                window.scrollTo(0, 0);
+            };
+            
+            setTimeout(scrollToTop, 10);
+            setTimeout(scrollToTop, 50);
+            setTimeout(scrollToTop, 100);
 
             // Scale the drawing context to match the CSS size,
             // so all drawing operations (e.g., ctx.fillRect, ctx.arc)
@@ -783,19 +911,38 @@
             const imageSource = localStorage.getItem('annotateshot_image_source');
             
             if (capturedImage) {
-                console.log('확장 프로그램에서 캡처한 이미지 발견');
+                console.log('확장 프로그램에서 캡처한 이미지 발견, 크기:', Math.round(capturedImage.length / 1024), 'KB');
                 
-                // Extension에서 온 이미지인 경우 로딩 메시지 표시
-                if (imageSource === 'extension') {
-                    showExtensionLoadingMessage();
+                try {
+                    // Extension에서 온 이미지인 경우 로딩 메시지 표시
+                    if (imageSource === 'extension') {
+                        showExtensionLoadingMessage();
+                    }
+                    
+                    // 이미지 데이터 유효성 검사
+                    if (!capturedImage.startsWith('data:image/')) {
+                        throw new Error('유효하지 않은 이미지 데이터 형식');
+                    }
+                    
+                    loadImageFromDataUrl(capturedImage);
+                    
+                    // 사용 후 정리
+                    localStorage.removeItem('annotateshot_captured_image');
+                    localStorage.removeItem('annotateshot_image_source');
+                    
+                    console.log('이미지 로드 완료');
+                    return true;
+                    
+                } catch (error) {
+                    console.error('이미지 로드 오류:', error);
+                    messageDiv.textContent = '이미지 로드 실패: ' + error.message;
+                    
+                    // 실패한 데이터 정리
+                    localStorage.removeItem('annotateshot_captured_image');
+                    localStorage.removeItem('annotateshot_image_source');
+                    
+                    return false;
                 }
-                
-                loadImageFromDataUrl(capturedImage);
-                
-                // 사용 후 정리
-                localStorage.removeItem('annotateshot_captured_image');
-                localStorage.removeItem('annotateshot_image_source');
-                return true;
             }
             return false;
         }
@@ -1740,8 +1887,9 @@
         }
 
         function redrawSingleModeCanvas() {
-            // 싱글 모드에서는 currentImage를 배경으로 그리고 주석들을 위에 그림
+            // 싱글 모드에서는 currentImage를 캔버스 전체에 맞춰 그리고 주석들을 위에 그림
             if (currentImage) {
+                // 이미지를 캔버스 크기에 맞춰 그리기 (비율 유지하면서)
                 ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
             } else {
                 // currentImage가 없을 때 기본 배경 그리기
