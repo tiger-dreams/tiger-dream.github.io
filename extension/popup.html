@@ -5,10 +5,13 @@
     <style>
         body {
             width: 280px;
+            min-height: 500px;
+            max-height: 600px;
             padding: 16px;
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background: #ffffff;
+            overflow-y: auto;
         }
         
         .header {
@@ -101,7 +104,7 @@
 <body>
     <div class="header">
         <div class="logo">📸 AnnotateShot</div>
-        <div class="subtitle">웹페이지 캡처 및 편집</div>
+        <div class="subtitle" id="subtitle">웹페이지 캡처 및 편집</div>
     </div>
     
     <button class="capture-btn" id="capture-visible">
@@ -142,12 +145,27 @@
         <div style="font-size: 13px; font-weight: 500; color: #0f172a; margin-bottom: 8px;">⚙️ 캡처 설정</div>
         
         <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #64738b; cursor: pointer;">
-            <input type="checkbox" id="prefer-scroll" style="margin: 0;">
-            <span>디버깅 메시지 방지 (스크롤 방식 우선 사용)</span>
+            <input type="checkbox" id="enable-debug-mode" style="margin: 0;">
+            <span>고품질 전체 페이지 캡처 (디버그 모드)</span>
         </label>
         
         <div style="font-size: 11px; color: #94a3b8; margin-top: 4px; margin-left: 20px;">
-            전체 페이지 캡처 시 Chrome의 "디버깅 중" 메시지가 표시되지 않습니다
+            체크 시: DevTools Protocol로 고품질 캡처 (디버깅 메시지 표시)<br>
+            체크 해제 시: 전체 페이지 캡처 비활성화
+        </div>
+        
+        <!-- 디버그 모드 안내 -->
+        <div style="margin-top: 6px; padding: 6px; background: #f0f9ff; border: 1px solid #e0f2fe; border-radius: 4px; margin-left: 20px;">
+            <div style="font-size: 10px; color: #0369a1; font-weight: 500; margin-bottom: 3px;">
+                🔒 디버그 모드 안전 가이드
+            </div>
+            <div style="font-size: 9px; color: #0284c7; line-height: 1.3;">
+                • Chrome의 DevTools API를 브라우저 내에서만 사용<br>
+                • 캡처된 이미지는 외부 서버로 전송되지 않음<br>
+                • 개인정보나 데이터 분석 없이 로컬에서만 처리<br>
+                • 단순히 고품질 스크린샷을 위한 기술적 방법<br>
+                • Chrome 상단의 "디버깅 중" 메시지는 일시적 기술 알림
+            </div>
         </div>
     </div>
     
