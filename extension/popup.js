@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const capturePartialBtn = document.getElementById('capture-partial');
     const captureFullBtn = document.getElementById('capture-full');
     const statusDiv = document.getElementById('status');
+    const preferScrollCheckbox = document.getElementById('prefer-scroll');
     
     // 상태 메시지 표시 함수
     function showStatus(message, duration = 2000) {
@@ -68,6 +69,37 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+    
+    // 설정 로드 및 저장
+    async function loadSettings() {
+        try {
+            const result = await chrome.storage.local.get(['preferScrollCapture']);
+            preferScrollCheckbox.checked = result.preferScrollCapture || false;
+        } catch (error) {
+            console.warn('설정 로드 실패:', error);
+        }
+    }
+    
+    async function saveSettings() {
+        try {
+            await chrome.storage.local.set({
+                preferScrollCapture: preferScrollCheckbox.checked
+            });
+            showStatus(preferScrollCheckbox.checked ? 
+                '스크롤 방식으로 설정됨 (디버깅 메시지 없음)' : 
+                '고품질 방식으로 설정됨 (디버깅 메시지 표시됨)', 
+                1500);
+        } catch (error) {
+            console.warn('설정 저장 실패:', error);
+            showStatus('설정 저장 실패');
+        }
+    }
+    
+    // 설정 체크박스 이벤트 리스너
+    preferScrollCheckbox.addEventListener('change', saveSettings);
+    
+    // 초기 설정 로드
+    loadSettings();
     
     // 단축키 표시 (Mac에서는 Cmd 표시)
     if (navigator.platform.indexOf('Mac') > -1) {
