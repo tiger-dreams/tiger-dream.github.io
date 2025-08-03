@@ -113,9 +113,11 @@
 
         function loadImageFromDataUrl(dataUrl) {
             const imageSizeKB = Math.round(dataUrl.length / 1024);
+            console.log('loadImageFromDataUrl 호출, 데이터 크기:', imageSizeKB, 'KB');
             
             currentImage = new Image();
             currentImage.onload = () => {
+                console.log('이미지 로드 성공:', currentImage.width + 'x' + currentImage.height);
                 
                 // Extension 로딩 메시지 제거 (이미지 크기 기반 타이밍)
                 const loadingMessage = document.getElementById('extension-loading-message');
@@ -184,6 +186,7 @@
 
         function drawSingleModeDefaultCanvas() {
             // 싱글 모드 기본 캔버스 (안내 문구 포함)
+            console.log('Drawing single mode default canvas'); // 디버그용
             
             // 캔버스 클래스 정리
             canvas.classList.remove('transparent-background');
@@ -223,6 +226,7 @@
                 ctx.fillText(line, canvasWidth / 2, startY + index * lineHeight);
             });
             
+            console.log('Single mode default canvas drawn successfully'); // 디버그용
         }
 
         function createImageLayer(image, x = 0, y = 0, width = null, height = null) {
@@ -544,6 +548,8 @@
             window.layers = layers;
             
             // Debug log
+            console.log('Created background layer with size:', width, height);
+            console.log('Total layers after background:', layers.length);
             
             // Update layer list in UI
             if (typeof window.updateLayerList === 'function') {
@@ -573,6 +579,8 @@
             }
             
             // Debug log
+            console.log('Added layer:', layer);
+            console.log('Total layers:', layers.length);
         }
 
         // Get layer name based on type
@@ -634,6 +642,9 @@
         
         // Clear all annotations function (exposed globally for UI)
         function clearAllAnnotations() {
+            console.log('Clearing all annotations from main.js');
+            console.log('Clicks before:', clicks.length);
+            console.log('Layers before:', layers.length);
             
             // Clear clicks array completely
             clicks.splice(0);
@@ -648,6 +659,8 @@
             window.layers = layers;
             window.clickCount = clickCount;
             
+            console.log('Clicks after:', clicks.length);
+            console.log('Layers after:', layers.length);
             
             redrawCanvas();
             
@@ -904,6 +917,7 @@
             const imageSource = localStorage.getItem('annotateshot_image_source');
             
             if (capturedImage) {
+                console.log('확장 프로그램에서 캡처한 이미지 발견, 크기:', Math.round(capturedImage.length / 1024), 'KB');
                 
                 try {
                     // Extension에서 온 이미지인 경우 로딩 메시지 표시 (아직 표시되지 않았다면)
@@ -922,6 +936,7 @@
                     localStorage.removeItem('annotateshot_captured_image');
                     localStorage.removeItem('annotateshot_image_source');
                     
+                    console.log('이미지 로드 완료');
                     return true;
                     
                 } catch (error) {
@@ -940,10 +955,14 @@
 
         // Extension 이미지 로딩 메시지 표시
         function showExtensionLoadingMessage() {
+            console.log('🔧 showExtensionLoadingMessage 함수 시작');
+            console.log('🔍 document.body 상태:', document.body ? 'exists' : 'null');
+            console.log('🔍 document.readyState:', document.readyState);
             
             // 기존 메시지가 있으면 제거
             const existingMessage = document.getElementById('extension-loading-message');
             if (existingMessage) {
+                console.log('🗑️ 기존 로딩 메시지 제거');
                 existingMessage.remove();
             }
             
@@ -952,6 +971,7 @@
             const loadingText = isKorean ? '이미지 로딩 중...' : 'Loading image...';
             const waitText = isKorean ? '잠시만 기다려주세요' : 'Please wait';
             
+            console.log('🌐 언어 감지 결과:', { isKorean, loadingText, waitText });
             
             // 로딩 메시지 요소 생성
             const loadingMessage = document.createElement('div');
@@ -996,19 +1016,24 @@
                 </style>
             `;
             
+            console.log('📦 로딩 메시지 요소 생성 완료');
             
             // document.body가 준비되지 않았으면 대기
             if (!document.body) {
+                console.log('⏳ document.body 준비 대기 중...');
                 // DOM이 준비될 때까지 대기 후 추가
                 const addWhenReady = () => {
                     if (document.body) {
+                        console.log('✅ document.body 준비됨, 메시지 추가');
                         document.body.appendChild(loadingMessage);
                     } else {
+                        console.log('⏳ document.body 아직 준비 안됨, 10ms 후 재시도');
                         setTimeout(addWhenReady, 10);
                     }
                 };
                 addWhenReady();
             } else {
+                console.log('✅ document.body 이미 준비됨, 즉시 메시지 추가');
                 document.body.appendChild(loadingMessage);
             }
             
@@ -1029,11 +1054,13 @@
                     }
                     
                     const removeNow = () => {
+                        console.log(`🗑️ Extension 로딩 메시지 제거 중... (이미지: ${imageSizeKB}KB, 표시시간: ${Date.now() - messageStartTime}ms)`);
                         message.style.opacity = '0';
                         message.style.transition = 'opacity 0.3s ease';
                         setTimeout(() => {
                             if (message.parentNode) {
                                 message.parentNode.removeChild(message);
+                                console.log('✅ Extension 로딩 메시지 제거 완료');
                             }
                         }, 300);
                     };
@@ -1041,6 +1068,7 @@
                     if (elapsedTime < minDisplayTime) {
                         // 최소 표시 시간이 안 됐으면 추가 대기
                         const remainingTime = minDisplayTime - elapsedTime;
+                        console.log(`⏳ 이미지 크기 ${imageSizeKB}KB -> 최소 ${minDisplayTime}ms 표시, ${remainingTime}ms 추가 대기`);
                         setTimeout(removeNow, remainingTime);
                     } else {
                         removeNow();
@@ -1078,8 +1106,12 @@
                 
                 // Extension에서 온 이미지가 있으면 즉시 로딩 메시지 표시
                 if (imageSource === 'extension' && capturedImage) {
+                    console.log('Extension 유입 감지, 로딩 메시지 표시');
+                    console.log('🔍 showExtensionLoadingMessage 함수 타입:', typeof showExtensionLoadingMessage);
+                    console.log('🔍 함수 호출 시도 중...');
                     try {
                         showExtensionLoadingMessage();
+                        console.log('✅ showExtensionLoadingMessage 호출 완료');
                     } catch (error) {
                         console.error('❌ showExtensionLoadingMessage 호출 실패:', error);
                     }
@@ -1209,6 +1241,7 @@
         canvas.addEventListener('mousedown', e => {
             // 좌클릭(마우스 왼쪽 버튼)만 처리
             if (e.button !== 0) {
+                console.log('좌클릭이 아닌 이벤트는 무시됩니다.');
                 return;
             }
 
@@ -3044,6 +3077,7 @@
 
         function initializeDefaultCanvas() {
             // 이미지가 없는 상태에서 현재 캔버스 모드에 따른 기본 화면 표시
+            console.log('initializeDefaultCanvas called:', { 
                 currentImage: !!currentImage, 
                 imageLayers: imageLayers.length, 
                 canvasMode: canvasMode,
@@ -3063,6 +3097,7 @@
                     drawBlankMultiCanvas();
                 } else {
                     // 싱글 모드: 기본 안내 화면 표시
+                    console.log('Initializing single mode canvas');
                     drawSingleModeDefaultCanvas();
                 }
                 
