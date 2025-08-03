@@ -17,8 +17,15 @@
         // Extension 유입 조기 감지 및 즉시 로딩 메시지 표시
         (function() {
             try {
+                console.log('🔍 Extension 감지 스크립트 시작');
                 const imageSource = localStorage.getItem('annotateshot_image_source');
                 const capturedImage = localStorage.getItem('annotateshot_captured_image');
+                
+                console.log('📊 localStorage 상태:', {
+                    imageSource: imageSource,
+                    capturedImageExists: !!capturedImage,
+                    capturedImageSize: capturedImage ? Math.round(capturedImage.length / 1024) + 'KB' : 'None'
+                });
                 
                 if (imageSource === 'extension' && capturedImage) {
                     console.log('🚀 Extension 유입 즉시 감지! 로딩 메시지 표시');
