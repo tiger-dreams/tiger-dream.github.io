@@ -17,8 +17,6 @@
         // Extension 유입 조기 감지 및 즉시 로딩 메시지 표시
         (function() {
             try {
-                console.log('🔍 Extension 감지 스크립트 시작');
-                
                 // URL 파라미터로 Extension 유입 확인
                 const urlParams = new URLSearchParams(window.location.search);
                 const isFromExtension = urlParams.get('source') === 'extension';
@@ -26,16 +24,8 @@
                 const imageSource = localStorage.getItem('annotateshot_image_source');
                 const capturedImage = localStorage.getItem('annotateshot_captured_image');
                 
-                console.log('📊 감지 상태:', {
-                    urlParameter: isFromExtension,
-                    imageSource: imageSource,
-                    capturedImageExists: !!capturedImage,
-                    capturedImageSize: capturedImage ? Math.round(capturedImage.length / 1024) + 'KB' : 'None'
-                });
-                
                 // URL 파라미터로 Extension 유입이면 로딩 메시지 표시 (이미지 데이터 대기 중)
                 if (isFromExtension) {
-                    console.log('🚀 Extension 유입 즉시 감지! 로딩 메시지 표시');
                     
                     // 언어 감지
                     const isKorean = navigator.language && navigator.language.startsWith('ko');
@@ -89,10 +79,8 @@
                     function addMessage() {
                         if (document.body) {
                             document.body.appendChild(loadingMessage);
-                            console.log('✅ Extension 로딩 메시지 즉시 표시 완료');
                         } else if (document.documentElement) {
                             document.documentElement.appendChild(loadingMessage);
-                            console.log('✅ Extension 로딩 메시지 HTML에 표시 완료');
                         } else {
                             setTimeout(addMessage, 10);
                         }
@@ -1888,8 +1876,6 @@
                     sidebar.classList.remove('mobile-open');
                     mobileOverlay.classList.remove('show');
                 });
-            } else {
-                console.log('데스크톱 UI - 모바일 기능 비활성화');
             }
             
             // 캔버스 리사이즈는 모든 기기에서 동작 (브라우저 크기 변경 시)
@@ -1932,8 +1918,6 @@
             
             // Update layer list based on new layer system
             function updateLayerList() {
-                console.log('Updating layer list...');
-                
                 // Clear existing layers
                 const existingLayers = layerList.querySelectorAll('.layer-item');
                 existingLayers.forEach(item => item.remove());
@@ -1941,7 +1925,6 @@
                 // Get data from main.js
                 const layers = window.layers || [];
                 const imageLayers = window.imageLayers || [];
-                console.log('Layers:', layers.length, 'ImageLayers:', imageLayers.length);
                 
                 // 1. Add background layer (solid color)
                 addBackgroundLayer();
@@ -1957,8 +1940,6 @@
                     const layer = annotationLayers[i];
                     addAnnotationLayerToUI(layer, i);
                 }
-                
-                console.log('Layer list updated successfully');
             }
             
             function addBackgroundLayer() {
@@ -2161,13 +2142,10 @@
             
             // Background layer visibility toggle
             function toggleBackgroundLayerVisibility() {
-                console.log('Toggling background layer visibility');
                 if (window.layers) {
                     const backgroundLayer = window.layers.find(layer => layer.type === 'background');
-                    console.log('Found background layer:', backgroundLayer);
                     if (backgroundLayer) {
                         backgroundLayer.visible = !backgroundLayer.visible;
-                        console.log('New visibility state:', backgroundLayer.visible);
                         if (typeof window.redrawCanvas === 'function') {
                             window.redrawCanvas();
                         }
@@ -2192,27 +2170,19 @@
             
             // Delete layer by ID
             function deleteLayer(layerId) {
-                console.log('Deleting layer with ID:', layerId);
                 if (window.layers) {
                     const layerIndex = window.layers.findIndex(l => l.id === layerId);
-                    console.log('Found layer at index:', layerIndex);
                     if (layerIndex !== -1) {
                         const layer = window.layers[layerIndex];
-                        console.log('Layer to delete:', layer);
                         
                         // Also remove from clicks array
                         const clickIndex = window.clicks.findIndex(click => click === layer.data);
-                        console.log('Found corresponding click at index:', clickIndex);
-                        console.log('Clicks array before:', window.clicks.length);
                         
                         if (clickIndex !== -1) {
                             window.clicks.splice(clickIndex, 1);
                         }
                         
-                        console.log('Clicks array after:', window.clicks.length);
-                        
                         window.layers.splice(layerIndex, 1);
-                        console.log('Layers array after:', window.layers.length);
                         
                         if (typeof window.redrawCanvas === 'function') {
                             window.redrawCanvas();
@@ -3073,12 +3043,6 @@
     <script>
         // iPhone Safari 디버그 정보 출력
         setTimeout(() => {
-            console.log('🔍 iPhone Safari 디버그 정보:');
-            console.log('User Agent:', navigator.userAgent);
-            console.log('Body 클래스:', document.body.className);
-            console.log('모바일 UI 요소 표시:', document.querySelector('.mobile-only')?.style.display);
-            console.log('플로팅 버튼 존재:', !!document.getElementById('fabImage'));
-            console.log('============================');
         }, 2000);
     </script>
 
