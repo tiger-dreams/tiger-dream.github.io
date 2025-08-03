@@ -955,6 +955,11 @@
                 existingMessage.remove();
             }
             
+            // 언어 감지 (navigator.language 사용)
+            const isKorean = navigator.language && navigator.language.startsWith('ko');
+            const loadingText = isKorean ? '이미지 로딩 중...' : 'Loading image...';
+            const waitText = isKorean ? '잠시만 기다려주세요' : 'Please wait';
+            
             // 로딩 메시지 요소 생성
             const loadingMessage = document.createElement('div');
             loadingMessage.id = 'extension-loading-message';
@@ -984,10 +989,10 @@
                         margin: 0 auto 20px;
                     "></div>
                     <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">
-                        🖼️ ${translate('extensionImageLoading')}
+                        🖼️ ${loadingText}
                     </div>
                     <div style="font-size: 14px; color: #94a3b8;">
-                        ${translate('pleaseWait')}
+                        ${waitText}
                     </div>
                 </div>
                 <style>
