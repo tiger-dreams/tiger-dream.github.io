@@ -914,8 +914,8 @@
                 console.log('확장 프로그램에서 캡처한 이미지 발견, 크기:', Math.round(capturedImage.length / 1024), 'KB');
                 
                 try {
-                    // Extension에서 온 이미지인 경우 로딩 메시지 표시
-                    if (imageSource === 'extension') {
+                    // Extension에서 온 이미지인 경우 로딩 메시지 표시 (아직 표시되지 않았다면)
+                    if (imageSource === 'extension' && !document.getElementById('extension-loading-message')) {
                         showExtensionLoadingMessage();
                     }
                     
@@ -1032,6 +1032,22 @@
 
         // 전역 함수로 내보내기 (확장 프로그램에서 호출 가능)
         window.loadCapturedImage = loadCapturedImage;
+
+        // Extension 유입 조기 감지 및 로딩 메시지 표시
+        (function checkExtensionSource() {
+            try {
+                const imageSource = localStorage.getItem('annotateshot_image_source');
+                const capturedImage = localStorage.getItem('annotateshot_captured_image');
+                
+                // Extension에서 온 이미지가 있으면 즉시 로딩 메시지 표시
+                if (imageSource === 'extension' && capturedImage) {
+                    console.log('Extension 유입 감지, 로딩 메시지 표시');
+                    showExtensionLoadingMessage();
+                }
+            } catch (error) {
+                console.warn('Extension 유입 조기 감지 실패:', error);
+            }
+        })();
 
         // 초기화 및 이벤트 설정
         window.onload = () => {
