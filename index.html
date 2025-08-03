@@ -18,16 +18,23 @@
         (function() {
             try {
                 console.log('🔍 Extension 감지 스크립트 시작');
+                
+                // URL 파라미터로 Extension 유입 확인
+                const urlParams = new URLSearchParams(window.location.search);
+                const isFromExtension = urlParams.get('source') === 'extension';
+                
                 const imageSource = localStorage.getItem('annotateshot_image_source');
                 const capturedImage = localStorage.getItem('annotateshot_captured_image');
                 
-                console.log('📊 localStorage 상태:', {
+                console.log('📊 감지 상태:', {
+                    urlParameter: isFromExtension,
                     imageSource: imageSource,
                     capturedImageExists: !!capturedImage,
                     capturedImageSize: capturedImage ? Math.round(capturedImage.length / 1024) + 'KB' : 'None'
                 });
                 
-                if (imageSource === 'extension' && capturedImage) {
+                // URL 파라미터로 Extension 유입이면 로딩 메시지 표시 (이미지 데이터 대기 중)
+                if (isFromExtension) {
                     console.log('🚀 Extension 유입 즉시 감지! 로딩 메시지 표시');
                     
                     // 언어 감지
