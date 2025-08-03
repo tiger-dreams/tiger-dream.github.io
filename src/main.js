@@ -1073,7 +1073,14 @@
                 // Extension에서 온 이미지가 있으면 즉시 로딩 메시지 표시
                 if (imageSource === 'extension' && capturedImage) {
                     console.log('Extension 유입 감지, 로딩 메시지 표시');
-                    showExtensionLoadingMessage();
+                    console.log('🔍 showExtensionLoadingMessage 함수 타입:', typeof showExtensionLoadingMessage);
+                    console.log('🔍 함수 호출 시도 중...');
+                    try {
+                        showExtensionLoadingMessage();
+                        console.log('✅ showExtensionLoadingMessage 호출 완료');
+                    } catch (error) {
+                        console.error('❌ showExtensionLoadingMessage 호출 실패:', error);
+                    }
                 }
             } catch (error) {
                 console.warn('Extension 유입 조기 감지 실패:', error);
