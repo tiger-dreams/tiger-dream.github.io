@@ -348,7 +348,8 @@ async function openAnnotateShot(imageDataUrl) {
         
         // 운영 환경 URL 사용
         const baseUrl = 'https://alllogo.net';
-        const annotateUrl = `${baseUrl}/index.html`;
+        // Extension 유입임을 나타내는 URL 파라미터 추가
+        const annotateUrl = `${baseUrl}/index.html?source=extension&t=${Date.now()}`;
         
         // 새 탭 열기
         const tab = await chrome.tabs.create({
