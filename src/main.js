@@ -112,15 +112,19 @@
         }
 
         function loadImageFromDataUrl(dataUrl) {
-            console.log('loadImageFromDataUrl 호출, 데이터 크기:', Math.round(dataUrl.length / 1024), 'KB');
+            const imageSizeKB = Math.round(dataUrl.length / 1024);
+            console.log('loadImageFromDataUrl 호출, 데이터 크기:', imageSizeKB, 'KB');
             
             currentImage = new Image();
             currentImage.onload = () => {
                 console.log('이미지 로드 성공:', currentImage.width + 'x' + currentImage.height);
                 
-                // 로딩 메시지 제거
+                // Extension 로딩 메시지 제거 (이미지 크기 기반 타이밍)
                 const loadingMessage = document.getElementById('extension-loading-message');
-                if (loadingMessage) {
+                if (loadingMessage && window.removeExtensionLoadingMessage) {
+                    window.removeExtensionLoadingMessage(imageSizeKB);
+                } else if (loadingMessage) {
+                    // 일반 로딩 메시지는 즉시 제거
                     loadingMessage.remove();
                 }
                 
@@ -136,9 +140,11 @@
             currentImage.onerror = (error) => {
                 console.error('이미지 로드 실패:', error);
                 
-                // 로딩 메시지 제거
+                // Extension 로딩 메시지 제거
                 const loadingMessage = document.getElementById('extension-loading-message');
-                if (loadingMessage) {
+                if (loadingMessage && window.removeExtensionLoadingMessage) {
+                    window.removeExtensionLoadingMessage(imageSizeKB);
+                } else if (loadingMessage) {
                     loadingMessage.remove();
                 }
                 
@@ -1031,17 +1037,42 @@
                 document.body.appendChild(loadingMessage);
             }
             
-            // 이미지 로드 완료 후 메시지 제거 (최대 10초 후 자동 제거)
-            const removeMessage = () => {
+            // 이미지 크기 기반 로딩 메시지 제거 (크기에 따라 표시 시간 조절)
+            const messageStartTime = Date.now();
+            const removeMessage = (imageSizeKB = 0) => {
                 const message = document.getElementById('extension-loading-message');
                 if (message) {
-                    message.style.opacity = '0';
-                    message.style.transition = 'opacity 0.3s ease';
-                    setTimeout(() => {
-                        if (message.parentNode) {
-                            message.parentNode.removeChild(message);
-                        }
-                    }, 300);
+                    const elapsedTime = Date.now() - messageStartTime;
+                    
+                    // 이미지 크기에 따른 최소 표시 시간 계산
+                    // 작은 이미지(< 500KB): 1초, 중간(500KB-2MB): 1.5초, 큰 이미지(> 2MB): 2초
+                    let minDisplayTime = 1000; // 기본 1초
+                    if (imageSizeKB > 2000) {
+                        minDisplayTime = 2000; // 2MB 이상: 2초
+                    } else if (imageSizeKB > 500) {
+                        minDisplayTime = 1500; // 500KB-2MB: 1.5초
+                    }
+                    
+                    const removeNow = () => {
+                        console.log(`🗑️ Extension 로딩 메시지 제거 중... (이미지: ${imageSizeKB}KB, 표시시간: ${Date.now() - messageStartTime}ms)`);
+                        message.style.opacity = '0';
+                        message.style.transition = 'opacity 0.3s ease';
+                        setTimeout(() => {
+                            if (message.parentNode) {
+                                message.parentNode.removeChild(message);
+                                console.log('✅ Extension 로딩 메시지 제거 완료');
+                            }
+                        }, 300);
+                    };
+                    
+                    if (elapsedTime < minDisplayTime) {
+                        // 최소 표시 시간이 안 됐으면 추가 대기
+                        const remainingTime = minDisplayTime - elapsedTime;
+                        console.log(`⏳ 이미지 크기 ${imageSizeKB}KB -> 최소 ${minDisplayTime}ms 표시, ${remainingTime}ms 추가 대기`);
+                        setTimeout(removeNow, remainingTime);
+                    } else {
+                        removeNow();
+                    }
                 }
             };
             
@@ -1057,8 +1088,11 @@
             // 이미지 로드 체크 시작
             setTimeout(checkImageLoaded, 500);
             
+            // 전역 함수로 노출 (다른 곳에서 호출 가능)
+            window.removeExtensionLoadingMessage = removeMessage;
+            
             // 최대 10초 후 강제 제거
-            setTimeout(removeMessage, 10000);
+            setTimeout(() => removeMessage(0), 10000);
         }
 
         // 전역 함수로 내보내기 (확장 프로그램에서 호출 가능)
