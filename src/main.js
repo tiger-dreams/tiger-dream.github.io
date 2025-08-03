@@ -949,9 +949,14 @@
 
         // Extension 이미지 로딩 메시지 표시
         function showExtensionLoadingMessage() {
+            console.log('🔧 showExtensionLoadingMessage 함수 시작');
+            console.log('🔍 document.body 상태:', document.body ? 'exists' : 'null');
+            console.log('🔍 document.readyState:', document.readyState);
+            
             // 기존 메시지가 있으면 제거
             const existingMessage = document.getElementById('extension-loading-message');
             if (existingMessage) {
+                console.log('🗑️ 기존 로딩 메시지 제거');
                 existingMessage.remove();
             }
             
@@ -959,6 +964,8 @@
             const isKorean = navigator.language && navigator.language.startsWith('ko');
             const loadingText = isKorean ? '이미지 로딩 중...' : 'Loading image...';
             const waitText = isKorean ? '잠시만 기다려주세요' : 'Please wait';
+            
+            console.log('🌐 언어 감지 결과:', { isKorean, loadingText, waitText });
             
             // 로딩 메시지 요소 생성
             const loadingMessage = document.createElement('div');
@@ -1003,7 +1010,26 @@
                 </style>
             `;
             
-            document.body.appendChild(loadingMessage);
+            console.log('📦 로딩 메시지 요소 생성 완료');
+            
+            // document.body가 준비되지 않았으면 대기
+            if (!document.body) {
+                console.log('⏳ document.body 준비 대기 중...');
+                // DOM이 준비될 때까지 대기 후 추가
+                const addWhenReady = () => {
+                    if (document.body) {
+                        console.log('✅ document.body 준비됨, 메시지 추가');
+                        document.body.appendChild(loadingMessage);
+                    } else {
+                        console.log('⏳ document.body 아직 준비 안됨, 10ms 후 재시도');
+                        setTimeout(addWhenReady, 10);
+                    }
+                };
+                addWhenReady();
+            } else {
+                console.log('✅ document.body 이미 준비됨, 즉시 메시지 추가');
+                document.body.appendChild(loadingMessage);
+            }
             
             // 이미지 로드 완료 후 메시지 제거 (최대 10초 후 자동 제거)
             const removeMessage = () => {
