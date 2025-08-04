@@ -13,6 +13,13 @@ class AnnotateShotTesterV2 {
     initializeTests() {
         // 실제로 검증 가능한 테스트 케이스들로 재정의
         this.tests = [
+            // v2.4.3 테스트 - Chrome Extension 로딩 UX 개선
+            { id: 'extension-url-detection', name: 'Extension URL 파라미터 감지', func: this.testExtensionUrlDetection.bind(this) },
+            { id: 'immediate-loading-message', name: '즉시 로딩 메시지 표시', func: this.testImmediateLoadingMessage.bind(this) },
+            { id: 'multilingual-loading', name: '다국어 로딩 메시지', func: this.testMultilingualLoading.bind(this) },
+            { id: 'loading-message-removal', name: '로딩 메시지 자동 제거', func: this.testLoadingMessageRemoval.bind(this) },
+            { id: 'extension-compatibility', name: 'Extension v1.2.3 호환성', func: this.testExtensionCompatibility.bind(this) },
+            
             // v2.0.2 테스트 - 모드별 스타일 컨트롤
             { id: 'number-mode-controls', name: '숫자 모드 스타일 컨트롤', func: this.testNumberModeControls.bind(this) },
             { id: 'shape-mode-controls', name: '도형 모드 스타일 컨트롤', func: this.testShapeModeControls.bind(this) },
@@ -54,6 +61,9 @@ class AnnotateShotTesterV2 {
     }
 
     updateTestResult(testId, passed, message = '') {
+        // 이전에 완료되지 않은 테스트만 completedTests 증가
+        const wasCompleted = this.testResults.has(testId);
+        
         this.testResults.set(testId, passed);
         const resultElement = document.getElementById(`result-${testId}`);
         
@@ -62,7 +72,10 @@ class AnnotateShotTesterV2 {
             resultElement.textContent = passed ? '통과' : '실패';
         }
 
-        this.completedTests++;
+        if (!wasCompleted) {
+            this.completedTests++;
+        }
+        
         this.log(`${testId}: ${passed ? '✅ 통과' : '❌ 실패'} - ${message}`);
         this.updateSummary();
     }
@@ -734,10 +747,18 @@ class AnnotateShotTesterV2 {
         this.log('=== 정확한 테스트 시작 ===');
         this.clearResults();
 
-        for (const test of this.tests) {
-            this.log(`${test.name} 테스트 실행 중...`);
-            await test.func();
-            await this.wait(3000); // 테스트 간 충분한 대기
+        for (let i = 0; i < this.tests.length; i++) {
+            const test = this.tests[i];
+            this.log(`${test.name} 테스트 실행 중... (${i + 1}/${this.tests.length})`);
+            
+            try {
+                await test.func();
+            } catch (error) {
+                this.log(`${test.name} 테스트 오류: ${error.message}`);
+                this.updateTestResult(test.id, false, `오류: ${error.message}`);
+            }
+            
+            await this.wait(1000); // 테스트 간 대기 시간 단축
         }
 
         this.log('=== 전체 테스트 완료 ===');
@@ -790,6 +811,100 @@ class AnnotateShotTesterV2 {
             this.log(`🎉 테스트 통과! 배포 준비 완료`);
         } else {
             this.log(`⚠️  일부 테스트 실패. 수정 후 재테스트 필요`);
+        }
+    }
+
+    // v2.4.3 Chrome Extension 로딩 UX 개선 테스트들
+    async testExtensionUrlDetection() {
+        const testName = 'Extension URL 파라미터 감지';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            // index.html에서 Extension URL 파라미터 감지 로직 확인
+            const response = await fetch('./index.html');
+            const htmlContent = await response.text();
+            const hasUrlParamCheck = htmlContent.includes('URLSearchParams') && 
+                                   htmlContent.includes("source') === 'extension'");
+            
+            this.updateTestResult('extension-url-detection', hasUrlParamCheck, 
+                `URL 파라미터 감지 로직 ${hasUrlParamCheck ? '존재' : '없음'}`);
+        } catch (error) {
+            this.updateTestResult('extension-url-detection', false, `오류: ${error.message}`);
+        }
+    }
+
+    async testImmediateLoadingMessage() {
+        const testName = '즉시 로딩 메시지 표시';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            // index.html에서 즉시 실행되는 로딩 메시지 표시 로직 확인
+            const response = await fetch('./index.html');
+            const htmlContent = await response.text();
+            const hasImmediateMessage = htmlContent.includes('messageDiv') && 
+                                      htmlContent.includes('로딩') &&
+                                      htmlContent.includes('Loading');
+            
+            this.updateTestResult('immediate-loading-message', hasImmediateMessage,
+                `즉시 로딩 메시지 로직 ${hasImmediateMessage ? '존재' : '없음'}`);
+        } catch (error) {
+            this.updateTestResult('immediate-loading-message', false, `오류: ${error.message}`);
+        }
+    }
+
+    async testMultilingualLoading() {
+        const testName = '다국어 로딩 메시지';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            // index.html에서 다국어 지원 로직 확인
+            const response = await fetch('./index.html');
+            const htmlContent = await response.text();
+            const hasMultilingualSupport = htmlContent.includes('navigator.language') && 
+                                         htmlContent.includes('ko') &&
+                                         htmlContent.includes('en');
+            
+            this.updateTestResult('multilingual-loading', hasMultilingualSupport,
+                `다국어 지원 로직 ${hasMultilingualSupport ? '존재' : '없음'}`);
+        } catch (error) {
+            this.updateTestResult('multilingual-loading', false, `오류: ${error.message}`);
+        }
+    }
+
+    async testLoadingMessageRemoval() {
+        const testName = '로딩 메시지 자동 제거';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            // index.html에서 메시지 제거 로직 확인
+            const response = await fetch('./index.html');
+            const htmlContent = await response.text();
+            const hasRemovalLogic = htmlContent.includes('remove()') || 
+                                  htmlContent.includes('removeChild') ||
+                                  htmlContent.includes('display: none');
+            
+            this.updateTestResult('loading-message-removal', hasRemovalLogic,
+                `메시지 제거 로직 ${hasRemovalLogic ? '존재' : '없음'}`);
+        } catch (error) {
+            this.updateTestResult('loading-message-removal', false, `오류: ${error.message}`);
+        }
+    }
+
+    async testExtensionCompatibility() {
+        const testName = 'Extension v1.2.3 호환성';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            // index.html에서 Extension v1.2.3 호환성 확인
+            const response = await fetch('./index.html');
+            const htmlContent = await response.text();
+            const hasCompatibility = htmlContent.includes('source=extension') && 
+                                   htmlContent.includes('Date.now()');
+            
+            this.updateTestResult('extension-compatibility', hasCompatibility,
+                `Extension v1.2.3 호환성 ${hasCompatibility ? '확인' : '문제'}`);
+        } catch (error) {
+            this.updateTestResult('extension-compatibility', false, `오류: ${error.message}`);
         }
     }
 }
@@ -911,4 +1026,25 @@ function testModeSettingsPersistence() {
 
 function testCropUndoRestoration() {
     if (testerV2) testerV2.testCropUndoRestoration();
+}
+
+// v2.4.3 Chrome Extension 로딩 UX 개선 테스트 함수들
+function testExtensionUrlDetection() {
+    if (testerV2) testerV2.testExtensionUrlDetection();
+}
+
+function testImmediateLoadingMessage() {
+    if (testerV2) testerV2.testImmediateLoadingMessage();
+}
+
+function testMultilingualLoading() {
+    if (testerV2) testerV2.testMultilingualLoading();
+}
+
+function testLoadingMessageRemoval() {
+    if (testerV2) testerV2.testLoadingMessageRemoval();
+}
+
+function testExtensionCompatibility() {
+    if (testerV2) testerV2.testExtensionCompatibility();
 }

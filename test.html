@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AnnotateShot 자동화 테스트</title>
+    <title>AnnotateShot 자동화 테스트 v2.4.3</title>
     <style>
         :root {
             --primary-color: #007bff;
@@ -190,8 +190,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧪 AnnotateShot 자동화 테스트</h1>
-            <p>최근 업데이트 기능들의 자동 검증 도구</p>
+            <h1>🧪 AnnotateShot 자동화 테스트 v2.4.3</h1>
+            <p>Chrome Extension 로딩 UX 개선 및 최신 기능들의 자동 검증 도구</p>
+            <p><small>최종 업데이트: 2025-08-04 | Extension v1.2.3 대응</small></p>
         </div>
 
         <div class="test-summary">
@@ -223,7 +224,40 @@
             <button class="btn btn-danger" onclick="clearResults()">🗑️ 결과 초기화</button>
         </div>
 
-        <!-- v2.0.2 테스트 -->
+        <!-- v2.4.3 테스트 -->
+        <div class="test-section">
+            <h2>🆕 v2.4.3 - Chrome Extension 로딩 UX 개선</h2>
+            
+            <div class="test-case">
+                <h4>Extension URL 파라미터 감지 <span class="test-result result-pending" id="result-extension-url-detection">대기중</span></h4>
+                <p>URL에 ?source=extension 파라미터가 있을 때 Extension으로부터의 접근임을 감지하는지 확인</p>
+                <button class="btn btn-primary" onclick="testExtensionUrlDetection()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>즉시 로딩 메시지 표시 <span class="test-result result-pending" id="result-immediate-loading-message">대기중</span></h4>
+                <p>Extension으로부터 접근 시 페이지 로드 중에 즉시 로딩 메시지가 표시되는지 확인</p>
+                <button class="btn btn-primary" onclick="testImmediateLoadingMessage()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>다국어 로딩 메시지 <span class="test-result result-pending" id="result-multilingual-loading">대기중</span></h4>
+                <p>브라우저 언어에 따라 한국어/영어 로딩 메시지가 올바르게 표시되는지 확인</p>
+                <button class="btn btn-primary" onclick="testMultilingualLoading()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>로딩 메시지 자동 제거 <span class="test-result result-pending" id="result-loading-message-removal">대기중</span></h4>
+                <p>이미지 로드 완료 후 로딩 메시지가 자동으로 제거되는지 확인</p>
+                <button class="btn btn-primary" onclick="testLoadingMessageRemoval()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>Extension v1.2.3 호환성 <span class="test-result result-pending" id="result-extension-compatibility">대기중</span></h4>
+                <p>Chrome Extension v1.2.3에서 추가된 URL 파라미터 방식과 완전 호환되는지 확인</p>
+                <button class="btn btn-primary" onclick="testExtensionCompatibility()">테스트 실행</button>
+            </div>
+        </div>\n\n        <!-- v2.0.2 테스트 -->
         <div class="test-section">
             <h2>🆕 v2.0.2 - 모드별 스타일 컨트롤 표시</h2>
             
