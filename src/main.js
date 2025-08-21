@@ -2940,6 +2940,9 @@
         // 다국어 지원
         const languages = {
             'en': {
+                'fileOperations': 'File Operations',
+                'annotationMode': 'Annotation Mode',
+                'uploadImageFile': 'Upload image file',
                 'clipboard': 'Paste from Clipboard',
                 'save': 'Save',
                 'undo': 'Undo',
@@ -3046,6 +3049,9 @@
                 'scale70': 'Scale 70%'
             },
             'ko': {
+                'fileOperations': '파일 작업',
+                'annotationMode': '주석 모드',
+                'uploadImageFile': '이미지 파일 업로드',
                 'clipboard': '클립보드에서 가져오기',
                 'save': '저장하기',
                 'undo': '뒤로가기',
@@ -3103,6 +3109,9 @@
             },
             // ja는 최소화된 키만 제공하고, 없으면 en -> ko 순서로 폴백
             'ja': {
+                'fileOperations': 'ファイル操作',
+                'annotationMode': '注釈モード', 
+                'uploadImageFile': '画像ファイルアップロード',
                 'clipboard': 'クリップボードから貼り付け',
                 'save': '保存',
                 'undo': '元に戻す',
@@ -3401,6 +3410,48 @@
                 }
             } else {
                 console.log('Skipping initialization - image already exists');
+            }
+        }
+
+        // 언어 번역 시스템
+        function getLanguage() {
+            const savedLang = localStorage.getItem('language');
+            if (savedLang) return savedLang;
+            
+            const browserLang = navigator.language || navigator.userLanguage;
+            if (browserLang.startsWith('ko')) return 'ko';
+            if (browserLang.startsWith('ja')) return 'ja';
+            
+            return 'en';
+        }
+
+        function setLanguage(lang) {
+            localStorage.setItem('language', lang);
+            updateUILanguage();
+        }
+
+        function updateUILanguage() {
+            const currentLang = getLanguage();
+            
+            // 언어 선택기 값 설정
+            const languageSelector = document.getElementById('languageSelector');
+            if (languageSelector) {
+                languageSelector.value = currentLang;
+            }
+            
+            // data-lang-key 속성을 가진 모든 요소 번역
+            document.querySelectorAll('[data-lang-key]').forEach(element => {
+                const key = element.getAttribute('data-lang-key');
+                const translatedText = translate(key);
+                if (translatedText) {
+                    element.textContent = translatedText;
+                }
+            });
+            
+            // aria-label 속성 번역
+            const imageLoader = document.getElementById('imageLoader');
+            if (imageLoader) {
+                imageLoader.setAttribute('aria-label', translate('uploadImageFile'));
             }
         }
 
