@@ -90,6 +90,17 @@
             };
         }
 
+        // 언어 선택기 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            const langSelect = document.getElementById('languageSelector');
+            if (langSelect) {
+                langSelect.value = getLanguage();
+                langSelect.addEventListener('change', (e) => setLanguage(e.target.value));
+            }
+            // 최초 적용
+            try { applyLanguage(); } catch (e) { /* noop */ }
+        });
+
         // 이미지 로드 관련 함수
         function loadImageFromUrl(url) {
             const storageKey = 'cachedImage_' + url;
@@ -1095,12 +1106,142 @@
             setTimeout(() => removeMessage(0), 10000);
         }
 
+        // Extension 업데이트 알림 메시지 표시
+        function showUpdateNotification({ fromVersion, toVersion, changelog }) {
+            console.log('🔔 Extension 업데이트 알림 표시:', { fromVersion, toVersion, changelog });
+            
+            // 기존 업데이트 알림이 있으면 제거
+            const existingNotification = document.getElementById('update-notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            // 언어 감지
+            const isKorean = navigator.language && navigator.language.startsWith('ko');
+            
+            // 업데이트 메시지 생성
+            let updateMessage = '';
+            if (fromVersion && toVersion) {
+                updateMessage = isKorean 
+                    ? `AnnotateShot 확장 프로그램이 v${fromVersion}에서 v${toVersion}로 업데이트되었습니다!`
+                    : `AnnotateShot Extension updated from v${fromVersion} to v${toVersion}!`;
+            } else {
+                updateMessage = isKorean 
+                    ? 'AnnotateShot 확장 프로그램이 업데이트되었습니다!'
+                    : 'AnnotateShot Extension has been updated!';
+            }
+            
+            // 변경사항 메시지
+            let changelogMessage = '';
+            if (changelog) {
+                const changelogMap = {
+                    'bug-fixes': isKorean ? '버그 수정' : 'Bug fixes',
+                    'performance-improvements': isKorean ? '성능 개선' : 'Performance improvements',
+                    'new-features': isKorean ? '새로운 기능' : 'New features',
+                    'ui-improvements': isKorean ? 'UI 개선' : 'UI improvements',
+                    'security-updates': isKorean ? '보안 업데이트' : 'Security updates'
+                };
+                changelogMessage = changelogMap[changelog] || changelog;
+            }
+            
+            // 알림 요소 생성
+            const notification = document.createElement('div');
+            notification.id = 'update-notification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: linear-gradient(135deg, #4CAF50, #45a049);
+                color: white;
+                padding: 16px 20px;
+                text-align: center;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 14px;
+                font-weight: 500;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                z-index: 10000;
+                animation: slideDown 0.3s ease-out;
+                cursor: pointer;
+            `;
+            
+            // 애니메이션 키프레임 추가
+            if (!document.getElementById('update-notification-styles')) {
+                const style = document.createElement('style');
+                style.id = 'update-notification-styles';
+                style.textContent = `
+                    @keyframes slideDown {
+                        from { transform: translateY(-100%); }
+                        to { transform: translateY(0); }
+                    }
+                    @keyframes slideUp {
+                        from { transform: translateY(0); }
+                        to { transform: translateY(-100%); }
+                    }
+                    .update-notification-hide {
+                        animation: slideUp 0.3s ease-in forwards;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // 메시지 내용 구성
+            let content = `<div style="font-size: 16px; margin-bottom: 4px;">${updateMessage}</div>`;
+            if (changelogMessage) {
+                content += `<div style="font-size: 12px; opacity: 0.9;">✨ ${changelogMessage}</div>`;
+            }
+            content += `<div style="font-size: 11px; opacity: 0.8; margin-top: 8px;">${isKorean ? '클릭하면 닫힙니다 · 10초 후 자동으로 사라집니다' : 'Click to dismiss · Auto-hide in 10 seconds'}</div>`;
+            
+            notification.innerHTML = content;
+            
+            // 클릭 시 닫기
+            notification.addEventListener('click', () => {
+                notification.classList.add('update-notification-hide');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            });
+            
+            // DOM에 추가
+            document.body.appendChild(notification);
+            
+            // 10초 후 자동 제거
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.classList.add('update-notification-hide');
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, 10000);
+            
+            console.log('✅ 업데이트 알림 표시 완료');
+        }
+
         // 전역 함수로 내보내기 (확장 프로그램에서 호출 가능)
         window.loadCapturedImage = loadCapturedImage;
 
-        // Extension 유입 조기 감지 및 로딩 메시지 표시
+        // Extension 유입 및 업데이트 알림 조기 감지
         (function checkExtensionSource() {
             try {
+                const urlParams = new URLSearchParams(window.location.search);
+                
+                // 업데이트 알림 체크
+                if (urlParams.get('update_notification') === 'true') {
+                    const fromVersion = urlParams.get('from');
+                    const toVersion = urlParams.get('to');
+                    const changelog = urlParams.get('changelog');
+                    
+                    console.log('Extension 업데이트 알림 감지');
+                    showUpdateNotification({ fromVersion, toVersion, changelog });
+                    return;
+                }
+                
+                // 기존 Extension 캡처 이미지 로직
                 const imageSource = localStorage.getItem('annotateshot_image_source');
                 const capturedImage = localStorage.getItem('annotateshot_captured_image');
                 
@@ -2751,10 +2892,20 @@
             }
         }
 
+        // 메시지 표시 공통 함수
+        function showMessage(message, duration = 3000) {
+            messageDiv.textContent = message;
+            messageDiv.classList.add('show');
+            setTimeout(() => {
+                messageDiv.classList.remove('show');
+                messageDiv.textContent = '';
+            }, duration);
+        }
+
         // 클립보드에 복사 함수
         async function copyToClipboard() {
             if (!currentImage) {
-                messageDiv.textContent = translate('noImageToSave') || '저장할 이미지가 없습니다.';
+                showMessage(translate('noImageToSave'));
                 return;
             }
             
@@ -2769,12 +2920,10 @@
                     })
                 ]);
                 
-                messageDiv.textContent = '클립보드에 복사되었습니다!';
-                setTimeout(() => messageDiv.textContent = '', 3000);
+                showMessage(translate('clipboardCopySuccess'));
             } catch (error) {
                 console.error('클립보드 복사 실패:', error);
-                messageDiv.textContent = '클립보드 복사에 실패했습니다.';
-                setTimeout(() => messageDiv.textContent = '', 3000);
+                showMessage(translate('clipboardCopyError'));
             }
         }
 
@@ -2790,6 +2939,112 @@
 
         // 다국어 지원
         const languages = {
+            'en': {
+                'clipboard': 'Paste from Clipboard',
+                'save': 'Save',
+                'undo': 'Undo',
+                'red': 'Red',
+                'orange': 'Orange',
+                'green': 'Green',
+                'blue': 'Blue',
+                'small': 'Small',
+                'medium': 'Medium',
+                'large': 'Large',
+                'numberMode': 'Number Mode',
+                'shapeMode': 'Shape Mode',
+                'textMode': 'Text Mode',
+                'emojiMode': 'Emoji Mode',
+                'emojiAdded': 'Emoji "{emoji}" added at: ({x}, {y})',
+                'rectangle': 'Rectangle',
+                'circle': 'Circle',
+                'arrow': 'Arrow',
+                'thin': 'Thin',
+                'normal': 'Normal',
+                'thick': 'Thick',
+                'defaultImageLoaded': 'Default image loaded. Size: {width}x{height}',
+                'imageLoaded': 'Image loaded. Size: {width}x{height}',
+                'noImageLoaded': 'Please load an image first before clicking.',
+                'clickAdded': 'Click {number}: ({x}, {y})',
+                'textAdded': 'Text "{text}" added at: ({x}, {y})',
+                'noClipboardImage': 'No image found in clipboard.',
+                'clipboardError': 'Failed to access clipboard. Please check your browser settings.',
+                'clipboardCopySuccess': 'Image copied to clipboard!',
+                'clipboardCopyError': 'Failed to copy to clipboard.',
+                'noImageToSave': 'No image to save. Load an image first.',
+                'saveImageError': 'An error occurred while saving the image.',
+                'enterFileName': 'Enter a file name to save (without extension):',
+                'enterText': 'Enter text to add:',
+                'imageSavedAs': 'Image saved successfully as "{fileName}".',
+                'defaultImageLoadFailed': 'Failed to load the default image.',
+                'shortcutGuide': 'Shortcuts: Ctrl+Z (Mac: Command+Z) - Undo last click',
+                'shortcutGuide2': 'Number mode special key: H + Click - Lock Y to last click',
+                'shortcutGuide3': 'Number mode special key: V + Click - Lock X to last click',
+                'shortcutGuide4': 'Number mode special key: Shift + Click - Repeat last number',
+                'clickToStartFrom': 'Click on the canvas to start from {number}.',
+                'undoPerformedWithCount': 'Undo done. Number clicks: {clickCount}, shapes: {shapeCount}',
+                'allActionsUndone': 'All actions have been undone.',
+                'noMoreUndo': 'No more actions to undo.',
+                'extensionImageLoading': 'Loading captured image...',
+                'pleaseWait': 'Please wait',
+                'uploadImagePrompt': 'How to use AnnotateShot\n1. Load an image that needs numbers, shapes, or text annotations. Clipboard images are supported.\n2. Click anywhere.\n3. To save, click Save to download locally, or right-click the image to copy.',
+                'canvasSettings': 'Canvas Settings',
+                'canvasMode': 'Canvas Mode',
+                'singleImageMode': 'Single Image Edit',
+                'multiImageMode': 'Blank Canvas (Multi Image)',
+                'backgroundColor': 'Background Color',
+                'canvasSize': 'Canvas Size',
+                'size1920x1080': 'Full HD (1920×1080)',
+                'size1280x720': 'HD (1280×720)',
+                'size1200x800': 'Web Standard (1200×800)',
+                'size800x600': 'Classic (800×600)',
+                'sizeA4Landscape': 'A4 Landscape (297×210mm)',
+                'sizeA4Portrait': 'A4 Portrait (210×297mm)',
+                'sizeCustom': 'Custom',
+                'apply': 'Apply',
+                'style': 'Style',
+                'color': 'Color',
+                'size': 'Size',
+                'lineWidth': 'Line Width',
+                'shape': 'Shape',
+                'fill': 'Fill',
+                'fillNone': 'Border Only',
+                'fillSolid': 'Solid Fill',
+                'fillBlur': 'Blur Effect',
+                'fillMosaic': 'Mosaic',
+                'emojiType': 'Emoji Type',
+                'cropMode': 'Crop Mode',
+                'cropStyle': 'Crop Style',
+                'cropBasic': 'Basic Crop',
+                'cropShadow': 'Shadow Effect',
+                'cropRounded': 'Rounded Corners',
+                'cropTorn': 'Torn Paper',
+                'cropCurtain': 'Theater Curtain',
+                'cropControls': 'Crop Controls',
+                'applyCrop': 'Apply Crop',
+                'cancelCrop': 'Cancel Crop',
+                'layers': 'Layers',
+                'backgroundLayer': 'Background Image',
+                'clearAllLayers': 'Clear All Layers',
+                'cropInstruction': 'Drag to select crop area',
+                'toggleTheme': 'Toggle Theme',
+                'language': 'Language',
+                'releaseNotes': 'Release Notes',
+                'codeLineRemover': 'Code Line Remover',
+                'subServices': 'Other Services',
+                'selectService': 'Select Service',
+                'pdfCompress': 'PDF Compress',
+                'chromeExtension': 'Chrome Extension',
+                'editImage': 'Edit Image',
+                'imageSize': 'Image Size:',
+                'autoResize': 'Auto Resize (Default)',
+                'originalSize': 'Original',
+                'width300': 'Width 300',
+                'width600': 'Width 600',
+                'width900': 'Width 900',
+                'scale30': 'Scale 30%',
+                'scale50': 'Scale 50%',
+                'scale70': 'Scale 70%'
+            },
             'ko': {
                 'clipboard': '클립보드에서 가져오기',
                 'save': '저장하기',
@@ -2819,6 +3074,8 @@
                 'textAdded': '텍스트 "{text}" 추가됨: ({x}, {y})',
                 'noClipboardImage': '클립보드에서 이미지를 찾을 수 없습니다.',
                 'clipboardError': '클립보드 접근에 실패했습니다. 브라우저 설정을 확인해주세요.',
+                'clipboardCopySuccess': '클립보드에 복사되었습니다!',
+                'clipboardCopyError': '클립보드 복사에 실패했습니다.',
                 'noImageToSave': '저장할 이미지가 없습니다. 먼저 이미지를 로드해주세요.',
                 'saveImageError': '이미지 저장 중 오류가 발생했습니다.',
                 'enterFileName': '저장할 파일명을 입력하세요 (확장자 제외):',
@@ -2835,29 +3092,66 @@
                 'noMoreUndo': '취소할 동작이 없습니다.',
                 'extensionImageLoading': '캡처된 이미지를 로딩 중...',
                 'pleaseWait': '잠시만 기다려주세요',
-                'uploadImagePrompt': 'AnnotateShot 서비스 이용 방법\n1. 번호, 도형, 텍스트를 입력해야하는 이미지를 불러오세요. 클립보드 이미지도 가능합니다.\n2. 아무곳이나 클릭해보세요.\n3. 저장이 필요하면 저장하기 버튼을 눌러서 로컬 PC로 저장할 수 있습니다. 혹은 이미지 우측 클릭 후 이미지 복사를 하셔도 괜찮습니다.'
+                'uploadImagePrompt': 'AnnotateShot 서비스 이용 방법\n1. 번호, 도형, 텍스트를 입력해야하는 이미지를 불러오세요. 클립보드 이미지도 가능합니다.\n2. 아무곳이나 클릭해보세요.\n3. 저장이 필요하면 저장하기 버튼을 눌러서 로컬 PC로 저장할 수 있습니다. 혹은 이미지 우측 클릭 후 이미지 복사를 하셔도 괜찮습니다.',
+                'clearAllLayers': '모든 레이어 지우기',
+                'language': '언어',
+                'releaseNotes': '릴리즈 노트',
+                'codeLineRemover': '코드 줄번호 제거',
+                'subServices': '다른 서비스',
+                'selectService': '서비스 선택',
+                'pdfCompress': 'PDF 압축'
+            },
+            // ja는 최소화된 키만 제공하고, 없으면 en -> ko 순서로 폴백
+            'ja': {
+                'clipboard': 'クリップボードから貼り付け',
+                'save': '保存',
+                'undo': '元に戻す',
+                'rectangle': '四角',
+                'circle': '円',
+                'arrow': '矢印',
+                'thin': '細い',
+                'normal': '普通',
+                'thick': '太い',
+                'imageLoaded': '画像を読み込みました。サイズ: {width}x{height}',
+                'noImageLoaded': 'クリックする前に画像を読み込んでください。',
+                'clipboardCopySuccess': 'クリップボードにコピーしました！',
+                'clipboardCopyError': 'クリップボードへのコピーに失敗しました。',
+                'clearAllLayers': '全レイヤーを消去',
+                'language': '言語'
             }
-            // 'ja'와 'en' 생략
         };
 
         function getLanguage() {
+            const saved = localStorage.getItem('language');
+            if (saved && ['ko', 'ja', 'en'].includes(saved)) return saved;
             const lang = navigator.language.split('-')[0];
-            return ['ko', 'ja', 'en'].includes(lang) ? lang : 'en';
+            return ['ko', 'ja', 'en'].includes(lang) ? lang : 'en'; // 기본 영어
+        }
+
+        function setLanguage(lang) {
+            if (!['ko', 'ja', 'en'].includes(lang)) return;
+            localStorage.setItem('language', lang);
+            applyLanguage();
         }
 
         function applyLanguage() {
             const lang = getLanguage();
             document.querySelectorAll('[data-lang-key]').forEach(element => {
                 const key = element.getAttribute('data-lang-key');
-                if (languages[lang] && languages[lang][key]) {
-                    element.textContent = element.tagName === 'OPTION' ? languages[lang][key] : languages[lang][key];
-                }
+                const text = (languages[lang] && languages[lang][key])
+                    || (languages['en'] && languages['en'][key])
+                    || (languages['ko'] && languages['ko'][key])
+                    || element.textContent;
+                element.textContent = text;
             });
         }
 
         function translate(key, params = {}) {
             const lang = getLanguage();
-            let text = languages[lang][key] || languages['en'][key] || key;
+            let text = (languages[lang] && languages[lang][key])
+                || (languages['en'] && languages['en'][key])
+                || (languages['ko'] && languages['ko'][key])
+                || key;
             Object.keys(params).forEach(param => text = text.replace(`{${param}}`, params[param]));
             return text;
         }
@@ -3109,3 +3403,16 @@
                 console.log('Skipping initialization - image already exists');
             }
         }
+
+        // 서브 서비스 선택 기능
+        document.addEventListener("DOMContentLoaded", function() {
+            const subServiceSelector = document.getElementById("subServiceSelector");
+            if (subServiceSelector) {
+                subServiceSelector.addEventListener("change", function(e) {
+                    const selectedService = e.target.value;
+                    if (selectedService) {
+                        window.location.href = selectedService;
+                    }
+                });
+            }
+        });

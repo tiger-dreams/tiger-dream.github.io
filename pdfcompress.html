@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-adsense-account" content="ca-pub-3945001668113003">
+    <title>PDF Compress - 무료 PDF 파일 압축 도구</title>
+    <meta name="description" content="PDF Compress - PDF 파일을 빠르고 안전하게 압축하세요. 브라우저에서 직접 처리되어 개인정보 보호가 보장됩니다.">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Light theme colors */
+            --background: #ffffff;
+            --foreground: #0f172a;
+            --card: #ffffff;
+            --card-foreground: #0f172a;
+            --primary: #3b82f6;
+            --primary-foreground: #ffffff;
+            --secondary: #f1f5f9;
+            --secondary-foreground: #475569;
+            --muted: #f8fafc;
+            --muted-foreground: #64748b;
+            --accent: #f1f5f9;
+            --accent-foreground: #0f172a;
+            --destructive: #ef4444;
+            --destructive-foreground: #ffffff;
+            --border: #e2e8f0;
+            --input: #e2e8f0;
+            --ring: #3b82f6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --radius: 0.5rem;
+        }
+
+        [data-theme="dark"] {
+            /* Dark theme colors */
+            --background: #0f172a;
+            --foreground: #f8fafc;
+            --card: #1e293b;
+            --card-foreground: #f8fafc;
+            --primary: #3b82f6;
+            --primary-foreground: #ffffff;
+            --secondary: #1e293b;
+            --secondary-foreground: #94a3b8;
+            --muted: #1e293b;
+            --muted-foreground: #64748b;
+            --accent: #1e293b;
+            --accent-foreground: #f8fafc;
+            --destructive: #ef4444;
+            --destructive-foreground: #ffffff;
+            --border: #334155;
+            --input: #334155;
+            --ring: #3b82f6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--muted-foreground);
+        }
+
+        .main-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            flex: 1;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 2rem;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background-color: var(--muted);
+        }
+
+        .upload-area.drag-over {
+            border-color: var(--primary);
+            background-color: var(--muted);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--muted-foreground);
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--foreground);
+        }
+
+        .upload-subtext {
+            font-size: 0.9rem;
+            color: var(--muted-foreground);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background-color: var(--background);
+            color: var(--foreground);
+            text-decoration: none;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background-color: var(--muted);
+        }
+
+        .btn.primary {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border-color: var(--primary);
+        }
+
+        .btn.primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-container {
+            margin: 2rem 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: var(--muted);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--muted-foreground);
+        }
+
+        .file-info {
+            background: var(--muted);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .file-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .file-info-label {
+            font-weight: 500;
+        }
+
+        .file-info-value {
+            color: var(--muted-foreground);
+        }
+
+        .compression-options {
+            margin: 2rem 0;
+            display: none;
+        }
+
+        .options-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .option-group {
+            margin-bottom: 1rem;
+        }
+
+        .option-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .option-select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background-color: var(--background);
+            color: var(--foreground);
+        }
+
+        .result-area {
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .result-card {
+            background: var(--success-color);
+            color: white;
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .result-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-text {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .compression-stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .compression-stats div {
+            text-align: center;
+        }
+
+        .compression-stats strong {
+            display: block;
+            font-size: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .language-selector {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .language-selector select {
+            background: transparent;
+            border: none;
+            color: var(--foreground);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .message.error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--destructive);
+            color: var(--destructive);
+        }
+
+        .message.success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .main-card {
+                padding: 1.5rem;
+            }
+
+            .upload-area {
+                padding: 2rem 1rem;
+            }
+
+            .compression-stats {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .language-selector {
+                bottom: 15px;
+                right: 15px;
+                padding: 6px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PDF Compress</h1>
+            <p data-lang-key="subtitle">무료 PDF 파일 압축 도구</p>
+        </div>
+
+        <div class="main-card">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">
+                    <span class="material-icons">cloud_upload</span>
+                </div>
+                <div class="upload-text" data-lang-key="uploadText">PDF 파일을 여기에 드래그하거나 클릭하여 선택하세요</div>
+                <div class="upload-subtext" data-lang-key="uploadSubtext">최대 50MB까지 지원됩니다</div>
+            </div>
+
+            <input type="file" id="fileInput" class="file-input" accept=".pdf" />
+
+            <div class="file-info" id="fileInfo">
+                <div class="file-info-item">
+                    <span class="file-info-label" data-lang-key="fileName">파일명:</span>
+                    <span class="file-info-value" id="fileNameValue"></span>
+                </div>
+                <div class="file-info-item">
+                    <span class="file-info-label" data-lang-key="fileSize">파일 크기:</span>
+                    <span class="file-info-value" id="fileSizeValue"></span>
+                </div>
+                <div class="file-info-item">
+                    <span class="file-info-label" data-lang-key="pageCount">페이지 수:</span>
+                    <span class="file-info-value" id="pageCountValue"></span>
+                </div>
+            </div>
+
+            <div class="compression-options" id="compressionOptions">
+                <div class="options-title" data-lang-key="compressionOptions">압축 옵션</div>
+                <div class="option-group">
+                    <label class="option-label" data-lang-key="compressionLevel">압축 모드:</label>
+                    <select class="option-select" id="compressionLevel">
+                        <option value="low" data-lang-key="lowCompression">낮음 (150 DPI, 높은 품질)</option>
+                        <option value="medium" selected data-lang-key="mediumCompression">보통 (120 DPI, 균형)</option>
+                        <option value="high" data-lang-key="highCompression">높음 (96 DPI, 작은 크기)</option>
+                        <option value="extreme" data-lang-key="extremeCompression">최고 (72 DPI, 최소 크기)</option>
+                        <option value="smart" data-lang-key="smartCompression">🎯 스마트 압축 (목표 크기에 맞춤)</option>
+                    </select>
+                </div>
+                <div class="option-group" id="targetSizeGroup" style="display: none;">
+                    <label class="option-label" data-lang-key="targetSize">목표 파일 크기:</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <select class="option-select" id="targetSizePreset" style="flex: 1;">
+                            <option value="" data-lang-key="customSize">직접 입력</option>
+                            <option value="2048" data-lang-key="preset2mb">2MB (이메일 첨부파일)</option>
+                            <option value="5120" data-lang-key="preset5mb">5MB (일반적인 제한)</option>
+                            <option value="10240" data-lang-key="preset10mb">10MB (대용량 허용)</option>
+                        </select>
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            <input type="number" id="customTargetSize" min="0.1" max="100" step="0.1" 
+                                   placeholder="2.0" style="width: 80px; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius);">
+                            <span style="font-size: 0.9rem; color: var(--muted-foreground);">MB</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.5rem;" data-lang-key="smartCompressionNote">
+                        스마트 압축은 목표 크기에 맞춰 자동으로 최적 품질을 찾습니다.
+                    </div>
+                </div>
+                <div class="option-group">
+                    <label class="option-label" data-lang-key="optimizeOptions">최적화 옵션:</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="removeMetadata" checked>
+                            <span data-lang-key="removeMetadata">메타데이터 제거</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="optimizeImages" checked>
+                            <span data-lang-key="optimizeImages">이미지 최적화</span>
+                        </label>
+                    </div>
+                </div>
+                <button class="btn primary" id="compressBtn" data-lang-key="compressBtn">PDF 압축하기</button>
+            </div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">압축 중...</div>
+            </div>
+
+            <div class="message" id="messageArea"></div>
+
+            <div class="result-area" id="resultArea">
+                <div class="result-card">
+                    <div class="result-icon">
+                        <span class="material-icons">check_circle</span>
+                    </div>
+                    <div class="result-text" data-lang-key="compressionComplete">PDF 압축이 완료되었습니다!</div>
+                    <div class="compression-stats" id="compressionStats">
+                        <div>
+                            <strong id="originalSize">0 MB</strong>
+                            <span data-lang-key="originalSize">원본 크기</span>
+                        </div>
+                        <div>
+                            <strong id="compressedSize">0 MB</strong>
+                            <span data-lang-key="compressedSize">압축 후 크기</span>
+                        </div>
+                        <div>
+                            <strong id="compressionRatio">0%</strong>
+                            <span data-lang-key="compressionRatio">압축률</span>
+                        </div>
+                    </div>
+                    <button class="btn" id="downloadBtn" data-lang-key="downloadBtn">압축된 PDF 다운로드</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>
+                <a href="index.html" data-lang-key="backToMain">← AnnotateShot으로 돌아가기</a> |
+                <a href="delcodelinenum.html" data-lang-key="otherTools">다른 도구들</a>
+            </p>
+            <p style="margin-top: 1rem; color: var(--muted-foreground);">
+                <span data-lang-key="footerText">모든 처리는 브라우저에서 진행되어 파일이 서버로 전송되지 않습니다.</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Language Selector -->
+    <div class="language-selector">
+        <select id="languageSelector" aria-label="Select language">
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+        </select>
+    </div>
+
+    <!-- PDF-lib CDN -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <!-- PDF.js for better PDF processing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <script>
+        // PDF.js 설정
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // 언어 관리
+        const languages = {
+            ko: {
+                subtitle: "무료 PDF 파일 압축 도구",
+                uploadText: "PDF 파일을 여기에 드래그하거나 클릭하여 선택하세요",
+                uploadSubtext: "최대 50MB까지 지원됩니다",
+                fileName: "파일명:",
+                fileSize: "파일 크기:",
+                pageCount: "페이지 수:",
+                compressionOptions: "압축 옵션",
+                compressionLevel: "압축 수준:",
+                lowCompression: "낮음 (150 DPI, 높은 품질)",
+                mediumCompression: "보통 (120 DPI, 균형)",
+                highCompression: "높음 (96 DPI, 작은 크기)",
+                extremeCompression: "최고 (72 DPI, 최소 크기)",
+                smartCompression: "🎯 스마트 압축 (목표 크기에 맞춤)",
+                targetSize: "목표 파일 크기:",
+                customSize: "직접 입력",
+                preset2mb: "2MB (이메일 첨부파일)",
+                preset5mb: "5MB (일반적인 제한)",
+                preset10mb: "10MB (대용량 허용)",
+                smartCompressionNote: "스마트 압축은 목표 크기에 맞춰 자동으로 최적 품질을 찾습니다.",
+                optimizeOptions: "최적화 옵션:",
+                removeMetadata: "메타데이터 제거",
+                optimizeImages: "이미지 최적화",
+                compressBtn: "PDF 압축하기",
+                compressionComplete: "PDF 압축이 완료되었습니다!",
+                originalSize: "원본 크기",
+                compressedSize: "압축 후 크기",
+                compressionRatio: "압축률",
+                downloadBtn: "압축된 PDF 다운로드",
+                backToMain: "← AnnotateShot으로 돌아가기",
+                otherTools: "다른 도구들",
+                footerText: "모든 처리는 브라우저에서 진행되어 파일이 서버로 전송되지 않습니다.",
+                processing: "압축 중...",
+                errorInvalidFile: "올바른 PDF 파일을 선택해주세요.",
+                errorFileTooLarge: "파일 크기가 너무 큽니다. 50MB 이하의 파일을 선택해주세요.",
+                errorProcessing: "PDF 처리 중 오류가 발생했습니다."
+            },
+            en: {
+                subtitle: "Free PDF File Compression Tool",
+                uploadText: "Drag and drop your PDF file here or click to select",
+                uploadSubtext: "Maximum file size: 50MB",
+                fileName: "File name:",
+                fileSize: "File size:",
+                pageCount: "Page count:",
+                compressionOptions: "Compression Options",
+                compressionLevel: "Compression level:",
+                lowCompression: "Low (150 DPI, High quality)",
+                mediumCompression: "Medium (120 DPI, Balanced)",
+                highCompression: "High (96 DPI, Small size)",
+                extremeCompression: "Extreme (72 DPI, Smallest size)",
+                smartCompression: "🎯 Smart Compression (Target size)",
+                targetSize: "Target file size:",
+                customSize: "Custom size",
+                preset2mb: "2MB (Email attachment)",
+                preset5mb: "5MB (Common limit)",
+                preset10mb: "10MB (Large files)",
+                smartCompressionNote: "Smart compression automatically finds optimal quality for your target size.",
+                optimizeOptions: "Optimization Options:",
+                removeMetadata: "Remove metadata",
+                optimizeImages: "Optimize images",
+                compressBtn: "Compress PDF",
+                compressionComplete: "PDF compression completed!",
+                originalSize: "Original Size",
+                compressedSize: "Compressed Size",
+                compressionRatio: "Compression Ratio",
+                downloadBtn: "Download Compressed PDF",
+                backToMain: "← Back to AnnotateShot",
+                otherTools: "Other Tools",
+                footerText: "All processing is done in your browser. No files are uploaded to servers.",
+                processing: "Compressing...",
+                errorInvalidFile: "Please select a valid PDF file.",
+                errorFileTooLarge: "File is too large. Please select a file under 50MB.",
+                errorProcessing: "An error occurred while processing the PDF."
+            }
+        };
+
+        // 현재 언어 설정
+        let currentLanguage = 'ko';
+
+        // 언어 적용 함수
+        function applyLanguage() {
+            const elements = document.querySelectorAll('[data-lang-key]');
+            elements.forEach(element => {
+                const key = element.getAttribute('data-lang-key');
+                if (languages[currentLanguage] && languages[currentLanguage][key]) {
+                    if (element.tagName === 'INPUT' && element.type === 'text') {
+                        element.placeholder = languages[currentLanguage][key];
+                    } else {
+                        element.textContent = languages[currentLanguage][key];
+                    }
+                }
+            });
+        }
+
+        // 언어 선택기 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            const langSelect = document.getElementById('languageSelector');
+            langSelect.value = currentLanguage;
+            langSelect.addEventListener('change', (e) => {
+                currentLanguage = e.target.value;
+                applyLanguage();
+            });
+            applyLanguage();
+        });
+
+        // PDF 압축 기능
+        class PDFCompressor {
+            constructor() {
+                this.currentFile = null;
+                this.initializeElements();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.fileInput = document.getElementById('fileInput');
+                this.fileInfo = document.getElementById('fileInfo');
+                this.compressionOptions = document.getElementById('compressionOptions');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.resultArea = document.getElementById('resultArea');
+                this.messageArea = document.getElementById('messageArea');
+                this.compressBtn = document.getElementById('compressBtn');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.progressFill = document.getElementById('progressFill');
+                this.progressText = document.getElementById('progressText');
+            }
+
+            bindEvents() {
+                this.uploadArea.addEventListener('click', () => this.fileInput.click());
+                this.uploadArea.addEventListener('dragover', this.handleDragOver.bind(this));
+                this.uploadArea.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                this.uploadArea.addEventListener('drop', this.handleDrop.bind(this));
+                this.fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+                this.compressBtn.addEventListener('click', this.compressPDF.bind(this));
+                
+                // 압축 모드 변경 이벤트
+                document.getElementById('compressionLevel').addEventListener('change', this.handleCompressionModeChange.bind(this));
+                
+                // 목표 크기 프리셋 변경 이벤트
+                document.getElementById('targetSizePreset').addEventListener('change', this.handleTargetSizePresetChange.bind(this));
+            }
+
+            handleCompressionModeChange(e) {
+                const targetSizeGroup = document.getElementById('targetSizeGroup');
+                if (e.target.value === 'smart') {
+                    targetSizeGroup.style.display = 'block';
+                    // 기본값으로 2MB 설정
+                    document.getElementById('targetSizePreset').value = '2048';
+                    document.getElementById('customTargetSize').value = '2.0';
+                } else {
+                    targetSizeGroup.style.display = 'none';
+                }
+            }
+
+            handleTargetSizePresetChange(e) {
+                const customInput = document.getElementById('customTargetSize');
+                if (e.target.value) {
+                    customInput.value = (parseInt(e.target.value) / 1024).toFixed(1);
+                } else {
+                    customInput.focus();
+                }
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                this.uploadArea.classList.add('drag-over');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                this.uploadArea.classList.remove('drag-over');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                this.uploadArea.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.processFile(files[0]);
+                }
+            }
+
+            handleFileSelect(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    this.processFile(file);
+                }
+            }
+
+            processFile(file) {
+                if (file.type !== 'application/pdf') {
+                    this.showMessage(languages[currentLanguage].errorInvalidFile, 'error');
+                    return;
+                }
+
+                if (file.size > 50 * 1024 * 1024) { // 50MB
+                    this.showMessage(languages[currentLanguage].errorFileTooLarge, 'error');
+                    return;
+                }
+
+                this.currentFile = file;
+                this.displayFileInfo(file);
+            }
+
+            async displayFileInfo(file) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                    const pageCount = pdfDoc.getPageCount();
+
+                    document.getElementById('fileNameValue').textContent = file.name;
+                    document.getElementById('fileSizeValue').textContent = this.formatFileSize(file.size);
+                    document.getElementById('pageCountValue').textContent = pageCount;
+
+                    this.fileInfo.style.display = 'block';
+                    this.compressionOptions.style.display = 'block';
+                    this.resultArea.style.display = 'none';
+                    this.hideMessage();
+                } catch (error) {
+                    this.showMessage(languages[currentLanguage].errorProcessing, 'error');
+                }
+            }
+
+            async compressPDF() {
+                if (!this.currentFile) return;
+
+                this.compressBtn.disabled = true;
+                this.progressContainer.style.display = 'block';
+                this.resultArea.style.display = 'none';
+                this.hideMessage();
+
+                try {
+                    const compressionLevel = document.getElementById('compressionLevel').value;
+                    this.updateProgress(10, languages[currentLanguage].processing);
+
+                    const arrayBuffer = await this.currentFile.arrayBuffer();
+                    this.updateProgress(20, languages[currentLanguage].processing);
+
+                    // PDF.js를 이용해 PDF 분석
+                    const loadingTask = pdfjsLib.getDocument({data: arrayBuffer});
+                    const pdf = await loadingTask.promise;
+                    this.updateProgress(30, languages[currentLanguage].processing);
+
+                    // 최적화 옵션
+                    const removeMetadata = document.getElementById('removeMetadata').checked;
+                    const optimizeImages = document.getElementById('optimizeImages').checked;
+
+                    if (compressionLevel === 'smart') {
+                        // 스마트 압축 모드
+                        const targetSizeKB = this.getTargetSizeKB();
+                        const compressedBytes = await this.smartCompress(pdf, targetSizeKB, removeMetadata, optimizeImages);
+                        this.showCompressionResult(this.currentFile.size, compressedBytes.length, compressedBytes);
+                    } else {
+                        // 기본 압축 모드
+                        const compressedBytes = await this.standardCompress(pdf, compressionLevel, removeMetadata, optimizeImages);
+                        this.showCompressionResult(this.currentFile.size, compressedBytes.length, compressedBytes);
+                    }
+
+                } catch (error) {
+                    console.error('Compression error:', error);
+                    this.showMessage(languages[currentLanguage].errorProcessing, 'error');
+                } finally {
+                    this.compressBtn.disabled = false;
+                    this.progressContainer.style.display = 'none';
+                }
+            }
+
+            getTargetSizeKB() {
+                const preset = document.getElementById('targetSizePreset').value;
+                const custom = parseFloat(document.getElementById('customTargetSize').value);
+                
+                if (preset) {
+                    return parseInt(preset);
+                } else if (custom && custom > 0) {
+                    return Math.round(custom * 1024);
+                } else {
+                    return 2048; // 기본값 2MB
+                }
+            }
+
+            async smartCompress(pdf, targetSizeKB, removeMetadata, optimizeImages) {
+                this.updateProgress(35, '🎯 스마트 압축 분석 중...');
+                
+                // 압축 레벨 후보들 (높은 품질부터 낮은 품질까지)
+                const qualityLevels = [
+                    { imageQuality: 0.9, jpegQuality: 95, resolutionDpi: 150, name: '최고품질' },
+                    { imageQuality: 0.8, jpegQuality: 85, resolutionDpi: 150, name: '고품질' },
+                    { imageQuality: 0.7, jpegQuality: 75, resolutionDpi: 140, name: '우수' },
+                    { imageQuality: 0.6, jpegQuality: 65, resolutionDpi: 130, name: '양호' },
+                    { imageQuality: 0.5, jpegQuality: 55, resolutionDpi: 120, name: '보통' },
+                    { imageQuality: 0.4, jpegQuality: 45, resolutionDpi: 110, name: '압축' },
+                    { imageQuality: 0.35, jpegQuality: 40, resolutionDpi: 100, name: '고압축' },
+                    { imageQuality: 0.3, jpegQuality: 35, resolutionDpi: 96, name: '매우압축' },
+                    { imageQuality: 0.25, jpegQuality: 30, resolutionDpi: 90, name: '극한압축' },
+                    { imageQuality: 0.2, jpegQuality: 25, resolutionDpi: 80, name: '최소크기' }
+                ];
+
+                const targetSizeBytes = targetSizeKB * 1024;
+                let bestResult = null;
+
+                // 이진 탐색으로 최적 품질 찾기
+                for (let i = 0; i < qualityLevels.length; i++) {
+                    const settings = qualityLevels[i];
+                    this.updateProgress(40 + (i / qualityLevels.length) * 40, 
+                        `🎯 품질 테스트 중... (${settings.name})`);
+                    
+                    try {
+                        const result = await this.compressWithSettings(pdf, settings, removeMetadata, optimizeImages);
+                        
+                        console.log(`품질 ${settings.name}: ${(result.length / 1024).toFixed(1)}KB (목표: ${targetSizeKB}KB)`);
+                        
+                        if (result.length <= targetSizeBytes) {
+                            // 목표 크기 이하 달성!
+                            bestResult = result;
+                            this.updateProgress(85, `✅ 최적 품질 발견: ${settings.name}`);
+                            break;
+                        }
+                        
+                        // 마지막 시도라면 이것을 사용
+                        if (i === qualityLevels.length - 1) {
+                            bestResult = result;
+                        }
+                        
+                    } catch (error) {
+                        console.warn(`품질 ${settings.name} 테스트 실패:`, error);
+                        continue;
+                    }
+                }
+
+                if (!bestResult) {
+                    throw new Error('압축 실패');
+                }
+
+                this.updateProgress(100, '✅ 스마트 압축 완료!');
+                return bestResult;
+            }
+
+            async standardCompress(pdf, compressionLevel, removeMetadata, optimizeImages) {
+                // 기존 압축 로직
+                const compressionSettings = {
+                    low: { imageQuality: 0.8, jpegQuality: 90, resolutionDpi: 150 },
+                    medium: { imageQuality: 0.6, jpegQuality: 70, resolutionDpi: 120 },
+                    high: { imageQuality: 0.4, jpegQuality: 50, resolutionDpi: 96 },
+                    extreme: { imageQuality: 0.25, jpegQuality: 30, resolutionDpi: 72 }
+                };
+
+                const settings = compressionSettings[compressionLevel];
+                this.updateProgress(40, languages[currentLanguage].processing);
+                
+                return await this.compressWithSettings(pdf, settings, removeMetadata, optimizeImages);
+            }
+
+            async compressWithSettings(pdf, settings, removeMetadata, optimizeImages) {
+                // PDF-lib로 새 PDF 문서 생성
+                const newPdfDoc = await PDFLib.PDFDocument.create();
+
+                // 각 페이지를 처리
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.0 });
+
+                    // Canvas를 생성하여 페이지를 렌더링
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    
+                    // DPI에 따른 스케일 조정
+                    const scale = settings.resolutionDpi / 72; // 72 DPI가 기본
+                    const scaledViewport = page.getViewport({ scale: scale });
+                    
+                    canvas.height = scaledViewport.height;
+                    canvas.width = scaledViewport.width;
+
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: scaledViewport
+                    };
+
+                    await page.render(renderContext).promise;
+
+                    // Canvas를 이미지로 변환하여 압축
+                    const imageDataUrl = canvas.toDataURL('image/jpeg', settings.imageQuality);
+                    const imageBytes = this.dataUrlToBytes(imageDataUrl);
+
+                    // 새 PDF 문서에 압축된 이미지로 페이지 추가
+                    const jpgImage = await newPdfDoc.embedJpg(imageBytes);
+                    const newPage = newPdfDoc.addPage([viewport.width, viewport.height]);
+                    
+                    newPage.drawImage(jpgImage, {
+                        x: 0,
+                        y: 0,
+                        width: viewport.width,
+                        height: viewport.height,
+                    });
+                }
+
+                // 메타데이터 처리
+                if (removeMetadata) {
+                    newPdfDoc.setTitle('');
+                    newPdfDoc.setAuthor('');
+                    newPdfDoc.setSubject('');
+                    newPdfDoc.setKeywords([]);
+                    newPdfDoc.setProducer('');
+                    newPdfDoc.setCreator('');
+                } else {
+                    newPdfDoc.setProducer('PDF Compress - alllogo.net');
+                }
+
+                // 최종 압축된 PDF 저장
+                const saveOptions = {
+                    useObjectStreams: true,
+                    addDefaultPage: false,
+                };
+
+                const compressedBytes = await newPdfDoc.save(saveOptions);
+                return compressedBytes;
+            }
+
+            dataUrlToBytes(dataUrl) {
+                const base64 = dataUrl.split(',')[1];
+                const binaryString = atob(base64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return bytes;
+            }
+
+            showCompressionResult(originalSize, compressedSize, compressedBytes) {
+                const compressionRatio = Math.round((1 - compressedSize / originalSize) * 100);
+                const savedBytes = originalSize - compressedSize;
+
+                document.getElementById('originalSize').textContent = this.formatFileSize(originalSize);
+                document.getElementById('compressedSize').textContent = this.formatFileSize(compressedSize);
+                document.getElementById('compressionRatio').textContent = `${Math.max(0, compressionRatio)}%`;
+
+                // 압축 효과를 더 명확하게 표시
+                const resultCard = document.querySelector('.result-card');
+                if (compressionRatio > 0) {
+                    resultCard.style.background = 'var(--success-color)';
+                    const resultText = document.querySelector('.result-text');
+                    resultText.innerHTML = `
+                        ${languages[currentLanguage].compressionComplete}<br>
+                        <small style="opacity: 0.9;">파일 크기가 ${this.formatFileSize(savedBytes)} 줄어들었습니다!</small>
+                    `;
+                } else {
+                    resultCard.style.background = 'var(--warning-color)';
+                    const resultText = document.querySelector('.result-text');
+                    resultText.innerHTML = `
+                        PDF 처리가 완료되었습니다.<br>
+                        <small style="opacity: 0.9;">이미 최적화된 파일이거나 압축이 어려운 형식입니다.</small>
+                    `;
+                }
+
+                this.resultArea.style.display = 'block';
+
+                // 다운로드 버튼 이벤트
+                this.downloadBtn.onclick = () => {
+                    const blob = new Blob([compressedBytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = this.currentFile.name.replace('.pdf', '_compressed.pdf');
+                    a.click();
+                    URL.revokeObjectURL(url);
+                };
+            }
+
+            updateProgress(percent, text) {
+                this.progressFill.style.width = `${percent}%`;
+                this.progressText.textContent = text;
+            }
+
+            showMessage(message, type) {
+                this.messageArea.textContent = message;
+                this.messageArea.className = `message ${type}`;
+                this.messageArea.style.display = 'block';
+            }
+
+            hideMessage() {
+                this.messageArea.style.display = 'none';
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        }
+
+        // PDF 압축기 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            new PDFCompressor();
+        });
+    </script>
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3945001668113003" crossorigin="anonymous"></script>
+</body>
+</html>

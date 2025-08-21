@@ -234,7 +234,38 @@
             margin-bottom: 0.75rem;
             display: flex;
             align-items: center;
+            justify-content: flex-start;
             gap: 0.5rem;
+        }
+
+        .panel-title-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Keep title and pulldown on a single row for style-section headers */
+        .style-section.panel-title {
+            justify-content: flex-start;
+            align-items: center;
+            flex-wrap: nowrap;
+            gap: 0.75rem;
+        }
+
+        /* Fixed label width on the left; control fills remaining space */
+        :root { --label-width: 120px; }
+        .style-section.panel-title .panel-title-left { flex: 0 0 var(--label-width); min-width: var(--label-width); padding: 0 4px; }
+        .style-section.panel-title .panel-inline-control { flex: 1 1 auto; min-width: 0; }
+
+
+        .panel-inline-control {
+            flex-shrink: 0;
+            min-width: 120px;
+        }
+
+        .panel-inline-control select {
+            width: 100%;
+            font-size: 0.8rem;
         }
 
 
@@ -301,6 +332,7 @@
         .btn-row {
             display: flex;
             gap: 0.5rem;
+            flex-wrap: wrap;
         }
 
 
@@ -335,6 +367,49 @@
 
         .style-section {
             margin-bottom: 1rem;
+        }
+
+        /* Make clipboard paste button span full row */
+        #clipboardButton { flex: 1 0 100%; }
+
+        @media (max-width: 768px) {
+            /* 모바일에서 인라인 컨트롤 조정 */
+            .panel-inline-control {
+                min-width: 100px;
+                max-width: 140px;
+            }
+            
+            .panel-inline-control select {
+                font-size: 0.75rem;
+                padding: 4px 8px;
+            }
+            
+            .panel-title {
+                gap: 0.25rem;
+            }
+            
+            .panel-title-left {
+                gap: 0.25rem;
+                min-width: 0;
+                flex-shrink: 1;
+            }
+            
+            .panel-title-left span {
+                font-size: 0.8rem;
+            }
+            
+            /* 모바일에서 사이드바가 표시될 때 인라인 레이아웃 유지 */
+            .mobile-device .style-section.panel-title {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .mobile-device .panel-inline-control {
+                flex-shrink: 0;
+                min-width: 90px;
+                max-width: 120px;
+            }
         }
 
         .style-subtitle {
@@ -1471,7 +1546,7 @@
             <!-- Sidebar Header -->
             <div class="sidebar-header">
                 <div class="logo-section">
-                    <span class="material-icons logo-icon">edit</span>
+                    <img src="extension/icon.png" alt="AnnotateShot Logo" class="logo-icon" style="width: 24px; height: 24px;">
                     <h1 class="logo-text">
                         <span class="desktop-text">AnnotateShot
                     </h1>
@@ -1489,9 +1564,9 @@
                     <div class="btn-group">
                         <input type="file" id="imageLoader" accept="image/*" aria-label="Upload image file">
                         <div class="btn-row">
-                            <button class="btn" id="clipboardButton" aria-label="Paste image from clipboard" title="Paste from Clipboard" style="flex: 1; height: 2.5rem;">
+                            <button class="btn" id="clipboardButton" aria-label="Paste image from clipboard" title="Paste from Clipboard" style="height: 2.5rem;">
                                 <span class="material-icons">content_paste</span>
-                                <span data-lang-key="pasteFromClipboard">클립보드에서 가져오기</span>
+                                <span data-lang-key="clipboard">클립보드에서 가져오기</span>
                             </button>
                             <button class="btn btn-icon success" id="saveButton" aria-label="Save annotated image" title="Save Image">
                                 <span class="material-icons">download</span>
@@ -1509,8 +1584,10 @@
                 <!-- Canvas Settings -->
                 <div class="tool-panel">
                     <div class="panel-title">
-                        <span class="material-icons">palette</span>
-                        <span data-lang-key="canvasSettings">캔버스 설정</span>
+                        <div class="panel-title-left">
+                            <span class="material-icons">palette</span>
+                            <span data-lang-key="canvasSettings">캔버스 설정</span>
+                        </div>
                     </div>
                     <div class="style-section">
                         <div class="style-subtitle" data-lang-key="canvasMode">캔버스 모드</div>
@@ -1556,10 +1633,12 @@
                 <!-- Drawing Mode -->
                 <div class="tool-panel">
                     <div class="panel-title">
-                        <span class="material-icons">brush</span>
-                        <span data-lang-key="annotationMode">주석 모드</span>
+                        <div class="panel-title-left">
+                            <span class="material-icons">brush</span>
+                            <span data-lang-key="annotationMode">주석 모드</span>
+                        </div>
                     </div>
-                    <div class="btn-group">
+                    <div class="style-section">
                         <select id="modeSelector" aria-label="Select annotation mode">
                             <option value="number" data-lang-key="numberMode">숫자 입력 모드</option>
                             <option value="shape" data-lang-key="shapeMode">도형 모드</option>
@@ -1578,102 +1657,132 @@
                     </div>
                     
                     <!-- Color Section -->
-                    <div class="style-section" id="colorSection">
-                        <div class="style-subtitle" data-lang-key="color">색상</div>
-                        <select id="colorSelector" aria-label="Select annotation color">
-                            <option value="#FF0000" data-lang-key="red">빨간색</option>
-                            <option value="#FF8000" data-lang-key="orange">주황색</option>
-                            <option value="#00FF00" data-lang-key="green">녹색</option>
-                            <option value="#0000FF" data-lang-key="blue">파랑색</option>
-                        </select>
+                    <div class="style-section panel-title" id="colorSection">
+                        <div class="panel-title-left">
+                            <span data-lang-key="color">색상</span>
+                        </div>
+                        <div class="panel-inline-control">
+                            <select id="colorSelector" aria-label="Select annotation color">
+                                <option value="#FF0000" data-lang-key="red">빨간색</option>
+                                <option value="#FF8000" data-lang-key="orange">주황색</option>
+                                <option value="#00FF00" data-lang-key="green">녹색</option>
+                                <option value="#0000FF" data-lang-key="blue">파랑색</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <!-- Size Section -->
-                    <div class="style-section" id="sizeSection">
-                        <div class="style-subtitle" data-lang-key="size">크기</div>
-                        <select id="sizeSelector" aria-label="Select annotation size">
-                            <option value="10">10px</option>
-                            <option value="15">15px</option>
-                            <option value="20" selected>20px</option>
-                            <option value="25">25px</option>
-                            <option value="30">30px</option>
-                            <option value="35">35px</option>
-                            <option value="40">40px</option>
-                            <option value="45">45px</option>
-                            <option value="50">50px</option>
-                            <option value="55">55px</option>
-                            <option value="60">60px</option>
-                            <option value="65">65px</option>
-                            <option value="70">70px</option>
-                        </select>
+                    <div class="style-section panel-title" id="sizeSection">
+                        <div class="panel-title-left">
+                            <span data-lang-key="size">크기</span>
+                        </div>
+                        <div class="panel-inline-control">
+                            <select id="sizeSelector" aria-label="Select annotation size">
+                                <option value="10">10px</option>
+                                <option value="15">15px</option>
+                                <option value="20" selected>20px</option>
+                                <option value="25">25px</option>
+                                <option value="30">30px</option>
+                                <option value="35">35px</option>
+                                <option value="40">40px</option>
+                                <option value="45">45px</option>
+                                <option value="50">50px</option>
+                                <option value="55">55px</option>
+                                <option value="60">60px</option>
+                                <option value="65">65px</option>
+                                <option value="70">70px</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <!-- Line Width Section (Shape mode only) -->
-                    <div class="style-section" id="lineWidthSection" style="display: none;">
-                        <div class="style-subtitle" data-lang-key="lineWidth">굵기</div>
-                        <select id="lineWidthSelector" aria-label="Select line width">
-                            <option value="1" data-lang-key="thin">얇음</option>
-                            <option value="2" selected data-lang-key="normal">보통</option>
-                            <option value="4" data-lang-key="thick">두꺼움</option>
-                        </select>
+                    <div class="style-section panel-title" id="lineWidthSection" style="display: none;">
+                        <div class="panel-title-left">
+                            <span data-lang-key="lineWidth">굵기</span>
+                        </div>
+                        <div class="panel-inline-control">
+                            <select id="lineWidthSelector" aria-label="Select line width">
+                                <option value="1" data-lang-key="thin">얇음</option>
+                                <option value="2" selected data-lang-key="normal">보통</option>
+                                <option value="4" data-lang-key="thick">두꺼움</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <!-- Shape Section (Shape mode only) -->
-                    <div class="style-section" id="shapeSection" style="display: none;">
-                        <div class="style-subtitle" data-lang-key="shape">모양</div>
-                        <select id="shapeSelector" aria-label="Select shape type">
-                            <option value="rectangle" data-lang-key="rectangle">사각형</option>
-                            <option value="circle" data-lang-key="circle">원</option>
-                            <option value="arrow" data-lang-key="arrow">화살표</option>
-                        </select>
+                    <div class="style-section panel-title" id="shapeSection" style="display: none;">
+                        <div class="panel-title-left">
+                            <span data-lang-key="shape">모양</span>
+                        </div>
+                        <div class="panel-inline-control">
+                            <select id="shapeSelector" aria-label="Select shape type">
+                                <option value="rectangle" data-lang-key="rectangle">사각형</option>
+                                <option value="circle" data-lang-key="circle">원</option>
+                                <option value="arrow" data-lang-key="arrow">화살표</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <!-- Fill Section (Shape mode only, not for arrows) -->
-                    <div class="style-section" id="fillSection" style="display: none;">
-                        <div class="style-subtitle" data-lang-key="fill">채우기</div>
-                        <select id="fillSelector" aria-label="Select fill type">
-                            <option value="none" data-lang-key="fillNone">테두리만</option>
-                            <option value="solid" data-lang-key="fillSolid">단색 채우기</option>
-                            <option value="blur" data-lang-key="fillBlur">흐림 효과</option>
-                            <option value="mosaic" data-lang-key="fillMosaic">모자이크</option>
-                        </select>
+                    <div class="style-section panel-title" id="fillSection" style="display: none;">
+                        <div class="panel-title-left">
+                            <span data-lang-key="fill">채우기</span>
+                        </div>
+                        <div class="panel-inline-control">
+                            <select id="fillSelector" aria-label="Select fill type">
+                                <option value="none" data-lang-key="fillNone">테두리만</option>
+                                <option value="solid" data-lang-key="fillSolid">단색 채우기</option>
+                                <option value="blur" data-lang-key="fillBlur">흐림 효과</option>
+                                <option value="mosaic" data-lang-key="fillMosaic">모자이크</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <!-- Emoji Section (Emoji mode only) -->
-                    <div class="style-section" id="emojiSection" style="display: none;">
-                        <div class="style-subtitle" data-lang-key="emojiType">이모지 종류</div>
-                        <select id="emojiSelector" aria-label="Select emoji">
-                            <option value="😀">😀</option>
-                            <option value="😍">😍</option>
-                            <option value="🤔">🤔</option>
-                            <option value="👍">👍</option>
-                            <option value="👎">👎</option>
-                            <option value="❤️">❤️</option>
-                            <option value="⭐">⭐</option>
-                            <option value="🔥">🔥</option>
-                            <option value="💯">💯</option>
-                            <option value="✅">✅</option>
-                            <option value="❌">❌</option>
-                            <option value="⚠️">⚠️</option>
-                        </select>
+                    <div class="style-section panel-title" id="emojiSection" style="display: none;">
+                        <div class="panel-title-left">
+                            <span data-lang-key="emojiType">이모지 종류</span>
+                        </div>
+                        <div class="panel-inline-control">
+                            <select id="emojiSelector" aria-label="Select emoji">
+                                <option value="😀">😀</option>
+                                <option value="😍">😍</option>
+                                <option value="🤔">🤔</option>
+                                <option value="👍">👍</option>
+                                <option value="👎">👎</option>
+                                <option value="❤️">❤️</option>
+                                <option value="⭐">⭐</option>
+                                <option value="🔥">🔥</option>
+                                <option value="💯">💯</option>
+                                <option value="✅">✅</option>
+                                <option value="❌">❌</option>
+                                <option value="⚠️">⚠️</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Crop Section (Crop mode only) -->
-                    <div class="style-section" id="cropSection" style="display: none;">
-                        <div class="style-subtitle" data-lang-key="cropStyle">크롭 스타일</div>
-                        <select id="cropStyleSelector" aria-label="Select crop style">
-                            <option value="basic" data-lang-key="cropBasic">기본 크롭</option>
-                            <option value="torn" data-lang-key="cropTorn">찢어진 종이</option>
-                        </select>
+                    <div class="style-section panel-title" id="cropSection" style="display: none;">
+                        <div class="panel-title-left">
+                            <span data-lang-key="cropStyle">크롭 스타일</span>
+                        </div>
+                        <div class="panel-inline-control">
+                            <select id="cropStyleSelector" aria-label="Select crop style">
+                                <option value="basic" data-lang-key="cropBasic">기본 크롭</option>
+                                <option value="torn" data-lang-key="cropTorn">찢어진 종이</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Crop Controls Section -->
-                    <div class="style-section" id="cropControlsSection" style="display: none;">
-                        <div class="style-subtitle" data-lang-key="cropControls">크롭 컨트롤</div>
-                        <div class="btn-group">
+                    <div class="style-section panel-title" id="cropControlsSection" style="display: none;">
+                        <div class="panel-title-left">
+                            <span data-lang-key="cropControls">크롭 컨트롤</span>
+                        </div>
+                        <div class="panel-inline-control">
                             <button id="applyCropButton" class="btn btn-primary" data-lang-key="applyCrop" disabled>크롭 적용</button>
                         </div>
-                        <div class="crop-info" id="cropInfo" style="display: none; margin-top: 8px; font-size: 12px; color: #666;">
+                        <div class="crop-info" id="cropInfo" style="display: none; margin-top: 8px; font-size: 12px; color: #666; grid-column: 1 / -1;">
                             <span data-lang-key="cropInstruction">드래그하여 크롭 영역을 선택하세요</span>
                         </div>
                     </div>
@@ -1681,28 +1790,13 @@
             </div>
 
             <!-- Sidebar Footer -->
-            <div class="sidebar-footer" style="padding: 1rem; border-top: 1px solid var(--border);">
+            <div class="sidebar-footer" style="padding: 1rem;">
                 <div class="btn-group">
-                    
-                    <!-- Language Selector -->
-                    <div style="margin-top: 1rem;">
-                         <label for="languageSelector" style="font-size: 0.875rem; color: var(--muted-foreground); margin-bottom: 0.5rem; display: block;">Language</label>
-                         <select id="languageSelector" aria-label="Select language" style="width: 100%;">
-                             <option value="ko">한국어</option>
-                             <option value="en">English</option>
-                         </select>
-                    </div>
-                    
                     <!-- Footer Links -->
-                    <div class="footer-links" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <div class="footer-links">
                         <a href="changelog.html" target="_blank" class="btn footer-link">
                             <span class="material-icons">description</span>
                             <span data-lang-key="releaseNotes">Release Notes</span>
-                        </a>
-                        
-                        <a href="delcodelinenum.html" class="btn footer-link">
-                            <span class="material-icons">code</span>
-                            <span data-lang-key="codeLineRemover">Code Line Remover</span>
                         </a>
                     </div>
                 </div>
@@ -1806,12 +1900,42 @@
                         모든 레이어 지우기
                     </button>
                 </div>
+
+                <!-- Language Selector in Layer Sidebar -->
+                <div class="layer-language" style="border-top: 1px solid var(--border); margin-top: 0.75rem; padding: 16px;">
+                    <label for="languageSelector" style="display:block; font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;" data-lang-key="language">언어</label>
+                    <select id="languageSelector" aria-label="Select language" style="width: 100%; padding: 0.5rem 0.75rem; background: var(--muted); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius);">
+                        <option value="en">English</option>
+                        <option value="ko">한국어</option>
+                        <option value="ja">日本語</option>
+                    </select>
+                    
+                    <!-- Divider -->
+                    <div style="border-top: 1px solid var(--border); margin: 1rem 0;"></div>
+                    
+                    <!-- Sub Services Selector -->
+                    <div class="panel-title" style="margin-bottom: 0;">
+                        <div class="panel-title-left">
+                            <span class="material-icons">apps</span>
+                            <span data-lang-key="subServices">다른 <br>서비스</span>
+                        </div>
+                        <div class="panel-inline-control">
+                            <select id="subServiceSelector" aria-label="Select sub service">
+                                <option value="" data-lang-key="selectService">서비스 선택</option>
+                                <option value="delcodelinenum.html" data-lang-key="codeLineRemover">Code Line Remover</option>
+                                <option value="pdfcompress.html" data-lang-key="pdfCompress">PDF Compress</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
         </aside>
     </div>
 
     <!-- Message -->
     <div id="message"></div>
+
+    
 
     <script src="./src/main.js"></script>
     
@@ -1822,8 +1946,8 @@
             const body = document.body;
             const themeIcon = themeToggle.querySelector('.material-icons');
             
-            // Check for saved theme or default to light
-            const savedTheme = localStorage.getItem('theme') || 'light';
+            // Check for saved theme or default to dark
+            const savedTheme = localStorage.getItem('theme') || 'dark';
             if (savedTheme === 'dark') {
                 body.classList.add('dark');
                 themeIcon.textContent = 'light_mode';
@@ -2510,289 +2634,7 @@
             });
         }
 
-        // Multi-language support functions
-        function getLanguage() {
-            // Priority: 1. localStorage, 2. browser language, 3. default 'en'
-            const savedLang = localStorage.getItem('language');
-            if (savedLang) return savedLang;
-
-            const browserLang = navigator.language || navigator.userLanguage;
-            if (browserLang.startsWith('ko')) return 'ko';
-            
-            return 'en';
-        }
-
-        function setLanguage(lang) {
-            localStorage.setItem('language', lang);
-            updateUILanguage();
-        }
-
-        function translate(key, params = {}) {
-            const translations = {
-                'ko': {
-                    'fileOperations': '파일 작업',
-                    'pasteFromClipboard': '클립보드에서 가져오기',
-                    'canvasSettings': '캔버스 설정',
-                    'canvasMode': '캔버스 모드',
-                    'singleImageMode': '싱글 이미지 편집',
-                    'multiImageMode': '빈 캔버스 (멀티 이미지)',
-                    'backgroundColor': '배경색',
-                    'canvasSize': '캔버스 크기',
-                    'size1920x1080': 'Full HD (1920×1080)',
-                    'size1280x720': 'HD (1280×720)',
-                    'size1200x800': '웹 표준 (1200×800)',
-                    'size800x600': '클래식 (800×600)',
-                    'sizeA4Landscape': 'A4 가로 (297×210mm)',
-                    'sizeA4Portrait': 'A4 세로 (210×297mm)',
-                    'sizeCustom': '사용자 정의',
-                    'apply': '적용',
-                    'white': '흰색',
-                    'lightGray': '연한 회색',
-                    'gray': '회색',
-                    'darkGray': '짙은 회색',
-                    'transparent': '투명',
-                    'annotationMode': '주석 모드',
-                    'numberMode': '숫자 입력 모드',
-                    'shapeMode': '도형 모드',
-                    'textMode': '텍스트 모드',
-                    'emojiMode': '이모지 모드',
-                    'cropMode': '크롭 모드',
-                    'style': '스타일',
-                    'color': '색상',
-                    'red': '빨간색',
-                    'orange': '주황색',
-                    'green': '녹색',
-                    'blue': '파랑색',
-                    'size': '크기',
-                    'lineWidth': '굵기',
-                    'thin': '얇음',
-                    'normal': '보통',
-                    'thick': '두꺼움',
-                    'shape': '모양',
-                    'rectangle': '사각형',
-                    'circle': '원',
-                    'arrow': '화살표',
-                    'fill': '채우기',
-                    'fillNone': '테두리만',
-                    'fillSolid': '단색 채우기',
-                    'fillBlur': '흐림 효과',
-                    'fillMosaic': '모자이크',
-                    'emojiType': '이모지 종류',
-                    'cropStyle': '크롭 스타일',
-                    'cropBasic': '기본 크롭',
-                    'cropShadow': '그림자 효과',
-                    'cropRounded': '둥근 모서리',
-                    'cropTorn': '찢어진 종이',
-                    'cropCurtain': '극장 커튼',
-                    'cropControls': '크롭 컨트롤',
-                    'applyCrop': '크롭 적용',
-                    'cancelCrop': '크롭 취소',
-                    'layers': '레이어',
-                    'backgroundLayer': '배경 이미지',
-                    'clearAllLayers': '모든 레이어 지우기',
-                    'cropInstruction': '드래그하여 크롭 영역을 선택하세요',
-                    'undo': '실행 취소',
-                    'save': '저장하기',
-                    'toggleTheme': '테마 변경',
-                    'language': '언어',
-                    'releaseNotes': '릴리즈 노트',
-                    'codeLineRemover': '코드 라인 제거기',
-                    'chromeExtension': 'Chrome 확장 프로그램',
-                    'editImage': '이미지 편집',
-                    'imageSize': '이미지 크기:',
-                    'autoResize': '자동 리사이즈 (기본)',
-                    'originalSize': '원본',
-                    'width300': '너비 300',
-                    'width600': '너비 600',
-                    'width900': '너비 900',
-                    'scale30': '원본 대비 30% 축소',
-                    'scale50': '원본 대비 50% 축소',
-                    'scale70': '원본 대비 70% 축소',
-                    'uploadImagePrompt': 'AnnotateShot 서비스 이용 방법\n1. 번호, 도형, 텍스트를 입력해야하는 이미지를 불러오세요. 클립보드 이미지도 가능합니다.\n2. 아무곳이나 클릭해보세요.\n3. 저장이 필요하면 저장하기 버튼을 눌러서 로컬 PC로 저장할 수 있습니다. 혹은 이미지 우측 클릭 후 이미지 복사를 하셔도 괜찮습니다.',
-                    'mobileUploadImagePrompt': 'AnnotateShot 모바일 사용법\n1. 좌측 🖼️ 버튼으로 사진을 찍거나 갤러리에서 이미지를 불러오세요\n2. 숫자 모드: 화면을 터치하여 순차 번호 추가\n3. 이모지 모드: 하단 😀 버튼으로 선택 후 터치하여 추가\n4. 텍스트 모드: 화면을 터치하면 텍스트 입력창이 나타남\n5. 끌어서 이동: 모든 주석을 드래그하여 위치 이동 가능\n6. 우측 💾 버튼으로 완성된 이미지를 저장하세요',
-                    'blankCanvasPrompt': '빈 캔버스 모드 (멀티 이미지)\n1. 배경색을 선택하세요.\n2. 여러 이미지를 업로드하여 레이어로 구성하세요.\n3. 각 이미지를 드래그하여 위치를 조정할 수 있습니다.',
-                    'imageLoaded': '이미지 로드됨: {width} x {height}',
-                    'imageLayerAdded': '이미지 레이어 {layerNumber} 추가됨: {width} x {height}',
-                    'mouseMovePrompt': '마우스를 움직여보세요',
-                    'statusCoordinates': '좌표: ({x}, {y})',
-                    'statusOutsideCanvas': '캔버스 영역 외부',
-                    'statusWaiting': '대기 중',
-                    'statusModeChanged': '모드 변경: {modeName}',
-                    'statusEmojiSelected': '이모지 선택: {emoji}',
-                    'statusShapeSelected': '도형 선택: {shapeName}',
-                    'statusColorChanged': '색상 변경: {colorName}',
-                    'statusImageSaved': '이미지 저장됨',
-                    'statusUndo': '실행 취소됨',
-                    'statusAdded': '{modeName} 추가됨: ({x}, {y})',
-                    'cropTooSmall': '크롭 영역이 너무 작습니다 (최소 10×10 픽셀)',
-                    'cropSelected': '크롭 영역이 선택되었습니다. 스타일을 선택하고 적용 버튼을 눌러주세요.',
-                    'cropApplied': '크롭이 적용되었습니다',
-                    'cropCancelled': '크롭이 취소되었습니다',
-                    'enterText': '텍스트를 입력하세요',
-                    'textAdded': '텍스트 "{text}" 추가됨: ({x}, {y})',
-                    'emojiAdded': '이모지 {emoji} 추가됨: ({x}, {y})'
-                },
-                'en': {
-                    'fileOperations': 'File Operations',
-                    'pasteFromClipboard': 'Paste from Clipboard',
-                    'canvasSettings': 'Canvas Settings',
-                    'canvasMode': 'Canvas Mode',
-                    'singleImageMode': 'Single Image Edit',
-                    'multiImageMode': 'Blank Canvas (Multi Image)',
-                    'backgroundColor': 'Background Color',
-                    'canvasSize': 'Canvas Size',
-                    'size1920x1080': 'Full HD (1920×1080)',
-                    'size1280x720': 'HD (1280×720)',
-                    'size1200x800': 'Web Standard (1200×800)',
-                    'size800x600': 'Classic (800×600)',
-                    'sizeA4Landscape': 'A4 Landscape (297×210mm)',
-                    'sizeA4Portrait': 'A4 Portrait (210×297mm)',
-                    'sizeCustom': 'Custom',
-                    'apply': 'Apply',
-                    'white': 'White',
-                    'lightGray': 'Light Gray',
-                    'gray': 'Gray',
-                    'darkGray': 'Dark Gray',
-                    'transparent': 'Transparent',
-                    'annotationMode': 'Annotation Mode',
-                    'numberMode': 'Number Mode',
-                    'shapeMode': 'Shape Mode',
-                    'textMode': 'Text Mode',
-                    'emojiMode': 'Emoji Mode',
-                    'cropMode': 'Crop Mode',
-                    'style': 'Style',
-                    'color': 'Color',
-                    'red': 'Red',
-                    'orange': 'Orange',
-                    'green': 'Green',
-                    'blue': 'Blue',
-                    'size': 'Size',
-                    'lineWidth': 'Line Width',
-                    'thin': 'Thin',
-                    'normal': 'Normal',
-                    'thick': 'Thick',
-                    'shape': 'Shape',
-                    'rectangle': 'Rectangle',
-                    'circle': 'Circle',
-                    'arrow': 'Arrow',
-                    'fill': 'Fill',
-                    'fillNone': 'Border Only',
-                    'fillSolid': 'Solid Fill',
-                    'fillBlur': 'Blur Effect',
-                    'fillMosaic': 'Mosaic',
-                    'emojiType': 'Emoji Type',
-                    'cropStyle': 'Crop Style',
-                    'cropBasic': 'Basic Crop',
-                    'cropShadow': 'Shadow Effect',
-                    'cropRounded': 'Rounded Corners',
-                    'cropTorn': 'Torn Paper',
-                    'cropCurtain': 'Theater Curtain',
-                    'cropControls': 'Crop Controls',
-                    'applyCrop': 'Apply Crop',
-                    'cancelCrop': 'Cancel Crop',
-                    'layers': 'Layers',
-                    'backgroundLayer': 'Background Image',
-                    'clearAllLayers': 'Clear All Layers',
-                    'cropInstruction': 'Drag to select crop area',
-                    'undo': 'Undo',
-                    'redo': 'Redo',
-                    'save': 'Save',
-                    'toggleTheme': 'Toggle Theme',
-                    'language': 'Language',
-                    'releaseNotes': 'Release Notes',
-                    'codeLineRemover': 'Code Line Remover',
-                    'chromeExtension': 'Chrome Extension',
-                    'editImage': 'Edit Image',
-                    'imageSize': 'Image Size:',
-                    'autoResize': 'Auto Resize (Default)',
-                    'originalSize': 'Original',
-                    'width300': 'Width 300',
-                    'width600': 'Width 600',
-                    'width900': 'Width 900',
-                    'scale30': 'Scale 30%',
-                    'scale50': 'Scale 50%',
-                    'scale70': 'Scale 70%',
-                    'uploadImagePrompt': 'How to use AnnotateShot\n1. Load an image that needs numbers, shapes, or text annotations. Clipboard images are supported.\n2. Click anywhere on the image.\n3. When you need to save, click the Save button to download to your local PC. You can also right-click the image and copy it.',
-                    'mobileUploadImagePrompt': 'AnnotateShot Mobile Guide\n1. Tap 🖼️ button to load image from gallery\n2. Number mode: Touch screen to add sequential numbers\n3. Emoji mode: Tap 😀 button to select, then touch to add\n4. Text mode: Touch screen to open text input dialog\n5. Drag to move: All annotations can be dragged to new positions\n6. Tap 💾 button (top-right) to save your annotated image',
-                    'blankCanvasPrompt': 'Blank Canvas Mode (Multi Image)\n1. Select a background color.\n2. Upload multiple images to compose as layers.\n3. Drag each image to adjust its position.',
-                    'imageLoaded': 'Image loaded: {width} x {height}',
-                    'imageLayerAdded': 'Image layer {layerNumber} added: {width} x {height}',
-                    'mouseMovePrompt': 'Move your mouse',
-                    'statusCoordinates': 'Coordinates: ({x}, {y})',
-                    'statusOutsideCanvas': 'Outside canvas area',
-                    'statusWaiting': 'Waiting',
-                    'statusModeChanged': 'Mode changed: {modeName}',
-                    'statusEmojiSelected': 'Emoji selected: {emoji}',
-                    'statusShapeSelected': 'Shape selected: {shapeName}',
-                    'statusColorChanged': 'Color changed: {colorName}',
-                    'statusImageSaved': 'Image saved',
-                    'statusUndo': 'Action undone',
-                    'statusAdded': '{modeName} added at: ({x}, {y})',
-                    'cropTooSmall': 'Crop area is too small (minimum 10×10 pixels)',
-                    'cropSelected': 'Crop area selected. Choose a style and click Apply.',
-                    'cropApplied': 'Crop has been applied',
-                    'cropCancelled': 'Crop has been cancelled',
-                    'enterText': 'Enter text',
-                    'textAdded': 'Text "{text}" added at: ({x}, {y})',
-                    'emojiAdded': 'Emoji {emoji} added at: ({x}, {y})'
-                }
-            };
-
-            const lang = getLanguage();
-            let text = translations[lang]?.[key] || translations['en']?.[key] || key;
-            
-            // Replace parameters
-            Object.keys(params).forEach(param => {
-                text = text.replace(`{${param}}`, params[param]);
-            });
-            
-            return text;
-        }
-
-        function updateUILanguage() {
-            const lang = getLanguage();
-            document.documentElement.lang = lang;
-            
-            document.querySelectorAll('[data-lang-key]').forEach(element => {
-                const key = element.dataset.langKey;
-                const translatedText = translate(key);
-                
-                // Handle special cases like prompt text with line breaks
-                if (key === 'uploadImagePrompt') {
-                    // 모바일 기기에서는 모바일용 텍스트 사용
-                    const isMobile = document.body.classList.contains('mobile-device');
-                    const actualKey = isMobile ? 'mobileUploadImagePrompt' : 'uploadImagePrompt';
-                    const actualText = translate(actualKey);
-                    element.innerHTML = actualText.replace(/\n/g, '<br>');
-                } else {
-                    element.textContent = translatedText;
-                }
-            });
-
-            // Update language selector to reflect current language
-            const languageSelector = document.getElementById('languageSelector');
-            if (languageSelector) {
-                languageSelector.value = lang;
-            }
-        }
-
-        function getModeDisplayName(mode) {
-            return translate(mode + 'Mode');
-        }
-
-        function getShapeDisplayName(shape) {
-            return translate(shape);
-        }
-
-        function getColorDisplayName(color) {
-            const colorMap = {
-                '#FF0000': 'red',
-                '#FF8000': 'orange',
-                '#00FF00': 'green',
-                '#0000FF': 'blue'
-            };
-            return translate(colorMap[color.toUpperCase()] || color);
-        }
+        // Multi-language support functions consolidated in src/main.js
 
         // Initialize all functionality when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {

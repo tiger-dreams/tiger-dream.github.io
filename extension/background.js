@@ -1,9 +1,70 @@
 // background.js - 서비스 워커 (백그라운드 스크립트)
 
 // 설치 이벤트
-chrome.runtime.onInstalled.addListener(() => {
-    console.log('AnnotateShot Capture 익스텐션이 설치되었습니다.');
+chrome.runtime.onInstalled.addListener((details) => {
+    console.log('AnnotateShot Capture 익스텐션 이벤트:', details.reason);
+    
+    // 업데이트인 경우 알림 페이지 열기
+    if (details.reason === 'update') {
+        const previousVersion = details.previousVersion;
+        const currentVersion = chrome.runtime.getManifest().version;
+        
+        console.log(`익스텐션 업데이트: v${previousVersion} -> v${currentVersion}`);
+        
+        // 업데이트 알림 페이지 열기
+        openUpdateNotification(previousVersion, currentVersion);
+    } else if (details.reason === 'install') {
+        console.log('AnnotateShot Capture 익스텐션이 설치되었습니다.');
+    }
 });
+
+// 업데이트 알림 페이지 열기
+async function openUpdateNotification(fromVersion, toVersion) {
+    try {
+        console.log('업데이트 알림 페이지 열기:', fromVersion, '->', toVersion);
+        
+        // 운영 환경 URL 사용
+        const baseUrl = 'https://alllogo.net';
+        
+        // 버전별 변경사항 설정
+        const getChangelogType = (from, to) => {
+            // 간단한 버전 분석으로 변경사항 타입 결정
+            const fromParts = from.split('.').map(Number);
+            const toParts = to.split('.').map(Number);
+            
+            // 메이저 버전 변경
+            if (toParts[0] > fromParts[0]) {
+                return 'new-features';
+            }
+            // 마이너 버전 변경
+            else if (toParts[1] > fromParts[1]) {
+                return 'ui-improvements';
+            }
+            // 패치 버전 변경
+            else {
+                return 'bug-fixes';
+            }
+        };
+        
+        const changelogType = getChangelogType(fromVersion, toVersion);
+        
+        // 업데이트 알림 URL 생성 (source=extension 없이)
+        const updateUrl = `${baseUrl}/index.html?update_notification=true&from=${fromVersion}&to=${toVersion}&changelog=${changelogType}&t=${Date.now()}`;
+        
+        console.log('업데이트 알림 URL:', updateUrl);
+        
+        // 새 탭으로 열기
+        await chrome.tabs.create({
+            url: updateUrl,
+            active: true
+        });
+        
+        console.log('업데이트 알림 페이지 열기 완료');
+        
+    } catch (error) {
+        console.error('업데이트 알림 페이지 열기 실패:', error);
+    }
+}
 
 // 단축키 명령어 처리
 chrome.commands.onCommand.addListener((command) => {
