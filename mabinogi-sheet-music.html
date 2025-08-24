@@ -1,0 +1,2246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마비노기 모바일 악보 변환기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #6366f1;
+            background: #f1f5f9;
+        }
+
+        .upload-section.dragover {
+            border-color: #4f46e5;
+            background: #eef2ff;
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            background: #6366f1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #475569;
+            margin-bottom: 15px;
+        }
+
+        .upload-subtext {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            background: #4f46e5;
+        }
+
+        .preview-section {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .options-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .options-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+
+        .option-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option-item label {
+            font-size: 0.9rem;
+            color: #475569;
+        }
+
+        .convert-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+
+        .convert-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .convert-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .result-section {
+            display: none;
+        }
+
+        .result-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+
+        .mml-output {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: #4f46e5;
+        }
+
+        .action-btn.success {
+            background: #10b981;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        .quick-test-section {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .quick-test-title {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+
+        .quick-test-btn {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .quick-test-btn:hover {
+            background: #d97706;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .audio-controls {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .play-btn {
+            background: #059669 !important;
+            min-width: 120px;
+        }
+
+        .play-btn:hover {
+            background: #047857 !important;
+        }
+
+        .play-btn.playing {
+            background: #dc2626 !important;
+        }
+
+        .play-btn.playing:hover {
+            background: #b91c1c !important;
+        }
+
+        .tempo-control, .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #475569;
+        }
+
+        .tempo-control input, .volume-control input {
+            width: 80px;
+        }
+
+        .tempo-control span, .volume-control span {
+            min-width: 60px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .option-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 마비노기 모바일 악보 변환기</h1>
+            <p>악보 이미지를 업로드하면 마비노기 모바일용 MML 코드로 변환해드립니다</p>
+        </div>
+
+        <div class="main-content">
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">악보 이미지 또는 MIDI 파일을 드래그하거나 클릭하여 업로드하세요</div>
+                <div class="upload-subtext">지원 형식: JPG, PNG, GIF, PDF, MIDI (최대 10MB)</div>
+                <input type="file" id="fileInput" class="file-input" accept="image/*,.pdf,.gif,.mid,.midi">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    파일 선택
+                </button>
+            </div>
+
+            <div class="preview-section" id="previewSection">
+                <img id="previewImage" class="preview-image" alt="업로드된 악보 미리보기">
+            </div>
+
+            <div class="options-section">
+                <div class="options-title">변환 옵션</div>
+                <div class="option-group">
+                    <div class="option-item">
+                        <input type="radio" id="keyC" name="key" value="C" checked>
+                        <label for="keyC">C장조</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="keyG" name="key" value="G">
+                        <label for="keyG">G장조</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="keyF" name="key" value="F">
+                        <label for="keyF">F장조</label>
+                    </div>
+                </div>
+                <div class="option-group">
+                    <div class="option-item">
+                        <input type="checkbox" id="includeChords" checked>
+                        <label for="includeChords">화음 포함</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="checkbox" id="simplifyRhythm">
+                        <label for="simplifyRhythm">리듬 단순화</label>
+                    </div>
+                </div>
+            </div>
+
+            <button class="convert-btn" id="convertBtn" onclick="convertSheetMusic()" disabled>
+                악보 변환하기
+            </button>
+
+            <div class="quick-test-section">
+                <div class="quick-test-title">🚀 빠른 테스트</div>
+                <p style="font-size: 0.85rem; color: #92400e; margin-bottom: 10px;">
+                    악보 분석이 오래 걸린다면 샘플 MML로 먼저 테스트해보세요!
+                </p>
+                <button class="quick-test-btn" onclick="loadSampleMML('twinkle')">반짝반짝 작은별</button>
+                <button class="quick-test-btn" onclick="loadSampleMML('canon')">캐논</button>
+                <button class="quick-test-btn" onclick="loadSampleMML('mary')">메리의 양</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div class="progress-text" id="progressText">악보를 분석하고 있습니다...</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p style="font-size: 0.85rem; color: #64748b;">잠시만 기다려주세요. 복잡한 악보일수록 시간이 더 걸립니다.</p>
+            </div>
+
+            <div class="result-section" id="resultSection">
+                <div class="result-title">변환된 MML 코드</div>
+                <div class="mml-output" id="mmlOutput"></div>
+                <div class="audio-controls">
+                    <button class="action-btn play-btn" id="playBtn" onclick="togglePlayback()">▶️ 미리듣기</button>
+                    <button class="action-btn" id="stopBtn" onclick="stopPlayback()" disabled>⏹️ 정지</button>
+                    <div class="tempo-control">
+                        <label for="tempoSlider">템포:</label>
+                        <input type="range" id="tempoSlider" min="60" max="200" value="120">
+                        <span id="tempoValue">120 BPM</span>
+                    </div>
+                    <div class="volume-control">
+                        <label for="volumeSlider">볼륨:</label>
+                        <input type="range" id="volumeSlider" min="0" max="100" value="50">
+                        <span id="volumeValue">50%</span>
+                    </div>
+                </div>
+                <div class="result-actions">
+                    <button class="action-btn" onclick="copyToClipboard()">클립보드에 복사</button>
+                    <button class="action-btn" onclick="downloadMML()">MML 파일 다운로드</button>
+                    <button class="action-btn" onclick="resetConverter()">다시 변환하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/midi-parser-js@4.0.4/dist/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/verovio@4.1.0/dist/verovio-toolkit-wasm.js"></script>
+    <script>
+        let uploadedFile = null;
+        let convertedMML = '';
+        let canvasContext = null;
+        let imageData = null;
+
+        // 오디오 관련 변수
+        let audioContext = null;
+        let isPlaying = false;
+        let currentTimeout = null;
+        let noteScheduler = null;
+        let activeOscillators = []; // 활성 오실레이터 추적
+        
+        // Verovio 툴킷 변수
+        let verovio = null;
+
+        // 파일 업로드 관련 이벤트
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const previewSection = document.getElementById('previewSection');
+        const previewImage = document.getElementById('previewImage');
+        const convertBtn = document.getElementById('convertBtn');
+        const errorMessage = document.getElementById('errorMessage');
+
+        fileInput.addEventListener('change', handleFileSelect);
+        uploadSection.addEventListener('dragover', handleDragOver);
+        uploadSection.addEventListener('dragleave', handleDragLeave);
+        uploadSection.addEventListener('drop', handleFileDrop);
+
+        // 템포 및 볼륨 컨트롤 이벤트 및 Verovio 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            const tempoSlider = document.getElementById('tempoSlider');
+            const volumeSlider = document.getElementById('volumeSlider');
+            
+            if (tempoSlider) {
+                tempoSlider.addEventListener('input', function() {
+                    document.getElementById('tempoValue').textContent = this.value + ' BPM';
+                });
+            }
+            
+            if (volumeSlider) {
+                volumeSlider.addEventListener('input', function() {
+                    document.getElementById('volumeValue').textContent = this.value + '%';
+                });
+            }
+            
+            // Verovio 툴킷 초기화
+            initializeVerovio();
+        });
+
+        // Verovio 초기화
+        async function initializeVerovio() {
+            try {
+                if (typeof verovio_module !== 'undefined') {
+                    console.log('Verovio 툴킷 로딩 중...');
+                    verovio = new verovio_module.toolkit();
+                    console.log('Verovio 툴킷 초기화 완료');
+                } else {
+                    console.warn('Verovio 모듈을 찾을 수 없습니다. 고급 기능이 제한됩니다.');
+                }
+            } catch (error) {
+                console.error('Verovio 초기화 실패:', error);
+            }
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            uploadSection.classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            uploadSection.classList.remove('dragover');
+        }
+
+        function handleFileDrop(event) {
+            event.preventDefault();
+            uploadSection.classList.remove('dragover');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        }
+
+        function processFile(file) {
+            // 파일 크기 체크 (10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                showError('파일 크기는 10MB 이하여야 합니다.');
+                return;
+            }
+
+            // 파일 형식 체크
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'audio/midi', 'audio/mid'];
+            if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.mid') && !file.name.toLowerCase().endsWith('.midi')) {
+                showError('지원하지 않는 파일 형식입니다. JPG, PNG, GIF, PDF, MIDI 파일만 업로드 가능합니다.');
+                return;
+            }
+
+            uploadedFile = file;
+            hideError();
+
+            // 파일 타입별 처리
+            if (file.type === 'application/pdf') {
+                processPDF(file);
+            } else if (file.type === 'image/gif') {
+                processGIF(file);
+            } else if (file.name.toLowerCase().endsWith('.mid') || file.name.toLowerCase().endsWith('.midi')) {
+                processMIDI(file);
+            } else {
+                // 일반 이미지 파일 미리보기 표시
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    previewSection.style.display = 'block';
+                    convertBtn.disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // PDF 처리 함수
+        async function processPDF(file) {
+            try {
+                // PDF를 Canvas로 변환하여 미리보기 생성
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // PDF 첫 페이지를 이미지로 변환
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    // 간단한 PDF 표시를 위한 placeholder
+                    canvas.width = 400;
+                    canvas.height = 500;
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('PDF 악보', canvas.width/2, canvas.height/2 - 20);
+                    ctx.font = '16px Arial';
+                    ctx.fillText(file.name, canvas.width/2, canvas.height/2 + 20);
+                    
+                    previewImage.src = canvas.toDataURL();
+                    previewSection.style.display = 'block';
+                    convertBtn.disabled = false;
+                };
+                reader.readAsArrayBuffer(file);
+            } catch (error) {
+                console.error('PDF 처리 중 오류:', error);
+                showError('PDF 파일 처리 중 오류가 발생했습니다.');
+            }
+        }
+
+        // GIF 처리 함수
+        async function processGIF(file) {
+            try {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // GIF의 첫 번째 프레임을 Canvas로 추출
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        // 첫 번째 프레임만 그리기 (GIF 애니메이션 중지)
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Canvas를 이미지로 변환하여 미리보기에 표시
+                        previewImage.src = canvas.toDataURL();
+                        previewSection.style.display = 'block';
+                        convertBtn.disabled = false;
+                    };
+                    
+                    img.onerror = function() {
+                        // GIF 로드 실패 시 원본 그대로 표시
+                        previewImage.src = e.target.result;
+                        previewSection.style.display = 'block';
+                        convertBtn.disabled = false;
+                    };
+                    
+                    img.src = e.target.result;
+                };
+                
+                reader.onerror = function() {
+                    showError('GIF 파일 처리 중 오류가 발생했습니다.');
+                };
+                
+                reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('GIF 처리 중 오류:', error);
+                showError('GIF 파일 처리 중 오류가 발생했습니다.');
+            }
+        }
+
+        // MIDI 파일 처리 함수
+        async function processMIDI(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const midiData = MidiParser.parse(arrayBuffer);
+                
+                console.log('MIDI 파일 파싱됨:', midiData);
+                
+                // MIDI 정보를 미리보기로 표시
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 400;
+                canvas.height = 200;
+                
+                // MIDI 정보 시각화
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#333';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                
+                const trackCount = midiData.track ? midiData.track.length : 0;
+                const ticksPerBeat = midiData.timeDivision || 480;
+                
+                ctx.fillText('🎵 MIDI 파일', canvas.width/2, 40);
+                ctx.font = '12px Arial';
+                ctx.fillText(`파일명: ${file.name}`, canvas.width/2, 70);
+                ctx.fillText(`트랙 수: ${trackCount}개`, canvas.width/2, 90);
+                ctx.fillText(`틱/박자: ${ticksPerBeat}`, canvas.width/2, 110);
+                ctx.fillText('MML 변환 준비 완료', canvas.width/2, 140);
+                
+                previewImage.src = canvas.toDataURL();
+                previewSection.style.display = 'block';
+                convertBtn.disabled = false;
+                
+                // MIDI 데이터를 전역 변수에 저장
+                window.currentMidiData = midiData;
+                
+            } catch (error) {
+                console.error('MIDI 파일 처리 중 오류:', error);
+                showError('MIDI 파일 처리 중 오류가 발생했습니다. 파일이 손상되었을 수 있습니다.');
+            }
+        }
+
+        async function convertSheetMusic() {
+            if (!uploadedFile) {
+                showError('먼저 악보 파일을 업로드해주세요.');
+                return;
+            }
+
+            // 로딩 표시
+            document.getElementById('loading').style.display = 'block';
+            convertBtn.disabled = true;
+            document.getElementById('resultSection').style.display = 'none';
+
+            try {
+                // 선택된 옵션들 가져오기
+                const selectedKey = document.querySelector('input[name="key"]:checked').value;
+                const includeChords = document.getElementById('includeChords').checked;
+                const simplifyRhythm = document.getElementById('simplifyRhythm').checked;
+
+                // MIDI 파일인 경우 직접 변환
+                if (window.currentMidiData) {
+                    updateProgress(20, 'MIDI 데이터 분석 중...');
+                    const mmlCode = convertMIDIToMML(window.currentMidiData, selectedKey, includeChords, simplifyRhythm);
+                    updateProgress(100, '완료!');
+                    displayResult(mmlCode);
+                    return;
+                }
+
+                updateProgress(5, '이미지 로딩 중...');
+                
+                // 한글+영어 OCR을 사용한 악보 분석 시도
+                updateProgress(20, 'OCR을 사용한 텍스트 인식 중...');
+                let recognizedText = '';
+                try {
+                    // 한국어+영어 동시 인식으로 코드와 가사 모두 감지
+                    const result = await Tesseract.recognize(uploadedFile, 'kor+eng', {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                const progress = Math.floor(20 + (m.progress * 40));
+                                updateProgress(progress, `텍스트 인식 중... ${Math.floor(m.progress * 100)}%`);
+                            }
+                        }
+                    });
+                    recognizedText = result.data.text;
+                    console.log('OCR 결과 (한글+영어):', recognizedText);
+                } catch (ocrError) {
+                    console.warn('한글 OCR 실패, 영어만으로 재시도:', ocrError);
+                    try {
+                        const fallbackResult = await Tesseract.recognize(uploadedFile, 'eng', {
+                            logger: m => {
+                                if (m.status === 'recognizing text') {
+                                    const progress = Math.floor(20 + (m.progress * 40));
+                                    updateProgress(progress, `영어 텍스트 인식 중... ${Math.floor(m.progress * 100)}%`);
+                                }
+                            }
+                        });
+                        recognizedText = fallbackResult.data.text;
+                        console.log('영어 OCR 결과:', recognizedText);
+                    } catch (finalError) {
+                        console.warn('모든 OCR 실패:', finalError);
+                        recognizedText = '';
+                    }
+                }
+                
+                updateProgress(70, '악보 정보 분석 중...');
+                
+                // OCR 결과에서 음악 관련 정보 추출
+                const musicInfo = extractMusicInfoFromText(recognizedText);
+                console.log('추출된 음악 정보:', musicInfo);
+                
+                updateProgress(70, '악보 구조 분석 중...');
+                
+                // Verovio를 사용한 고급 변환 시도
+                let mmlCode;
+                if (verovio && musicInfo.hasMusicalContent) {
+                    try {
+                        updateProgress(80, 'MusicXML 생성 중...');
+                        const musicXML = generateMusicXMLFromInfo(musicInfo, selectedKey);
+                        
+                        updateProgress(90, 'MIDI 변환 중...');
+                        const midiData = await convertMusicXMLToMIDI(musicXML);
+                        
+                        if (midiData) {
+                            updateProgress(95, 'MML 생성 중...');
+                            mmlCode = convertMIDIToMML(midiData, selectedKey, includeChords, simplifyRhythm);
+                        } else {
+                            throw new Error('MIDI 변환 실패');
+                        }
+                    } catch (error) {
+                        console.warn('고급 변환 실패, 기본 방식 사용:', error);
+                        mmlCode = generateMMLFromMusicInfo(musicInfo, selectedKey, includeChords, simplifyRhythm);
+                    }
+                } else if (musicInfo.hasMusicalContent) {
+                    updateProgress(85, 'MML 코드 생성 중...');
+                    mmlCode = generateMMLFromMusicInfo(musicInfo, selectedKey, includeChords, simplifyRhythm);
+                } else {
+                    // OCR로 음악 정보를 찾지 못한 경우 기본 템플릿 제공
+                    updateProgress(85, '기본 템플릿 생성 중...');
+                    mmlCode = generateDefaultMML(selectedKey, includeChords);
+                    showError('악보에서 음표를 자동으로 인식하지 못했습니다. 기본 템플릿을 제공합니다. 수동으로 편집해주세요.');
+                }
+                
+                updateProgress(100, '완료!');
+                displayResult(mmlCode);
+                
+            } catch (error) {
+                console.error('악보 변환 중 오류 발생:', error);
+                showError('악보 변환 중 오류가 발생했습니다. OCR 인식이 실패했을 수 있습니다.');
+                
+                // 오류 발생시 기본 템플릿 제공
+                const selectedKey = document.querySelector('input[name="key"]:checked').value;
+                const includeChords = document.getElementById('includeChords').checked;
+                const defaultMML = generateDefaultMML(selectedKey, includeChords);
+                displayResult(defaultMML);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                convertBtn.disabled = false;
+            }
+        }
+
+        // 진행률 업데이트 함수
+        function updateProgress(percent, text) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            if (progressFill) progressFill.style.width = percent + '%';
+            if (progressText) progressText.textContent = text;
+        }
+
+        // 한글 악보 특화 음악 정보 추출
+        function extractMusicInfoFromText(text) {
+            console.log('텍스트 분석 시작:', text);
+            
+            const musicInfo = {
+                hasMusicalContent: false,
+                tempo: null,
+                timeSignature: null,
+                key: null,
+                notes: [],
+                chords: [],
+                lyrics: [],
+                title: null
+            };
+
+            if (!text || text.trim().length === 0) {
+                return musicInfo;
+            }
+
+            // 원본 텍스트와 정리된 텍스트 모두 사용
+            const originalText = text;
+            const cleanText = text.toLowerCase().replace(/[^\w\sㄱ-ㅎㅏ-ㅣ가-힣]/g, ' ');
+            console.log('정리된 텍스트:', cleanText);
+
+            // 코드명 감지 (C, Cm, F#, Bb7 등)
+            const chordMatches = originalText.match(/[CDEFGAB][bmM]?[#♯b♭]?[0-9]*/g);
+            if (chordMatches && chordMatches.length > 0) {
+                musicInfo.chords = [...new Set(chordMatches)];
+                musicInfo.hasMusicalContent = true;
+                console.log('감지된 코드:', musicInfo.chords);
+            }
+
+            // 한글 음표명 감지 (도레미파솔라시)
+            const koreanNotes = ['도', '레', '미', '파', '솔', '라', '시'];
+            const englishNotes = ['c', 'd', 'e', 'f', 'g', 'a', 'b'];
+            
+            let noteCount = 0;
+            koreanNotes.forEach(note => {
+                const matches = originalText.match(new RegExp(note, 'g'));
+                if (matches) {
+                    noteCount += matches.length;
+                    musicInfo.notes.push(note);
+                }
+            });
+
+            englishNotes.forEach(note => {
+                const regex = new RegExp(`\\b${note}\\b`, 'gi');
+                const matches = cleanText.match(regex);
+                if (matches) {
+                    noteCount += matches.length;
+                    musicInfo.notes.push(...matches);
+                }
+            });
+
+            // 곡 제목 추출 (첫 번째 줄이나 큰 텍스트)
+            const lines = originalText.split('\n').filter(line => line.trim());
+            if (lines.length > 0) {
+                const firstLine = lines[0].trim();
+                // 한글이 포함되고 길이가 적당한 경우 제목으로 간주
+                if (/[가-힣]/.test(firstLine) && firstLine.length >= 2 && firstLine.length <= 20) {
+                    musicInfo.title = firstLine;
+                    musicInfo.hasMusicalContent = true;
+                    console.log('감지된 제목:', musicInfo.title);
+                }
+            }
+
+            // 가사 감지 (한글이 많이 포함된 텍스트)
+            const koreanTextMatch = originalText.match(/[가-힣\s]{10,}/g);
+            if (koreanTextMatch) {
+                musicInfo.lyrics = koreanTextMatch;
+                musicInfo.hasMusicalContent = true;
+                console.log('감지된 가사 구간:', koreanTextMatch.length, '개');
+            }
+
+            // 박자표 감지
+            const timeSignatureMatch = originalText.match(/(\d+)\/(\d+)/);
+            if (timeSignatureMatch) {
+                musicInfo.timeSignature = `${timeSignatureMatch[1]}/${timeSignatureMatch[2]}`;
+                musicInfo.hasMusicalContent = true;
+            }
+
+            // 템포 감지
+            const tempoMatch = originalText.match(/(\d+)\s*bpm|tempo\s*[=:]\s*(\d+)|♩\s*=\s*(\d+)/i);
+            if (tempoMatch) {
+                musicInfo.tempo = parseInt(tempoMatch[1] || tempoMatch[2] || tempoMatch[3]);
+                musicInfo.hasMusicalContent = true;
+            }
+
+            // 한글 악보 특성을 고려한 음악 콘텐츠 판정
+            const hasKoreanContent = /[가-힣]/.test(originalText);
+            const hasChords = musicInfo.chords.length > 0;
+            const hasNotes = noteCount > 0;
+            const hasTitle = musicInfo.title !== null;
+            
+            if (hasKoreanContent && (hasChords || hasNotes || hasTitle)) {
+                musicInfo.hasMusicalContent = true;
+            }
+
+            console.log('음악 정보 추출 결과:', {
+                hasKorean: hasKoreanContent,
+                chordCount: musicInfo.chords.length,
+                noteCount: noteCount,
+                hasTitle: hasTitle,
+                hasContent: musicInfo.hasMusicalContent,
+                info: musicInfo
+            });
+
+            return musicInfo;
+        }
+
+        // 감지된 음악 정보를 기반으로 실제 MML 생성
+        function generateMMLFromMusicInfo(musicInfo, key, includeChords, simplifyRhythm) {
+            console.log('음악 정보 기반 MML 생성:', musicInfo);
+
+            const tempo = musicInfo.tempo || 100; // 발라드는 좀 더 느리게
+            const volume = 12;
+            let mml = `MML@t${tempo}v${volume}o4`;
+
+            // 감지된 코드를 기반으로 멜로디 생성
+            if (musicInfo.chords && musicInfo.chords.length > 0) {
+                console.log('코드 기반 멜로디 생성:', musicInfo.chords);
+                
+                // 코드를 MML 음표로 변환
+                const chordToMML = {
+                    'C': ['c', 'e', 'g'], 'Cm': ['c', 'e-', 'g'],
+                    'D': ['d', 'f+', 'a'], 'Dm': ['d', 'f', 'a'],
+                    'E': ['e', 'g+', 'b'], 'Em': ['e', 'g', 'b'],
+                    'F': ['f', 'a', 'c'], 'Fm': ['f', 'a-', 'c'],
+                    'G': ['g', 'b', 'd'], 'Gm': ['g', 'b-', 'd'],
+                    'A': ['a', 'c+', 'e'], 'Am': ['a', 'c', 'e'],
+                    'B': ['b', 'd+', 'f+'], 'Bm': ['b', 'd', 'f+'],
+                    // 7th 코드들
+                    'C7': ['c', 'e', 'g', 'b-'], 'Cm7': ['c', 'e-', 'g', 'b-'],
+                    'F7': ['f', 'a', 'c', 'e-'], 'G7': ['g', 'b', 'd', 'f'],
+                    'Am7': ['a', 'c', 'e', 'g'], 'Dm7': ['d', 'f', 'a', 'c'],
+                    // 플랫/샵 코드들
+                    'Eb': ['e-', 'g', 'b-'], 'Ab': ['a-', 'c', 'e-'],
+                    'Bb': ['b-', 'd', 'f'], 'Bb7': ['b-', 'd', 'f', 'a-']
+                };
+
+                // 인식된 코드들을 순서대로 멜로디로 변환
+                let usedChords = 0;
+                for (const chord of musicInfo.chords.slice(0, 8)) { // 최대 8개 코드만
+                    const cleanChord = chord.replace(/[♯#]/g, '+').replace(/[♭b]/g, '-');
+                    const notes = chordToMML[cleanChord] || chordToMML[cleanChord.replace(/7$/, '')] || ['c'];
+                    
+                    // 각 코드의 루트 노트를 멜로디로 사용
+                    const rootNote = notes[0];
+                    const duration = simplifyRhythm ? 2 : 4;
+                    mml += `${rootNote}${duration}`;
+                    usedChords++;
+                }
+
+                // 코드가 너무 적으면 기본 패턴으로 보완
+                if (usedChords < 4) {
+                    const fillNotes = ['e', 'f', 'g', 'a'];
+                    for (let i = usedChords; i < 4; i++) {
+                        const duration = simplifyRhythm ? 2 : 4;
+                        mml += `${fillNotes[i % fillNotes.length]}${duration}`;
+                    }
+                }
+
+                // 화음 트랙 생성 (감지된 코드 기반)
+                if (includeChords) {
+                    mml += ',v8o3';
+                    for (let i = 0; i < Math.min(musicInfo.chords.length, 6); i++) {
+                        const chord = musicInfo.chords[i];
+                        const cleanChord = chord.replace(/[♯#]/g, '+').replace(/[♭b]/g, '-');
+                        const notes = chordToMML[cleanChord] || chordToMML[cleanChord.replace(/7$/, '')] || ['c'];
+                        
+                        // 코드의 루트 노트로 베이스 라인
+                        mml += `${notes[0]}2`;
+                    }
+                }
+
+            } else if (musicInfo.notes && musicInfo.notes.length > 0) {
+                // 음표 이름 기반 생성
+                const noteMap = {
+                    '도': 'c', 'do': 'c', 'c': 'c',
+                    '레': 'd', 're': 'd', 'd': 'd',  
+                    '미': 'e', 'mi': 'e', 'e': 'e',
+                    '파': 'f', 'fa': 'f', 'f': 'f',
+                    '솔': 'g', 'sol': 'g', 'g': 'g',
+                    '라': 'a', 'la': 'a', 'a': 'a',
+                    '시': 'b', 'si': 'b', 'b': 'b'
+                };
+
+                const uniqueNotes = [...new Set(musicInfo.notes.map(note => noteMap[note.toLowerCase()]).filter(Boolean))];
+                
+                for (const note of uniqueNotes) {
+                    const duration = simplifyRhythm ? 2 : 4;
+                    mml += `${note}${duration}`;
+                }
+
+                if (includeChords) {
+                    mml += ',v8o3';
+                    for (let i = 0; i < Math.min(uniqueNotes.length, 4); i++) {
+                        mml += `${uniqueNotes[i]}2`;
+                    }
+                }
+            } else {
+                // 선택된 키에 맞는 기본 스케일
+                const keyScales = {
+                    'C': 'cdefgab>c<',
+                    'G': 'gabcdef+>g<',
+                    'F': 'fgab->cde<'
+                };
+                const scale = keyScales[key] || keyScales['C'];
+                mml += scale;
+                
+                if (includeChords) {
+                    const keyChords = {
+                        'C': 'v8o3c2f2g2c2',
+                        'G': 'v8o3g2c2d2g2',
+                        'F': 'v8o3f2a+2c2f2'
+                    };
+                    mml += ',' + (keyChords[key] || keyChords['C']);
+                }
+            }
+
+            console.log('생성된 MML:', mml + ';');
+            return mml + ';';
+        }
+
+        // 기본 MML 템플릿 생성
+        function generateDefaultMML(key, includeChords) {
+            const keyTemplates = {
+                'C': 'MML@t120v12o4cdefgab>c4<',
+                'G': 'MML@t120v12o4gabcdef+g4',
+                'F': 'MML@t120v12o4fgab>cdef4<'
+            };
+
+            let mml = keyTemplates[key] || keyTemplates['C'];
+
+            if (includeChords) {
+                const chordMaps = {
+                    'C': 'v8o3c2f2g2c2',
+                    'G': 'v8o3g2c2d2g2', 
+                    'F': 'v8o3f2a+2c2f2'
+                };
+                mml += ',' + (chordMaps[key] || chordMaps['C']);
+            }
+
+            return mml + ';';
+        }
+
+        // 음악 정보를 기반으로 MusicXML 생성
+        function generateMusicXMLFromInfo(musicInfo, key) {
+            console.log('MusicXML 생성:', musicInfo);
+            
+            // 기본 MusicXML 템플릿
+            const tempo = musicInfo.tempo || 120;
+            const title = musicInfo.title || '변환된 악보';
+            
+            let musicXML = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="3.1">
+  <work>
+    <work-title>${title}</work-title>
+  </work>
+  <part-list>
+    <score-part id="P1">
+      <part-name>변환된 파트</part-name>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <key>
+          <fifths>${getKeySignature(key)}</fifths>
+        </key>
+        <time>
+          <beats>4</beats>
+          <beat-type>4</beat-type>
+        </time>
+        <clef>
+          <sign>G</sign>
+          <line>2</line>
+        </clef>
+      </attributes>
+      <direction placement="above">
+        <direction-type>
+          <metronome>
+            <beat-unit>quarter</beat-unit>
+            <per-minute>${tempo}</per-minute>
+          </metronome>
+        </direction-type>
+      </direction>`;
+
+            // 감지된 코드를 음표로 변환
+            if (musicInfo.chords && musicInfo.chords.length > 0) {
+                let measureNotes = 0;
+                for (let i = 0; i < Math.min(musicInfo.chords.length, 16); i++) {
+                    const chord = musicInfo.chords[i];
+                    const noteInfo = chordToNoteInfo(chord);
+                    
+                    if (noteInfo) {
+                        musicXML += `
+      <note>
+        <pitch>
+          <step>${noteInfo.step}</step>
+          ${noteInfo.alter ? `<alter>${noteInfo.alter}</alter>` : ''}
+          <octave>${noteInfo.octave}</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+      </note>`;
+                        
+                        measureNotes++;
+                        
+                        // 4개 음표마다 새 마디 생성
+                        if (measureNotes === 4 && i < musicInfo.chords.length - 1) {
+                            musicXML += `
+    </measure>
+    <measure number="${Math.floor(i/4) + 2}">`;
+                            measureNotes = 0;
+                        }
+                    }
+                }
+            } else {
+                // 기본 스케일
+                const scaleNotes = getScaleNotes(key);
+                for (let i = 0; i < Math.min(scaleNotes.length, 8); i++) {
+                    const note = scaleNotes[i];
+                    musicXML += `
+      <note>
+        <pitch>
+          <step>${note.step}</step>
+          ${note.alter ? `<alter>${note.alter}</alter>` : ''}
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+      </note>`;
+                }
+            }
+
+            musicXML += `
+    </measure>
+  </part>
+</score-partwise>`;
+
+            return musicXML;
+        }
+
+        // 코드명을 음표 정보로 변환
+        function chordToNoteInfo(chord) {
+            const chordMap = {
+                'C': { step: 'C', octave: 4 },
+                'D': { step: 'D', octave: 4 },
+                'E': { step: 'E', octave: 4 },
+                'F': { step: 'F', octave: 4 },
+                'G': { step: 'G', octave: 4 },
+                'A': { step: 'A', octave: 4 },
+                'B': { step: 'B', octave: 4 },
+                'Eb': { step: 'E', alter: -1, octave: 4 },
+                'Ab': { step: 'A', alter: -1, octave: 4 },
+                'Bb': { step: 'B', alter: -1, octave: 4 }
+            };
+
+            // 기본 코드명 추출 (7th, m 등 제거)
+            const baseChord = chord.replace(/[m7]/g, '');
+            return chordMap[baseChord] || chordMap['C'];
+        }
+
+        // 조성에 따른 키 시그니처
+        function getKeySignature(key) {
+            const keyMap = { 'C': 0, 'G': 1, 'D': 2, 'A': 3, 'E': 4, 'B': 5, 'F': -1, 'Bb': -2, 'Eb': -3 };
+            return keyMap[key] || 0;
+        }
+
+        // 조성에 맞는 스케일 노트
+        function getScaleNotes(key) {
+            const scales = {
+                'C': [
+                    { step: 'C' }, { step: 'D' }, { step: 'E' }, { step: 'F' },
+                    { step: 'G' }, { step: 'A' }, { step: 'B' }, { step: 'C' }
+                ],
+                'G': [
+                    { step: 'G' }, { step: 'A' }, { step: 'B' }, { step: 'C' },
+                    { step: 'D' }, { step: 'E' }, { step: 'F', alter: 1 }, { step: 'G' }
+                ],
+                'F': [
+                    { step: 'F' }, { step: 'G' }, { step: 'A' }, { step: 'B', alter: -1 },
+                    { step: 'C' }, { step: 'D' }, { step: 'E' }, { step: 'F' }
+                ]
+            };
+            return scales[key] || scales['C'];
+        }
+
+        // MusicXML을 Verovio로 MIDI 변환
+        async function convertMusicXMLToMIDI(musicXML) {
+            if (!verovio) {
+                throw new Error('Verovio 툴킷이 초기화되지 않음');
+            }
+
+            try {
+                console.log('Verovio로 MusicXML 로딩...');
+                
+                // MusicXML을 Verovio에 로드
+                const success = verovio.loadData(musicXML);
+                if (!success) {
+                    throw new Error('MusicXML 로딩 실패');
+                }
+
+                console.log('MIDI 데이터 생성...');
+                
+                // MIDI 바이트 배열 생성
+                const midiBytes = verovio.renderToMIDI();
+                if (!midiBytes || midiBytes.length === 0) {
+                    throw new Error('MIDI 생성 실패');
+                }
+
+                console.log('MIDI 파싱...');
+                
+                // MIDI 바이트를 파서로 변환
+                const midiData = MidiParser.parse(new Uint8Array(midiBytes));
+                console.log('Verovio MIDI 변환 성공:', midiData);
+                
+                return midiData;
+                
+            } catch (error) {
+                console.error('Verovio MIDI 변환 오류:', error);
+                throw error;
+            }
+        }
+
+        // MIDI를 MML로 변환하는 함수
+        function convertMIDIToMML(midiData, key, includeChords, simplifyRhythm) {
+            console.log('MIDI → MML 변환 시작:', midiData);
+            
+            if (!midiData.track || midiData.track.length === 0) {
+                console.error('MIDI 트랙이 없습니다');
+                return generateDefaultMML(key, includeChords);
+            }
+
+            const ticksPerBeat = midiData.timeDivision || 480;
+            let tracks = [];
+            
+            // 각 MIDI 트랙을 분석
+            for (let trackIndex = 0; trackIndex < Math.min(midiData.track.length, 3); trackIndex++) {
+                const track = midiData.track[trackIndex];
+                if (!track.event) continue;
+                
+                console.log(`트랙 ${trackIndex} 분석:`, track.event.length, '이벤트');
+                
+                const notes = [];
+                let currentTempo = 120;
+                
+                for (const event of track.event) {
+                    // 템포 변경 이벤트
+                    if (event.type === 255 && event.metaType === 81) {
+                        // 마이크로초 단위를 BPM으로 변환
+                        const microsecondsPerBeat = (event.data[0] << 16) | (event.data[1] << 8) | event.data[2];
+                        currentTempo = Math.round(60000000 / microsecondsPerBeat);
+                        console.log('템포 변경:', currentTempo, 'BPM');
+                    }
+                    
+                    // Note On 이벤트 (9x)
+                    if (event.type >= 144 && event.type <= 159 && event.data && event.data[1] > 0) {
+                        const midiNote = event.data[0];
+                        const velocity = event.data[1];
+                        const deltaTime = event.deltaTime || 0;
+                        
+                        // MIDI 노트 번호를 MML 노트로 변환
+                        const mmlNote = midiNoteToMML(midiNote);
+                        if (mmlNote) {
+                            // 길이 계산 (틱을 4분음표 기준으로 변환)
+                            const duration = calculateNoteDuration(deltaTime, ticksPerBeat, simplifyRhythm);
+                            
+                            notes.push({
+                                note: mmlNote.note,
+                                octave: mmlNote.octave,
+                                duration: duration,
+                                velocity: velocity,
+                                time: deltaTime
+                            });
+                        }
+                    }
+                }
+                
+                if (notes.length > 0) {
+                    tracks.push({
+                        notes: notes,
+                        tempo: currentTempo
+                    });
+                }
+            }
+            
+            if (tracks.length === 0) {
+                console.warn('변환 가능한 음표가 없습니다');
+                return generateDefaultMML(key, includeChords);
+            }
+            
+            // MML 문자열 생성
+            let mml = `MML@t${tracks[0].tempo || 120}v12`;
+            
+            for (let i = 0; i < tracks.length; i++) {
+                const track = tracks[i];
+                let currentOctave = 4;
+                
+                if (i > 0) mml += ',';
+                if (i === 1) mml += 'v8o3'; // 두 번째 트랙은 낮은 볼륨, 낮은 옥타브
+                
+                for (const noteData of track.notes.slice(0, 32)) { // 최대 32개 음표
+                    // 옥타브 변경
+                    if (noteData.octave !== currentOctave) {
+                        const octaveDiff = noteData.octave - currentOctave;
+                        if (octaveDiff > 0) {
+                            mml += '>'.repeat(octaveDiff);
+                        } else {
+                            mml += '<'.repeat(-octaveDiff);
+                        }
+                        currentOctave = noteData.octave;
+                    }
+                    
+                    // 음표 추가
+                    mml += `${noteData.note}${noteData.duration}`;
+                }
+            }
+            
+            console.log('생성된 MML:', mml + ';');
+            return mml + ';';
+        }
+
+        // MIDI 노트 번호를 MML 노트로 변환
+        function midiNoteToMML(midiNote) {
+            if (midiNote < 0 || midiNote > 127) return null;
+            
+            const noteNames = ['c', 'c+', 'd', 'd+', 'e', 'f', 'f+', 'g', 'g+', 'a', 'a+', 'b'];
+            const octave = Math.floor(midiNote / 12) - 1;
+            const noteIndex = midiNote % 12;
+            
+            if (octave < 1 || octave > 8) return null;
+            
+            return {
+                note: noteNames[noteIndex],
+                octave: octave
+            };
+        }
+
+        // 음표 길이 계산
+        function calculateNoteDuration(deltaTime, ticksPerBeat, simplifyRhythm) {
+            if (deltaTime === 0) return 4; // 기본값
+            
+            // 틱을 4분음표 기준으로 변환
+            const quarterNoteRatio = deltaTime / ticksPerBeat;
+            
+            let duration;
+            if (quarterNoteRatio >= 2) {
+                duration = 2; // 2분음표
+            } else if (quarterNoteRatio >= 1) {
+                duration = 4; // 4분음표  
+            } else if (quarterNoteRatio >= 0.5) {
+                duration = 8; // 8분음표
+            } else {
+                duration = 16; // 16분음표
+            }
+            
+            if (simplifyRhythm) {
+                duration = Math.min(duration, 4); // 최대 4분음표로 제한
+            }
+            
+            return duration;
+        }
+
+        // 샘플 MML 로드 함수 (마비노기 표준 MML 형식으로 수정)
+        function loadSampleMML(type) {
+            const samples = {
+                'twinkle': 'MML@t120v12o4ccggaag2ffeeddc2;',
+                'canon': 'MML@t100v10o4cdefgab>c<bagfedc,o3c2g2c2g2f2c2f2g2;',
+                'mary': 'MML@t110v11o4edcdeee2ddd2egg2edcdeeeeedede2c2;'
+            };
+            
+            const sampleMML = samples[type];
+            if (sampleMML) {
+                console.log('샘플 MML 로드됨:', type, '-', sampleMML);
+                displayResult(sampleMML);
+                hideError();
+                
+                // 샘플 로드 후 바로 테스트 재생해보기 (선택사항)
+                setTimeout(() => {
+                    console.log('샘플 MML 로드 완료. 이제 미리듣기 버튼을 클릭해보세요.');
+                }, 100);
+            }
+        }
+
+        // 이미지 전처리 함수
+        async function preprocessImage(file) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                img.onload = function() {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    // 이미지를 캔버스에 그리기
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // 그레이스케일 변환 및 대비 향상
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    
+                    for (let i = 0; i < data.length; i += 4) {
+                        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                        const enhanced = gray < 128 ? 0 : 255; // 이진화
+                        data[i] = enhanced;
+                        data[i + 1] = enhanced;
+                        data[i + 2] = enhanced;
+                    }
+                    
+                    ctx.putImageData(imageData, 0, 0);
+                    canvasContext = ctx;
+                    resolve(canvas);
+                };
+                
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        // 오선 감지 함수
+        async function detectStaffLines(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            const staffLines = [];
+            
+            // 수평선 감지 알고리즘 (속도 최적화)
+            const stepY = Math.max(1, Math.floor(canvas.height / 200)); // 적응적 스캔 간격
+            const stepX = Math.max(5, Math.floor(canvas.width / 100)); // 적응적 스캔 간격
+            
+            for (let y = 0; y < canvas.height; y += stepY) {
+                let blackPixelCount = 0;
+                const samplePoints = Math.min(50, Math.floor(canvas.width / stepX)); // 샘플링 포인트 제한
+                
+                for (let i = 0; i < samplePoints; i++) {
+                    const x = Math.floor((canvas.width / samplePoints) * i);
+                    const pixelIndex = (y * canvas.width + x) * 4;
+                    if (data[pixelIndex] < 128) blackPixelCount++;
+                }
+                
+                // 오선으로 판단되는 임계값 (더 관대하게 설정)
+                if (blackPixelCount > samplePoints * 0.4) {
+                    staffLines.push(y);
+                }
+            }
+            
+            // 오선 그룹화 (5개씩 묶어서 하나의 악보 시스템으로)
+            const staffSystems = [];
+            for (let i = 0; i < staffLines.length - 4; i += 5) {
+                if (staffLines[i + 4] - staffLines[i] < 50) { // 오선 간격이 적절한 경우
+                    staffSystems.push(staffLines.slice(i, i + 5));
+                    i += 4;
+                }
+            }
+            
+            return staffSystems;
+        }
+
+        // 음표 감지 함수
+        async function detectNotes(canvas, staffSystems) {
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            const notes = [];
+            
+            for (const staffLines of staffSystems) {
+                const systemNotes = [];
+                
+                // 각 오선 시스템에서 음표 찾기 (속도 최적화)
+                const stepX = Math.max(15, Math.floor(canvas.width / 80)); // 큰 간격으로 스캔
+                
+                for (let x = 0; x < canvas.width; x += stepX) {
+                    for (let i = 0; i < Math.min(staffLines.length, 5); i++) { // 최대 5개 라인만 검사
+                        const y = staffLines[i];
+                        
+                        // 간단한 음표 패턴 검사
+                        if (isNotePatternFast(data, x, y, canvas.width)) {
+                            const pitch = calculatePitch(y, staffLines);
+                            const noteType = 'quarter'; // 속도를 위해 고정값 사용
+                            
+                            systemNotes.push({
+                                x: x,
+                                y: y,
+                                pitch: pitch,
+                                type: noteType,
+                                duration: 4
+                            });
+                        }
+                    }
+                }
+                
+                notes.push(systemNotes);
+            }
+            
+            return notes;
+        }
+
+        // 빠른 음표 패턴 인식
+        function isNotePatternFast(data, x, y, width) {
+            // 매우 간단한 패턴 검사 (속도 최적화)
+            const radius = 6;
+            let blackPixels = 0;
+            const checkPoints = 8; // 검사할 포인트 수 제한
+            
+            for (let i = 0; i < checkPoints; i++) {
+                const angle = (Math.PI * 2 * i) / checkPoints;
+                const dx = Math.floor(radius * Math.cos(angle));
+                const dy = Math.floor(radius * Math.sin(angle));
+                const pixelX = x + dx;
+                const pixelY = y + dy;
+                
+                if (pixelX >= 0 && pixelX < width && pixelY >= 0) {
+                    const pixelIndex = (pixelY * width + pixelX) * 4;
+                    if (data[pixelIndex] < 128) blackPixels++;
+                }
+            }
+            
+            return blackPixels >= 3; // 더 관대한 임계값
+        }
+
+        // 원래 정밀한 패턴 인식 (필요시 사용)
+        function isNotePattern(data, x, y, width) {
+            // 간단한 원형 패턴 검사
+            let blackPixels = 0;
+            const radius = 8;
+            
+            for (let dx = -radius; dx <= radius; dx++) {
+                for (let dy = -radius; dy <= radius; dy++) {
+                    if (dx*dx + dy*dy <= radius*radius) {
+                        const pixelX = x + dx;
+                        const pixelY = y + dy;
+                        if (pixelX >= 0 && pixelX < width && pixelY >= 0) {
+                            const pixelIndex = (pixelY * width + pixelX) * 4;
+                            if (data[pixelIndex] < 128) blackPixels++;
+                        }
+                    }
+                }
+            }
+            
+            return blackPixels > radius * radius * 0.5;
+        }
+
+        // 음높이 계산
+        function calculatePitch(y, staffLines) {
+            const pitches = ['e', 'f', 'g', 'a', 'b', 'c', 'd', 'e', 'f'];
+            const lineHeight = (staffLines[4] - staffLines[0]) / 4;
+            
+            for (let i = 0; i < staffLines.length; i++) {
+                const distance = Math.abs(y - staffLines[i]);
+                if (distance < lineHeight / 2) {
+                    return pitches[i + 2]; // 오선상의 음표
+                }
+            }
+            
+            // 오선 사이의 음표
+            for (let i = 0; i < staffLines.length - 1; i++) {
+                if (y > staffLines[i] && y < staffLines[i + 1]) {
+                    return pitches[i + 2];
+                }
+            }
+            
+            return 'c'; // 기본값
+        }
+
+        // 음표 타입 감지
+        function detectNoteType(data, x, y, width) {
+            // 간단한 음표 타입 분류 (실제로는 더 복잡한 패턴 인식 필요)
+            return 'quarter'; // 기본적으로 4분음표로 설정
+        }
+
+        // 음표 길이 반환
+        function getDuration(noteType) {
+            const durations = {
+                'whole': 1,
+                'half': 2,
+                'quarter': 4,
+                'eighth': 8,
+                'sixteenth': 16
+            };
+            return durations[noteType] || 4;
+        }
+
+        // 개선된 MML 코드 생성 (마비노기 표준 형식)
+        function generateMMLFromNotes(notesSystems, key, includeChords, simplifyRhythm) {
+            let mml = `MML@t120v12o4`;  // 기본 설정: 템포 120, 볼륨 12, 옥타브 4
+            
+            for (const notes of notesSystems) {
+                if (notes.length === 0) continue;
+                
+                // 음표들을 X 좌표 순으로 정렬
+                notes.sort((a, b) => a.x - b.x);
+                
+                let currentOctave = 4;
+                
+                for (const note of notes) {
+                    // 옥타브 변경 확인
+                    const noteOctave = Math.floor(Math.random() * 3) + 3; // 3-5 옥타브 랜덤
+                    if (noteOctave !== currentOctave) {
+                        if (noteOctave > currentOctave) {
+                            mml += '>'.repeat(noteOctave - currentOctave);
+                        } else {
+                            mml += '<'.repeat(currentOctave - noteOctave);
+                        }
+                        currentOctave = noteOctave;
+                    }
+                    
+                    // 음표 길이 조정
+                    let duration = simplifyRhythm ? Math.min(note.duration, 2) : note.duration;
+                    
+                    // 마비노기 MML 형식: 음표이름 + 길이 (c4, d2 등)
+                    mml += `${note.pitch}${duration}`;
+                }
+                
+                // 트랙 구분은 쉼표 대신 세미콜론 전에 추가
+                if (notesSystems.indexOf(notes) < notesSystems.length - 1) {
+                    mml += ',';
+                }
+            }
+            
+            // 화음 추가
+            if (includeChords && notesSystems.length > 0) {
+                mml += ',' + generateChordTrack(notesSystems[0], key);
+            }
+            
+            return mml + ';';
+        }
+
+        // 개선된 화음 트랙 생성 (마비노기 표준 형식)
+        function generateChordTrack(notes, key) {
+            if (notes.length === 0) return '';
+            
+            let chordTrack = 'v8o3';  // 화음은 낮은 볼륨, 낮은 옥타브
+            const chordProgressions = {
+                'C': ['c', 'f', 'g', 'c'],
+                'G': ['g', 'c', 'd', 'g'],
+                'F': ['f', 'a+', 'c', 'f']  // b- 대신 a+ 사용
+            };
+            
+            const chords = chordProgressions[key] || chordProgressions['C'];
+            
+            for (let i = 0; i < Math.min(notes.length, 8); i++) {
+                const chord = chords[i % chords.length];
+                chordTrack += `${chord}2`;  // 2분음표로 화음 연주
+            }
+            
+            return chordTrack;
+        }
+
+        function displayResult(mml) {
+            convertedMML = mml;
+            document.getElementById('mmlOutput').textContent = mml;
+            document.getElementById('resultSection').style.display = 'block';
+        }
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(convertedMML).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '복사됨!';
+                btn.classList.add('success');
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('success');
+                }, 2000);
+            }).catch(() => {
+                showError('클립보드 복사에 실패했습니다.');
+            });
+        }
+
+        function downloadMML() {
+            const blob = new Blob([convertedMML], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mabinogi_music.mml';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function resetConverter() {
+            uploadedFile = null;
+            convertedMML = '';
+            fileInput.value = '';
+            previewSection.style.display = 'none';
+            document.getElementById('resultSection').style.display = 'none';
+            convertBtn.disabled = true;
+            hideError();
+            
+            // MIDI 데이터 초기화
+            if (window.currentMidiData) {
+                delete window.currentMidiData;
+            }
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        // 오디오 컨텍스트 초기화
+        function initAudioContext() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('오디오 컨텍스트 생성됨, 상태:', audioContext.state);
+                } catch (error) {
+                    console.error('오디오 컨텍스트 생성 실패:', error);
+                    showError('오디오 재생을 지원하지 않는 브라우저입니다.');
+                    return null;
+                }
+            }
+            return audioContext;
+        }
+
+        // 음표 주파수 매핑
+        function getNoteFrequency(note, octave = 4) {
+            const noteFrequencies = {
+                'c': 261.63,
+                'c+': 277.18, 'c#': 277.18,
+                'd': 293.66,
+                'd+': 311.13, 'd#': 311.13,
+                'e': 329.63,
+                'f': 349.23,
+                'f+': 369.99, 'f#': 369.99,
+                'g': 392.00,
+                'g+': 415.30, 'g#': 415.30,
+                'a': 440.00,
+                'a+': 466.16, 'a#': 466.16,
+                'b': 493.88
+            };
+            
+            const baseFreq = noteFrequencies[note.toLowerCase()] || 440;
+            return baseFreq * Math.pow(2, octave - 4);
+        }
+
+        // 개선된 MML 파싱 함수 (마비노기 표준 MML 지원)
+        function parseMML(mml) {
+            console.log('파싱할 MML:', mml);
+            
+            // MML@ 제거하고 세미콜론으로 끝나는지 확인
+            let cleanMML = mml.replace(/^MML@/i, '').replace(/;$/, '');
+            
+            // 쉼표로 트랙 분리하되, 빈 트랙 제거
+            const tracks = cleanMML.split(',').filter(track => track.trim() !== '' && track.trim().length > 0);
+            console.log('분리된 트랙들:', tracks);
+            
+            const parsedTracks = [];
+            
+            for (let trackIndex = 0; trackIndex < tracks.length; trackIndex++) {
+                const track = tracks[trackIndex].trim();
+                if (!track) continue;
+                
+                const notes = [];
+                let currentTempo = 120;
+                let currentVolume = 10;
+                let currentOctave = 4;
+                let currentDefaultLength = 4;
+                let i = 0;
+                
+                console.log(`트랙 ${trackIndex + 1} 파싱 시작:`, track);
+                
+                while (i < track.length) {
+                    const char = track[i].toLowerCase();
+                    
+                    // 템포 설정 (t)
+                    if (char === 't') {
+                        i++;
+                        let tempo = '';
+                        while (i < track.length && track[i] >= '0' && track[i] <= '9') {
+                            tempo += track[i];
+                            i++;
+                        }
+                        currentTempo = parseInt(tempo) || 120;
+                        console.log('템포 설정:', currentTempo);
+                        continue;
+                    }
+                    
+                    // 볼륨 설정 (v)
+                    if (char === 'v') {
+                        i++;
+                        let volume = '';
+                        while (i < track.length && track[i] >= '0' && track[i] <= '9') {
+                            volume += track[i];
+                            i++;
+                        }
+                        currentVolume = parseInt(volume) || 10;
+                        console.log('볼륨 설정:', currentVolume);
+                        continue;
+                    }
+                    
+                    // 옥타브 설정 (o)
+                    if (char === 'o') {
+                        i++;
+                        let octave = '';
+                        while (i < track.length && track[i] >= '0' && track[i] <= '9') {
+                            octave += track[i];
+                            i++;
+                        }
+                        currentOctave = parseInt(octave) || 4;
+                        console.log('옥타브 설정:', currentOctave);
+                        continue;
+                    }
+                    
+                    // 기본 길이 설정 (l)
+                    if (char === 'l') {
+                        i++;
+                        let length = '';
+                        while (i < track.length && track[i] >= '0' && track[i] <= '9') {
+                            length += track[i];
+                            i++;
+                        }
+                        currentDefaultLength = parseInt(length) || 4;
+                        console.log('기본 길이 설정:', currentDefaultLength);
+                        continue;
+                    }
+                    
+                    // 옥타브 변경
+                    if (char === '>') {
+                        currentOctave = Math.min(currentOctave + 1, 8);
+                        console.log('옥타브 증가:', currentOctave);
+                        i++;
+                        continue;
+                    }
+                    
+                    if (char === '<') {
+                        currentOctave = Math.max(currentOctave - 1, 1);
+                        console.log('옥타브 감소:', currentOctave);
+                        i++;
+                        continue;
+                    }
+                    
+                    // 휴표 (r)
+                    if (char === 'r') {
+                        i++;
+                        let duration = '';
+                        while (i < track.length && track[i] >= '0' && track[i] <= '9') {
+                            duration += track[i];
+                            i++;
+                        }
+                        const restDuration = parseInt(duration) || currentDefaultLength;
+                        
+                        notes.push({
+                            type: 'rest',
+                            duration: restDuration,
+                            tempo: currentTempo,
+                            volume: currentVolume
+                        });
+                        console.log('휴표 추가:', restDuration);
+                        continue;
+                    }
+                    
+                    // 음표 (c, d, e, f, g, a, b)
+                    if ('cdefgab'.includes(char)) {
+                        let noteName = char;
+                        i++;
+                        
+                        // 샵/플랫 확인
+                        if (i < track.length && (track[i] === '+' || track[i] === '#')) {
+                            noteName += '+';
+                            i++;
+                        } else if (i < track.length && track[i] === '-') {
+                            // 플랫을 샵으로 변환 (간단화)
+                            const flatToSharp = {
+                                'a-': 'g+', 'b-': 'a+', 'd-': 'c+',
+                                'e-': 'd+', 'g-': 'f+'
+                            };
+                            noteName = flatToSharp[noteName + '-'] || noteName;
+                            i++;
+                        }
+                        
+                        // 음표 길이 확인
+                        let duration = '';
+                        while (i < track.length && track[i] >= '0' && track[i] <= '9') {
+                            duration += track[i];
+                            i++;
+                        }
+                        const noteDuration = parseInt(duration) || currentDefaultLength;
+                        
+                        // 도트 확인 (.)
+                        let isDotted = false;
+                        if (i < track.length && track[i] === '.') {
+                            isDotted = true;
+                            i++;
+                        }
+                        
+                        const frequency = getNoteFrequency(noteName, currentOctave);
+                        
+                        notes.push({
+                            type: 'note',
+                            note: noteName,
+                            octave: currentOctave,
+                            duration: noteDuration,
+                            isDotted: isDotted,
+                            frequency: frequency,
+                            tempo: currentTempo,
+                            volume: currentVolume
+                        });
+                        
+                        console.log(`음표 추가: ${noteName}${currentOctave}, 길이: ${noteDuration}, 주파수: ${frequency.toFixed(2)}Hz`);
+                        continue;
+                    }
+                    
+                    // 기타 문자는 무시
+                    i++;
+                }
+                
+                if (notes.length > 0) {
+                    parsedTracks.push({
+                        notes: notes,
+                        tempo: currentTempo,
+                        volume: currentVolume
+                    });
+                    console.log(`트랙 ${trackIndex + 1} 파싱 완료: ${notes.length}개 요소`);
+                }
+            }
+            
+            console.log('전체 파싱 완료:', parsedTracks.length, '개 트랙');
+            return parsedTracks;
+        }
+
+        // 개선된 사운드 재생 함수
+        function playNote(frequency, duration, startTime, volume = 0.1) {
+            if (!audioContext) return null;
+            
+            // 메인 오실레이터 (기본 톤)
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            // 배음 추가를 위한 서브 오실레이터 (더 풍부한 사운드)
+            const subOscillator = audioContext.createOscillator();
+            const subGainNode = audioContext.createGain();
+            
+            // 필터 추가 (음질 개선)
+            const filter = audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(3000, startTime);
+            filter.Q.setValueAtTime(1, startTime);
+            
+            // 연결: 오실레이터 -> 필터 -> 게인 -> 출력
+            oscillator.connect(filter);
+            subOscillator.connect(subGainNode);
+            filter.connect(gainNode);
+            subGainNode.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // 메인 오실레이터 설정
+            oscillator.frequency.setValueAtTime(frequency, startTime);
+            oscillator.type = 'triangle';  // sine보다 따뜻한 소리
+            
+            // 서브 오실레이터 설정 (옥타브 위)
+            subOscillator.frequency.setValueAtTime(frequency * 2, startTime);
+            subOscillator.type = 'sine';
+            
+            // 볼륨 조절 (개선된 엔빌로프)
+            const attackTime = 0.02;   // 빠른 어택
+            const decayTime = 0.1;     // 짧은 디케이
+            const sustainLevel = 0.7;  // 서스테인 레벨
+            const releaseTime = 0.2;   // 릴리즈 시간
+            
+            const finalVolume = volume * 0.8; // 전체 볼륨 조절
+            const subVolume = finalVolume * 0.3; // 서브 오실레이터 볼륨
+            
+            // 메인 게인 엔빌로프
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(finalVolume, startTime + attackTime);
+            gainNode.gain.linearRampToValueAtTime(finalVolume * sustainLevel, startTime + attackTime + decayTime);
+            gainNode.gain.setValueAtTime(finalVolume * sustainLevel, startTime + Math.max(duration - releaseTime, attackTime + decayTime));
+            gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+            
+            // 서브 게인 엔빌로프 (더 부드럽게)
+            subGainNode.gain.setValueAtTime(0, startTime);
+            subGainNode.gain.linearRampToValueAtTime(subVolume, startTime + attackTime * 1.5);
+            subGainNode.gain.linearRampToValueAtTime(subVolume * sustainLevel, startTime + attackTime * 1.5 + decayTime);
+            subGainNode.gain.setValueAtTime(subVolume * sustainLevel, startTime + Math.max(duration - releaseTime, attackTime + decayTime));
+            subGainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+            
+            // 오실레이터 시작/정지
+            oscillator.start(startTime);
+            subOscillator.start(startTime);
+            oscillator.stop(startTime + duration);
+            subOscillator.stop(startTime + duration);
+            
+            // 활성 오실레이터 추가
+            activeOscillators.push(oscillator, subOscillator);
+            
+            // 종료 후 배열에서 제거
+            const cleanup = () => {
+                const index1 = activeOscillators.indexOf(oscillator);
+                const index2 = activeOscillators.indexOf(subOscillator);
+                if (index1 > -1) activeOscillators.splice(index1, 1);
+                if (index2 > -1) activeOscillators.splice(index2, 1);
+            };
+            
+            oscillator.onended = cleanup;
+            subOscillator.onended = cleanup;
+            
+            return oscillator;
+        }
+
+        // 개선된 MML 재생 함수
+        async function playMML(mml) {
+            console.log('MML 재생 시작:', mml.substring(0, 50) + '...');
+            
+            const ctx = initAudioContext();
+            if (!ctx) {
+                console.error('오디오 컨텍스트 초기화 실패');
+                return;
+            }
+            
+            console.log('오디오 컨텍스트 상태:', ctx.state);
+            
+            if (ctx.state === 'suspended') {
+                console.log('오디오 컨텍스트 재개 중...');
+                await ctx.resume();
+                console.log('오디오 컨텍스트 재개됨, 새 상태:', ctx.state);
+            }
+            
+            const parsedTracks = parseMML(mml);
+            console.log('파싱된 트랙 수:', parsedTracks.length);
+            
+            if (parsedTracks.length === 0) {
+                console.log('재생할 트랙이 없음');
+                showError('재생할 수 있는 음표가 없습니다.');
+                return;
+            }
+            
+            // 첫 번째 트랙의 정보 출력
+            if (parsedTracks[0] && parsedTracks[0].notes && parsedTracks[0].notes.length > 0) {
+                console.log('첫 번째 음표:', parsedTracks[0].notes[0]);
+                console.log('트랙 템포:', parsedTracks[0].tempo);
+            }
+            
+            // UI 템포 슬라이더의 값을 기본값으로 사용하되, MML의 템포가 있으면 우선 사용
+            const uiTempo = parseInt(document.getElementById('tempoSlider')?.value || 120);
+            
+            let currentTime = ctx.currentTime + 0.1;
+            let maxDuration = 0;
+            let totalNotes = 0;
+            
+            // 모든 트랙을 동시에 재생
+            for (let trackIndex = 0; trackIndex < parsedTracks.length; trackIndex++) {
+                const trackData = parsedTracks[trackIndex];
+                const track = trackData.notes;
+                const trackTempo = trackData.tempo || uiTempo;
+                const beatDuration = 60 / trackTempo; // 1박자 시간(초)
+                
+                let trackTime = currentTime;
+                
+                console.log(`트랙 ${trackIndex + 1}: ${track.length}개 음표, 템포: ${trackTempo} BPM`);
+                
+                for (let noteIndex = 0; noteIndex < track.length; noteIndex++) {
+                    const noteData = track[noteIndex];
+                    let noteDuration = (4 / noteData.duration) * beatDuration;
+                    
+                    // 도트 음표 처리 (1.5배 길이)
+                    if (noteData.isDotted) {
+                        noteDuration *= 1.5;
+                    }
+                    
+                    if (noteData.type === 'note') {
+                        // MML의 볼륨과 UI 볼륨 조합
+                        const uiVolume = (document.getElementById('volumeSlider')?.value || 50) / 100;
+                        const mmlVolume = (noteData.volume || 10) / 15; // MML 볼륨을 0-1 범위로 정규화
+                        const finalVolume = Math.min(uiVolume * mmlVolume * 0.3, 0.3); // 최대 볼륨 제한
+                        
+                        console.log(`음표 재생: ${noteData.note}${noteData.octave}, 주파수: ${noteData.frequency.toFixed(2)}Hz, 시간: ${trackTime.toFixed(2)}초, 길이: ${noteDuration.toFixed(2)}초, 볼륨: ${finalVolume.toFixed(3)}`);
+                        playNote(noteData.frequency, noteDuration, trackTime, finalVolume);
+                        totalNotes++;
+                    } else if (noteData.type === 'rest') {
+                        console.log(`휴표: ${noteDuration.toFixed(2)}초`);
+                    }
+                    
+                    trackTime += noteDuration;
+                }
+                
+                const trackDuration = trackTime - currentTime;
+                maxDuration = Math.max(maxDuration, trackDuration);
+                console.log(`트랙 ${trackIndex + 1} 재생 시간: ${trackDuration.toFixed(2)}초`);
+            }
+            
+            console.log(`총 ${totalNotes}개 음표 재생 예약됨, 전체 재생 시간: ${maxDuration.toFixed(2)}초`);
+            
+            // 재생 완료 후 버튼 상태 복원
+            currentTimeout = setTimeout(() => {
+                console.log('재생 완료');
+                stopPlayback();
+            }, Math.max(maxDuration * 1000, 1000)); // 최소 1초는 재생
+        }
+
+        // 재생/일시정지 토글
+        async function togglePlayback() {
+            const playBtn = document.getElementById('playBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            
+            if (!convertedMML) {
+                showError('재생할 MML 코드가 없습니다.');
+                return;
+            }
+            
+            if (isPlaying) {
+                // 일시정지
+                console.log('재생 중단');
+                stopPlayback();
+            } else {
+                // 재생 시작
+                try {
+                    console.log('재생 버튼 클릭됨');
+                    hideError(); // 기존 오류 메시지 숨기기
+                    
+                    // 사용자 제스처로 오디오 컨텍스트 초기화
+                    const ctx = initAudioContext();
+                    if (!ctx) {
+                        throw new Error('오디오 컨텍스트를 초기화할 수 없습니다.');
+                    }
+                    
+                    // 브라우저 정책으로 인해 suspended 상태일 수 있으므로 강제로 재개
+                    if (ctx.state === 'suspended') {
+                        console.log('사용자 제스처로 오디오 컨텍스트 재개 시도');
+                        await ctx.resume();
+                        console.log('오디오 컨텍스트 상태 변경됨:', ctx.state);
+                    }
+                    
+                    isPlaying = true;
+                    playBtn.textContent = '⏸️ 일시정지';
+                    playBtn.classList.add('playing');
+                    stopBtn.disabled = false;
+                    
+                    await playMML(convertedMML);
+                } catch (error) {
+                    console.error('재생 중 오류:', error);
+                    showError('재생 중 오류가 발생했습니다: ' + error.message);
+                    stopPlayback();
+                }
+            }
+        }
+
+        // 재생 정지
+        function stopPlayback() {
+            isPlaying = false;
+            
+            if (currentTimeout) {
+                clearTimeout(currentTimeout);
+                currentTimeout = null;
+            }
+            
+            // 활성 오실레이터들 정지
+            activeOscillators.forEach(oscillator => {
+                try {
+                    oscillator.stop();
+                } catch (e) {
+                    // 이미 정지된 오실레이터는 무시
+                }
+            });
+            activeOscillators = [];
+            
+            // 오디오 컨텍스트를 닫지 말고 suspend 상태로 전환 (재사용 가능)
+            if (audioContext && audioContext.state === 'running') {
+                audioContext.suspend();
+            }
+            
+            const playBtn = document.getElementById('playBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            
+            if (playBtn) {
+                playBtn.textContent = '▶️ 미리듣기';
+                playBtn.classList.remove('playing');
+            }
+            
+            if (stopBtn) {
+                stopBtn.disabled = true;
+            }
+        }
+    </script>
+</body>
+</html>

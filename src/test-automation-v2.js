@@ -20,6 +20,46 @@ class AnnotateShotTesterV2 {
             { id: 'loading-message-removal', name: '로딩 메시지 자동 제거', func: this.testLoadingMessageRemoval.bind(this) },
             { id: 'extension-compatibility', name: 'Extension v1.2.3 호환성', func: this.testExtensionCompatibility.bind(this) },
             
+            // 클립보드 기능 테스트
+            { id: 'clipboard-paste-support', name: '클립보드 붙여넣기 지원', func: this.testClipboardPasteSupport.bind(this) },
+            { id: 'clipboard-button', name: '클립보드 버튼 기능', func: this.testClipboardButton.bind(this) },
+            { id: 'copy-to-clipboard', name: '클립보드 복사 기능', func: this.testCopyToClipboard.bind(this) },
+            
+            // 파일 시스템 테스트
+            { id: 'image-file-loader', name: '이미지 파일 로더', func: this.testImageFileLoader.bind(this) },
+            { id: 'save-button', name: '저장 버튼 기능', func: this.testSaveButton.bind(this) },
+            { id: 'image-format-support', name: '이미지 형식 지원', func: this.testImageFormatSupport.bind(this) },
+            
+            // 레이어 시스템 테스트
+            { id: 'layer-variables', name: '레이어 시스템 변수', func: this.testLayerVariables.bind(this) },
+            { id: 'create-image-layer', name: '이미지 레이어 생성', func: this.testCreateImageLayer.bind(this) },
+            { id: 'annotation-layer', name: '주석 레이어 시스템', func: this.testAnnotationLayer.bind(this) },
+            
+            // 캔버스 모드 시스템 테스트
+            { id: 'canvas-mode-selector', name: '캔버스 모드 선택기', func: this.testCanvasModeSelector.bind(this) },
+            { id: 'canvas-background-color', name: '캔버스 배경색 설정', func: this.testCanvasBackgroundColor.bind(this) },
+            { id: 'multi-canvas-size', name: '멀티 캔버스 크기', func: this.testMultiCanvasSize.bind(this) },
+            
+            // 이미지 리사이즈 시스템 테스트
+            { id: 'resize-selector', name: '리사이즈 선택기', func: this.testResizeSelector.bind(this) },
+            { id: 'custom-size', name: '커스텀 크기 설정', func: this.testCustomSize.bind(this) },
+            { id: 'resize-handles', name: '리사이즈 핸들', func: this.testResizeHandles.bind(this) },
+            
+            // 다국어 지원 시스템 테스트
+            { id: 'language-selector', name: '언어 선택기', func: this.testLanguageSelector.bind(this) },
+            { id: 'translation-function', name: '번역 함수', func: this.testTranslationFunction.bind(this) },
+            { id: 'language-persistence', name: '언어 설정 유지', func: this.testLanguagePersistence.bind(this) },
+            
+            // Chrome Extension 고급 기능 테스트
+            { id: 'extension-manifest', name: 'Extension 매니페스트', func: this.testExtensionManifest.bind(this) },
+            { id: 'capture-shortcuts', name: '캡처 단축키', func: this.testCaptureShortcuts.bind(this) },
+            { id: 'extension-permissions', name: 'Extension 권한', func: this.testExtensionPermissions.bind(this) },
+            
+            // 모바일 반응형 테스트
+            { id: 'mobile-detection', name: '모바일 감지 함수', func: this.testMobileDetection.bind(this) },
+            { id: 'responsive-css', name: '반응형 CSS', func: this.testResponsiveCSS.bind(this) },
+            { id: 'touch-events', name: '터치 이벤트', func: this.testTouchEvents.bind(this) },
+            
             // v2.0.2 테스트 - 모드별 스타일 컨트롤
             { id: 'number-mode-controls', name: '숫자 모드 스타일 컨트롤', func: this.testNumberModeControls.bind(this) },
             { id: 'shape-mode-controls', name: '도형 모드 스타일 컨트롤', func: this.testShapeModeControls.bind(this) },
@@ -907,6 +947,587 @@ class AnnotateShotTesterV2 {
             this.updateTestResult('extension-compatibility', false, `오류: ${error.message}`);
         }
     }
+
+    // 클립보드 기능 테스트들
+    async testClipboardPasteSupport() {
+        const testName = '클립보드 붙여넣기 지원';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            // 클립보드 API 지원 여부 확인
+            const hasClipboardAPI = 'clipboard' in navigator;
+            const hasReadPermission = hasClipboardAPI && 'read' in navigator.clipboard;
+            
+            this.updateTestResult('clipboard-paste-support', hasReadPermission,
+                `클립보드 API 지원: ${hasClipboardAPI}, 읽기 권한: ${hasReadPermission}`);
+        } catch (error) {
+            this.updateTestResult('clipboard-paste-support', false, `오류: ${error.message}`);
+        }
+    }
+
+    testClipboardButton() {
+        const testName = '클립보드 버튼 기능';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const clipboardButton = testWindow.document.getElementById('clipboardButton');
+                    const hasButton = clipboardButton !== null;
+                    const hasEventListener = hasButton && clipboardButton.onclick !== null;
+                    
+                    this.updateTestResult('clipboard-button', hasButton,
+                        `클립보드 버튼 ${hasButton ? '존재' : '없음'}, 이벤트 리스너 ${hasEventListener ? '있음' : '없음'}`);
+                    
+                    testWindow.close();
+                } catch (error) {
+                    this.updateTestResult('clipboard-button', false, `UI 검증 실패: ${error.message}`);
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.updateTestResult('clipboard-button', false, `테스트 실행 실패: ${error.message}`);
+        }
+    }
+
+    testCopyToClipboard() {
+        const testName = '클립보드 복사 기능';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const copyButton = testWindow.document.getElementById('copyToClipboardButton');
+                    const hasButton = copyButton !== null;
+                    
+                    this.updateTestResult('copy-to-clipboard', hasButton,
+                        `클립보드 복사 버튼 ${hasButton ? '존재' : '없음'}`);
+                    
+                    testWindow.close();
+                } catch (error) {
+                    this.updateTestResult('copy-to-clipboard', false, `UI 검증 실패: ${error.message}`);
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.updateTestResult('copy-to-clipboard', false, `테스트 실행 실패: ${error.message}`);
+        }
+    }
+
+    // 파일 시스템 테스트들
+    testImageFileLoader() {
+        const testName = '이미지 파일 로더';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const imageLoader = testWindow.document.getElementById('imageLoader');
+                    const hasLoader = imageLoader !== null;
+                    const isFileInput = hasLoader && imageLoader.type === 'file';
+                    const acceptsImages = hasLoader && imageLoader.accept && imageLoader.accept.includes('image');
+                    
+                    const passed = hasLoader && isFileInput && acceptsImages;
+                    this.updateTestResult('image-file-loader', passed,
+                        `파일 로더 ${hasLoader ? '존재' : '없음'}, 타입: ${isFileInput ? 'file' : '기타'}, 이미지 허용: ${acceptsImages}`);
+                    
+                    testWindow.close();
+                } catch (error) {
+                    this.updateTestResult('image-file-loader', false, `UI 검증 실패: ${error.message}`);
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.updateTestResult('image-file-loader', false, `테스트 실행 실패: ${error.message}`);
+        }
+    }
+
+    testSaveButton() {
+        const testName = '저장 버튼 기능';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const saveButton = testWindow.document.getElementById('saveButton');
+                    const hasButton = saveButton !== null;
+                    
+                    this.updateTestResult('save-button', hasButton,
+                        `저장 버튼 ${hasButton ? '존재' : '없음'}`);
+                    
+                    testWindow.close();
+                } catch (error) {
+                    this.updateTestResult('save-button', false, `UI 검증 실패: ${error.message}`);
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.updateTestResult('save-button', false, `테스트 실행 실패: ${error.message}`);
+        }
+    }
+
+    async testImageFormatSupport() {
+        const testName = '이미지 형식 지원';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./src/main.js');
+            const jsContent = await response.text();
+            
+            const supportsPNG = jsContent.includes('image/png') || jsContent.includes('PNG');
+            const supportsJPEG = jsContent.includes('image/jpeg') || jsContent.includes('JPEG');
+            const supportsWebP = jsContent.includes('image/webp') || jsContent.includes('WebP');
+            
+            const supportedFormats = [supportsPNG && 'PNG', supportsJPEG && 'JPEG', supportsWebP && 'WebP'].filter(Boolean);
+            const passed = supportedFormats.length >= 2;
+            
+            this.updateTestResult('image-format-support', passed,
+                `지원 형식: ${supportedFormats.join(', ')} (${supportedFormats.length}개)`);
+        } catch (error) {
+            this.updateTestResult('image-format-support', false, `코드 분석 실패: ${error.message}`);
+        }
+    }
+
+    // 레이어 시스템 테스트들
+    async testLayerVariables() {
+        const testName = '레이어 시스템 변수';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./src/main.js');
+            const jsContent = await response.text();
+            
+            const hasLayers = jsContent.includes('let layers = []');
+            const hasImageLayers = jsContent.includes('let imageLayers = []');
+            const hasLayerIdCounter = jsContent.includes('let layerIdCounter');
+            
+            const passed = hasLayers && hasImageLayers && hasLayerIdCounter;
+            this.updateTestResult('layer-variables', passed,
+                `레이어 변수들: layers(${hasLayers}), imageLayers(${hasImageLayers}), layerIdCounter(${hasLayerIdCounter})`);
+        } catch (error) {
+            this.updateTestResult('layer-variables', false, `코드 분석 실패: ${error.message}`);
+        }
+    }
+
+    async testCreateImageLayer() {
+        const testName = '이미지 레이어 생성';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./src/main.js');
+            const jsContent = await response.text();
+            
+            const hasCreateImageLayer = jsContent.includes('function createImageLayer') || jsContent.includes('createImageLayer');
+            const hasAddImageAsNewLayer = jsContent.includes('function addImageAsNewLayer') || jsContent.includes('addImageAsNewLayer');
+            
+            const passed = hasCreateImageLayer && hasAddImageAsNewLayer;
+            this.updateTestResult('create-image-layer', passed,
+                `이미지 레이어 함수들: createImageLayer(${hasCreateImageLayer}), addImageAsNewLayer(${hasAddImageAsNewLayer})`);
+        } catch (error) {
+            this.updateTestResult('create-image-layer', false, `코드 분석 실패: ${error.message}`);
+        }
+    }
+
+    async testAnnotationLayer() {
+        const testName = '주석 레이어 시스템';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./src/main.js');
+            const jsContent = await response.text();
+            
+            const hasAddAnnotationLayer = jsContent.includes('function addAnnotationLayer') || jsContent.includes('addAnnotationLayer');
+            const hasRebuildLayers = jsContent.includes('function rebuildLayersFromClicks') || jsContent.includes('rebuildLayersFromClicks');
+            
+            const passed = hasAddAnnotationLayer && hasRebuildLayers;
+            this.updateTestResult('annotation-layer', passed,
+                `주석 레이어 함수들: addAnnotationLayer(${hasAddAnnotationLayer}), rebuildLayers(${hasRebuildLayers})`);
+        } catch (error) {
+            this.updateTestResult('annotation-layer', false, `코드 분석 실패: ${error.message}`);
+        }
+    }
+
+    // 캔버스 모드 시스템 테스트들
+    testCanvasModeSelector() {
+        const testName = '캔버스 모드 선택기';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const canvasModeSelector = testWindow.document.getElementById('canvasModeSelector');
+                    const hasSelector = canvasModeSelector !== null;
+                    
+                    let hasSingleMultiOptions = false;
+                    if (hasSelector) {
+                        const options = Array.from(canvasModeSelector.options);
+                        hasSingleMultiOptions = options.some(opt => opt.value === 'single') && 
+                                             options.some(opt => opt.value === 'multi');
+                    }
+                    
+                    const passed = hasSelector && hasSingleMultiOptions;
+                    this.updateTestResult('canvas-mode-selector', passed,
+                        `캔버스 모드 선택기 ${hasSelector ? '존재' : '없음'}, Single/Multi 옵션 ${hasSingleMultiOptions ? '있음' : '없음'}`);
+                    
+                    testWindow.close();
+                } catch (error) {
+                    this.updateTestResult('canvas-mode-selector', false, `UI 검증 실패: ${error.message}`);
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.updateTestResult('canvas-mode-selector', false, `테스트 실행 실패: ${error.message}`);
+        }
+    }
+
+    testCanvasBackgroundColor() {
+        const testName = '캔버스 배경색 설정';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const backgroundColorSelector = testWindow.document.getElementById('backgroundColorSelector');
+                    const hasSelector = backgroundColorSelector !== null;
+                    
+                    this.updateTestResult('canvas-background-color', hasSelector,
+                        `배경색 선택기 ${hasSelector ? '존재' : '없음'}`);
+                    
+                    testWindow.close();
+                } catch (error) {
+                    this.updateTestResult('canvas-background-color', false, `UI 검증 실패: ${error.message}`);
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.updateTestResult('canvas-background-color', false, `테스트 실행 실패: ${error.message}`);
+        }
+    }
+
+    testMultiCanvasSize() {
+        const testName = '멀티 캔버스 크기';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const canvasSizeSelector = testWindow.document.getElementById('canvasSizeSelector');
+                    const hasSelector = canvasSizeSelector !== null;
+                    
+                    this.updateTestResult('multi-canvas-size', hasSelector,
+                        `캔버스 크기 선택기 ${hasSelector ? '존재' : '없음'}`);
+                    
+                    testWindow.close();
+                } catch (error) {
+                    this.updateTestResult('multi-canvas-size', false, `UI 검증 실패: ${error.message}`);
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.updateTestResult('multi-canvas-size', false, `테스트 실행 실패: ${error.message}`);
+        }
+    }
+
+    // 이미지 리사이즈 시스템 테스트들
+    testResizeSelector() {
+        const testName = '리사이즈 선택기';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const resizeSelector = testWindow.document.getElementById('resizeSelector');
+                    const hasSelector = resizeSelector !== null;
+                    
+                    let hasResizeOptions = false;
+                    if (hasSelector) {
+                        const options = Array.from(resizeSelector.options);
+                        hasResizeOptions = options.some(opt => opt.value.includes('scale')) || 
+                                         options.some(opt => opt.value === 'original');
+                    }
+                    
+                    const passed = hasSelector && hasResizeOptions;
+                    this.updateTestResult('resize-selector', passed,
+                        `리사이즈 선택기 ${hasSelector ? '존재' : '없음'}, 리사이즈 옵션 ${hasResizeOptions ? '있음' : '없음'}`);
+                    
+                    testWindow.close();
+                } catch (error) {
+                    this.updateTestResult('resize-selector', false, `UI 검증 실패: ${error.message}`);
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.updateTestResult('resize-selector', false, `테스트 실행 실패: ${error.message}`);
+        }
+    }
+
+    testCustomSize() {
+        const testName = '커스텀 크기 설정';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const customWidth = testWindow.document.getElementById('customWidth');
+                    const customHeight = testWindow.document.getElementById('customHeight');
+                    const applyCustomSize = testWindow.document.getElementById('applyCustomSize');
+                    
+                    const hasWidthInput = customWidth !== null;
+                    const hasHeightInput = customHeight !== null;
+                    const hasApplyButton = applyCustomSize !== null;
+                    
+                    const passed = hasWidthInput && hasHeightInput && hasApplyButton;
+                    this.updateTestResult('custom-size', passed,
+                        `커스텀 크기: 너비(${hasWidthInput}), 높이(${hasHeightInput}), 적용 버튼(${hasApplyButton})`);
+                    
+                    testWindow.close();
+                } catch (error) {
+                    this.updateTestResult('custom-size', false, `UI 검증 실패: ${error.message}`);
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.updateTestResult('custom-size', false, `테스트 실행 실패: ${error.message}`);
+        }
+    }
+
+    async testResizeHandles() {
+        const testName = '리사이즈 핸들';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./src/main.js');
+            const jsContent = await response.text();
+            
+            const hasResizeHandle = jsContent.includes('let resizeHandle');
+            const hasResizeStart = jsContent.includes('resizeStartX') && jsContent.includes('resizeStartY');
+            const hasResizeLogic = jsContent.includes('isResizing');
+            
+            const passed = hasResizeHandle && hasResizeStart && hasResizeLogic;
+            this.updateTestResult('resize-handles', passed,
+                `리사이즈 핸들 변수들: handle(${hasResizeHandle}), start(${hasResizeStart}), logic(${hasResizeLogic})`);
+        } catch (error) {
+            this.updateTestResult('resize-handles', false, `코드 분석 실패: ${error.message}`);
+        }
+    }
+
+    // 다국어 지원 시스템 테스트들
+    testLanguageSelector() {
+        const testName = '언어 선택기';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const testWindow = window.open('./index.html', '_blank', 'width=800,height=600');
+            
+            setTimeout(() => {
+                try {
+                    const languageSelector = testWindow.document.getElementById('languageSelector');
+                    const hasSelector = languageSelector !== null;
+                    
+                    let hasLanguageOptions = false;
+                    if (hasSelector) {
+                        const options = Array.from(languageSelector.options);
+                        hasLanguageOptions = options.some(opt => opt.value === 'ko') && 
+                                           options.some(opt => opt.value === 'en');
+                    }
+                    
+                    const passed = hasSelector && hasLanguageOptions;
+                    this.updateTestResult('language-selector', passed,
+                        `언어 선택기 ${hasSelector ? '존재' : '없음'}, 한/영 옵션 ${hasLanguageOptions ? '있음' : '없음'}`);
+                    
+                    testWindow.close();
+                } catch (error) {
+                    this.updateTestResult('language-selector', false, `UI 검증 실패: ${error.message}`);
+                    testWindow.close();
+                }
+            }, 1000);
+        } catch (error) {
+            this.updateTestResult('language-selector', false, `테스트 실행 실패: ${error.message}`);
+        }
+    }
+
+    async testTranslationFunction() {
+        const testName = '번역 함수';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./index.html');
+            const htmlContent = await response.text();
+            
+            const hasTranslateFunction = htmlContent.includes('function translate') || htmlContent.includes('translate(');
+            const hasTranslations = htmlContent.includes('translations') && htmlContent.includes('ko:') && htmlContent.includes('en:');
+            
+            const passed = hasTranslateFunction && hasTranslations;
+            this.updateTestResult('translation-function', passed,
+                `번역 함수: ${hasTranslateFunction ? '존재' : '없음'}, 번역 데이터: ${hasTranslations ? '있음' : '없음'}`);
+        } catch (error) {
+            this.updateTestResult('translation-function', false, `코드 분석 실패: ${error.message}`);
+        }
+    }
+
+    async testLanguagePersistence() {
+        const testName = '언어 설정 유지';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./index.html');
+            const htmlContent = await response.text();
+            
+            const hasGetLanguage = htmlContent.includes('getLanguage()') || htmlContent.includes('getLanguage');
+            const hasSetLanguage = htmlContent.includes('setLanguage') || htmlContent.includes('localStorage');
+            
+            const passed = hasGetLanguage && hasSetLanguage;
+            this.updateTestResult('language-persistence', passed,
+                `언어 설정 함수들: get(${hasGetLanguage}), set/localStorage(${hasSetLanguage})`);
+        } catch (error) {
+            this.updateTestResult('language-persistence', false, `코드 분석 실패: ${error.message}`);
+        }
+    }
+
+    // Chrome Extension 고급 기능 테스트들
+    async testExtensionManifest() {
+        const testName = 'Extension 매니페스트';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./extension/manifest.json');
+            const manifest = await response.json();
+            
+            const hasManifestV3 = manifest.manifest_version === 3;
+            const hasName = manifest.name && manifest.name.includes('AnnotateShot');
+            const hasVersion = manifest.version && /^\d+\.\d+\.\d+$/.test(manifest.version);
+            const hasPermissions = manifest.permissions && manifest.permissions.includes('activeTab');
+            
+            const passed = hasManifestV3 && hasName && hasVersion && hasPermissions;
+            this.updateTestResult('extension-manifest', passed,
+                `매니페스트: v3(${hasManifestV3}), 이름(${hasName}), 버전(${hasVersion}), 권한(${hasPermissions})`);
+        } catch (error) {
+            this.updateTestResult('extension-manifest', false, `매니페스트 분석 실패: ${error.message}`);
+        }
+    }
+
+    async testCaptureShortcuts() {
+        const testName = '캡처 단축키';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./extension/manifest.json');
+            const manifest = await response.json();
+            
+            const commands = manifest.commands || {};
+            const hasCaptureVisible = 'capture-visible' in commands;
+            const hasCapturePartial = 'capture-partial' in commands;
+            const hasCaptureFullPage = 'capture-full' in commands;
+            
+            const passed = hasCaptureVisible && hasCapturePartial && hasCaptureFullPage;
+            this.updateTestResult('capture-shortcuts', passed,
+                `캡처 단축키: 보이는영역(${hasCaptureVisible}), 부분(${hasCapturePartial}), 전체(${hasCaptureFullPage})`);
+        } catch (error) {
+            this.updateTestResult('capture-shortcuts', false, `단축키 분석 실패: ${error.message}`);
+        }
+    }
+
+    async testExtensionPermissions() {
+        const testName = 'Extension 권한';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./extension/manifest.json');
+            const manifest = await response.json();
+            
+            const permissions = manifest.permissions || [];
+            const hostPermissions = manifest.host_permissions || [];
+            
+            const hasActiveTab = permissions.includes('activeTab');
+            const hasScripting = permissions.includes('scripting');
+            const hasHostPermission = hostPermissions.some(host => host.includes('alllogo.net'));
+            
+            const passed = hasActiveTab && hasScripting && hasHostPermission;
+            this.updateTestResult('extension-permissions', passed,
+                `Extension 권한: activeTab(${hasActiveTab}), scripting(${hasScripting}), host(${hasHostPermission})`);
+        } catch (error) {
+            this.updateTestResult('extension-permissions', false, `권한 분석 실패: ${error.message}`);
+        }
+    }
+
+    // 모바일 반응형 테스트들
+    async testMobileDetection() {
+        const testName = '모바일 감지 함수';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./src/main.js');
+            const jsContent = await response.text();
+            
+            const hasIsMobile = jsContent.includes('IS_MOBILE') || jsContent.includes('isMobile');
+            const hasMobileDetection = jsContent.includes('mobile-device') || jsContent.includes('navigator.userAgent');
+            
+            const passed = hasIsMobile && hasMobileDetection;
+            this.updateTestResult('mobile-detection', passed,
+                `모바일 감지: IS_MOBILE(${hasIsMobile}), 감지로직(${hasMobileDetection})`);
+        } catch (error) {
+            this.updateTestResult('mobile-detection', false, `코드 분석 실패: ${error.message}`);
+        }
+    }
+
+    async testResponsiveCSS() {
+        const testName = '반응형 CSS';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./index.html');
+            const htmlContent = await response.text();
+            
+            const hasMediaQuery = htmlContent.includes('@media') && htmlContent.includes('max-width');
+            const hasResponsiveViewport = htmlContent.includes('viewport') && htmlContent.includes('width=device-width');
+            
+            const passed = hasMediaQuery && hasResponsiveViewport;
+            this.updateTestResult('responsive-css', passed,
+                `반응형 CSS: 미디어쿼리(${hasMediaQuery}), 뷰포트(${hasResponsiveViewport})`);
+        } catch (error) {
+            this.updateTestResult('responsive-css', false, `CSS 분석 실패: ${error.message}`);
+        }
+    }
+
+    async testTouchEvents() {
+        const testName = '터치 이벤트';
+        this.log(`${testName} 테스트 시작...`);
+        
+        try {
+            const response = await fetch('./src/main.js');
+            const jsContent = await response.text();
+            
+            const hasTouchStart = jsContent.includes('touchstart') || jsContent.includes('TouchEvent');
+            const hasTouchMove = jsContent.includes('touchmove');
+            const hasTouchEnd = jsContent.includes('touchend');
+            
+            const touchSupport = [hasTouchStart, hasTouchMove, hasTouchEnd].filter(Boolean).length;
+            const passed = touchSupport >= 1; // 최소 하나의 터치 이벤트 지원
+            
+            this.updateTestResult('touch-events', passed,
+                `터치 이벤트: start(${hasTouchStart}), move(${hasTouchMove}), end(${hasTouchEnd})`);
+        } catch (error) {
+            this.updateTestResult('touch-events', false, `코드 분석 실패: ${error.message}`);
+        }
+    }
 }
 
 // 전역 함수들 (V2 버전)
@@ -1047,4 +1668,108 @@ function testLoadingMessageRemoval() {
 
 function testExtensionCompatibility() {
     if (testerV2) testerV2.testExtensionCompatibility();
+}
+
+// 클립보드 기능 테스트 함수들
+function testClipboardPasteSupport() {
+    if (testerV2) testerV2.testClipboardPasteSupport();
+}
+
+function testClipboardButton() {
+    if (testerV2) testerV2.testClipboardButton();
+}
+
+function testCopyToClipboard() {
+    if (testerV2) testerV2.testCopyToClipboard();
+}
+
+// 파일 시스템 테스트 함수들
+function testImageFileLoader() {
+    if (testerV2) testerV2.testImageFileLoader();
+}
+
+function testSaveButton() {
+    if (testerV2) testerV2.testSaveButton();
+}
+
+function testImageFormatSupport() {
+    if (testerV2) testerV2.testImageFormatSupport();
+}
+
+// 레이어 시스템 테스트 함수들
+function testLayerVariables() {
+    if (testerV2) testerV2.testLayerVariables();
+}
+
+function testCreateImageLayer() {
+    if (testerV2) testerV2.testCreateImageLayer();
+}
+
+function testAnnotationLayer() {
+    if (testerV2) testerV2.testAnnotationLayer();
+}
+
+// 캔버스 모드 시스템 테스트 함수들
+function testCanvasModeSelector() {
+    if (testerV2) testerV2.testCanvasModeSelector();
+}
+
+function testCanvasBackgroundColor() {
+    if (testerV2) testerV2.testCanvasBackgroundColor();
+}
+
+function testMultiCanvasSize() {
+    if (testerV2) testerV2.testMultiCanvasSize();
+}
+
+// 이미지 리사이즈 시스템 테스트 함수들
+function testResizeSelector() {
+    if (testerV2) testerV2.testResizeSelector();
+}
+
+function testCustomSize() {
+    if (testerV2) testerV2.testCustomSize();
+}
+
+function testResizeHandles() {
+    if (testerV2) testerV2.testResizeHandles();
+}
+
+// 다국어 지원 시스템 테스트 함수들
+function testLanguageSelector() {
+    if (testerV2) testerV2.testLanguageSelector();
+}
+
+function testTranslationFunction() {
+    if (testerV2) testerV2.testTranslationFunction();
+}
+
+function testLanguagePersistence() {
+    if (testerV2) testerV2.testLanguagePersistence();
+}
+
+// Chrome Extension 고급 기능 테스트 함수들
+function testExtensionManifest() {
+    if (testerV2) testerV2.testExtensionManifest();
+}
+
+function testCaptureShortcuts() {
+    if (testerV2) testerV2.testCaptureShortcuts();
+}
+
+function testExtensionPermissions() {
+    if (testerV2) testerV2.testExtensionPermissions();
+}
+
+// 모바일 반응형 테스트 함수들
+function testMobileDetection() {
+    if (testerV2) testerV2.testMobileDetection();
+}
+
+function testResponsiveCSS() {
+    if (testerV2) testerV2.testResponsiveCSS();
+}
+
+function testTouchEvents() {
+    if (testerV2) testerV2.testTouchEvents();
 }
