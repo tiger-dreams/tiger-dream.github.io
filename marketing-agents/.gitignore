@@ -1,6 +1,13 @@
 node_modules/
 .env
+.env.local
+.env.production
 *.log
 reports/
 temp/
 .DS_Store
+
+# Security: Never commit these files
+*.key
+*.pem
+secrets/
