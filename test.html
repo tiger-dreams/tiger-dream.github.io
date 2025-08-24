@@ -430,6 +430,190 @@
             </div>
         </div>
 
+        <!-- 클립보드 기능 테스트 -->
+        <div class="test-section">
+            <h2>📋 클립보드 기능 테스트</h2>
+            
+            <div class="test-case">
+                <h4>클립보드 이미지 붙여넣기 지원 <span class="test-result result-pending" id="result-clipboard-paste-support">대기중</span></h4>
+                <p>브라우저에서 클립보드 이미지 붙여넣기 API 지원 여부 확인</p>
+                <button class="btn btn-primary" onclick="testClipboardPasteSupport()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>클립보드 버튼 기능 <span class="test-result result-pending" id="result-clipboard-button">대기중</span></h4>
+                <p>클립보드 버튼이 존재하고 이벤트 리스너가 연결되어 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testClipboardButton()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>클립보드 복사 기능 <span class="test-result result-pending" id="result-copy-to-clipboard">대기중</span></h4>
+                <p>캔버스 이미지를 클립보드로 복사하는 기능 확인</p>
+                <button class="btn btn-primary" onclick="testCopyToClipboard()">테스트 실행</button>
+            </div>
+        </div>
+
+        <!-- 파일 시스템 테스트 -->
+        <div class="test-section">
+            <h2>💾 파일 저장/로드 시스템 테스트</h2>
+            
+            <div class="test-case">
+                <h4>이미지 파일 로더 <span class="test-result result-pending" id="result-image-file-loader">대기중</span></h4>
+                <p>이미지 파일 업로드 기능이 정상 동작하는지 확인</p>
+                <button class="btn btn-primary" onclick="testImageFileLoader()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>저장 버튼 기능 <span class="test-result result-pending" id="result-save-button">대기중</span></h4>
+                <p>저장 버튼이 존재하고 이벤트 리스너가 연결되어 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testSaveButton()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>다양한 이미지 형식 지원 <span class="test-result result-pending" id="result-image-format-support">대기중</span></h4>
+                <p>PNG, JPEG, WebP 등 다양한 이미지 형식 처리 가능 여부 확인</p>
+                <button class="btn btn-primary" onclick="testImageFormatSupport()">테스트 실행</button>
+            </div>
+        </div>
+
+        <!-- 레이어 시스템 테스트 -->
+        <div class="test-section">
+            <h2>🎨 레이어 시스템 테스트</h2>
+            
+            <div class="test-case">
+                <h4>레이어 시스템 변수 <span class="test-result result-pending" id="result-layer-variables">대기중</span></h4>
+                <p>레이어 관련 전역 변수들이 정의되어 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testLayerVariables()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>이미지 레이어 생성 함수 <span class="test-result result-pending" id="result-create-image-layer">대기중</span></h4>
+                <p>이미지 레이어 생성 관련 함수들이 존재하는지 확인</p>
+                <button class="btn btn-primary" onclick="testCreateImageLayer()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>주석 레이어 시스템 <span class="test-result result-pending" id="result-annotation-layer">대기중</span></h4>
+                <p>주석을 레이어로 관리하는 시스템이 구현되어 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testAnnotationLayer()">테스트 실행</button>
+            </div>
+        </div>
+
+        <!-- 캔버스 모드 시스템 테스트 -->
+        <div class="test-section">
+            <h2>🖼️ 캔버스 모드 시스템 테스트</h2>
+            
+            <div class="test-case">
+                <h4>캔버스 모드 선택기 <span class="test-result result-pending" id="result-canvas-mode-selector">대기중</span></h4>
+                <p>Single/Multi 캔버스 모드 선택기가 존재하는지 확인</p>
+                <button class="btn btn-primary" onclick="testCanvasModeSelector()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>캔버스 배경색 설정 <span class="test-result result-pending" id="result-canvas-background-color">대기중</span></h4>
+                <p>캔버스 배경색 선택기가 존재하고 동작하는지 확인</p>
+                <button class="btn btn-primary" onclick="testCanvasBackgroundColor()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>멀티 모드 캔버스 크기 <span class="test-result result-pending" id="result-multi-canvas-size">대기중</span></h4>
+                <p>멀티 모드에서 캔버스 크기 설정 기능 확인</p>
+                <button class="btn btn-primary" onclick="testMultiCanvasSize()">테스트 실행</button>
+            </div>
+        </div>
+
+        <!-- 이미지 리사이즈 시스템 테스트 -->
+        <div class="test-section">
+            <h2>📏 이미지 리사이즈 시스템 테스트</h2>
+            
+            <div class="test-case">
+                <h4>리사이즈 선택기 <span class="test-result result-pending" id="result-resize-selector">대기중</span></h4>
+                <p>이미지 리사이즈 옵션 선택기가 존재하는지 확인</p>
+                <button class="btn btn-primary" onclick="testResizeSelector()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>커스텀 크기 설정 <span class="test-result result-pending" id="result-custom-size">대기중</span></h4>
+                <p>커스텀 너비/높이 입력 필드와 적용 버튼 확인</p>
+                <button class="btn btn-primary" onclick="testCustomSize()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>이미지 리사이즈 핸들 <span class="test-result result-pending" id="result-resize-handles">대기중</span></h4>
+                <p>이미지 리사이즈 핸들 관련 변수들이 정의되어 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testResizeHandles()">테스트 실행</button>
+            </div>
+        </div>
+
+        <!-- 다국어 지원 시스템 테스트 -->
+        <div class="test-section">
+            <h2>🌍 다국어 지원 시스템 테스트</h2>
+            
+            <div class="test-case">
+                <h4>언어 선택기 존재 <span class="test-result result-pending" id="result-language-selector">대기중</span></h4>
+                <p>언어 선택기가 HTML에 존재하는지 확인</p>
+                <button class="btn btn-primary" onclick="testLanguageSelector()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>번역 함수 존재 <span class="test-result result-pending" id="result-translation-function">대기중</span></h4>
+                <p>translate() 함수와 관련 번역 시스템이 구현되어 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testTranslationFunction()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>언어 설정 유지 <span class="test-result result-pending" id="result-language-persistence">대기중</span></h4>
+                <p>localStorage에 언어 설정이 저장되고 로드되는지 확인</p>
+                <button class="btn btn-primary" onclick="testLanguagePersistence()">테스트 실행</button>
+            </div>
+        </div>
+
+        <!-- Chrome Extension 고급 기능 테스트 -->
+        <div class="test-section">
+            <h2>🔌 Chrome Extension 고급 기능 테스트</h2>
+            
+            <div class="test-case">
+                <h4>Extension 매니페스트 검증 <span class="test-result result-pending" id="result-extension-manifest">대기중</span></h4>
+                <p>Chrome Extension 매니페스트 파일이 올바른 구조를 가지는지 확인</p>
+                <button class="btn btn-primary" onclick="testExtensionManifest()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>캡처 단축키 설정 <span class="test-result result-pending" id="result-capture-shortcuts">대기중</span></h4>
+                <p>세 가지 캡처 모드의 단축키가 올바르게 설정되어 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testCaptureShortcuts()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>Extension 권한 설정 <span class="test-result result-pending" id="result-extension-permissions">대기중</span></h4>
+                <p>필요한 권한들이 매니페스트에 올바르게 설정되어 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testExtensionPermissions()">테스트 실행</button>
+            </div>
+        </div>
+
+        <!-- 모바일 반응형 테스트 -->
+        <div class="test-section">
+            <h2>📱 모바일 반응형 테스트</h2>
+            
+            <div class="test-case">
+                <h4>모바일 감지 함수 <span class="test-result result-pending" id="result-mobile-detection">대기중</span></h4>
+                <p>모바일 디바이스 감지 함수가 구현되어 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testMobileDetection()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>반응형 CSS 미디어 쿼리 <span class="test-result result-pending" id="result-responsive-css">대기중</span></h4>
+                <p>모바일용 CSS 미디어 쿼리가 적용되어 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testResponsiveCSS()">테스트 실행</button>
+            </div>
+
+            <div class="test-case">
+                <h4>터치 이벤트 지원 <span class="test-result result-pending" id="result-touch-events">대기중</span></h4>
+                <p>터치 이벤트 처리가 구현되어 있는지 확인</p>
+                <button class="btn btn-primary" onclick="testTouchEvents()">테스트 실행</button>
+            </div>
+        </div>
+
         <!-- 테스트 캔버스 영역 -->
         <div class="test-section">
             <h2>📊 테스트 캔버스</h2>
