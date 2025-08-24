@@ -1,0 +1,39 @@
+{
+  "name": "annotateshot-marketing-agents",
+  "version": "1.0.0",
+  "description": "AI-powered marketing automation agents for AnnotateShot MAU growth",
+  "main": "marketing-orchestrator.js",
+  "scripts": {
+    "start": "node marketing-orchestrator.js start",
+    "daily": "node marketing-orchestrator.js daily",
+    "weekly": "node marketing-orchestrator.js weekly",
+    "monthly": "node marketing-orchestrator.js monthly",
+    "status": "node marketing-orchestrator.js status",
+    "emergency": "node marketing-orchestrator.js emergency",
+    "test": "node test-agents.js",
+    "setup-reddit": "node setup-reddit-oauth.js",
+    "test-reddit": "node test-reddit-posting.js",
+    "post-reddit": "node run-reddit-posting.js"
+  },
+  "keywords": [
+    "marketing",
+    "automation",
+    "ai",
+    "claude",
+    "growth",
+    "mau"
+  ],
+  "author": "AnnotateShot Team",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "node-fetch": "^3.3.2",
+    "snoowrap": "^1.23.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
