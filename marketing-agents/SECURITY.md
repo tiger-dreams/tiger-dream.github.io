@@ -8,13 +8,13 @@
 
 The following keys have been accidentally exposed and need immediate attention:
 
-1. **Gemini API Key**: `***REMOVED***`
+1. **Gemini API Key**: `your_gemini_api_key`
    - **Action**: Regenerate immediately at https://console.cloud.google.com/apis/credentials
    - **Risk**: High - AI content generation access
 
 2. **Reddit Client Credentials**: 
-   - Client ID: `***REMOVED***`
-   - Client Secret: `***REMOVED***`
+   - Client ID: `your_reddit_client_id`
+   - Client Secret: `your_reddit_client_secret`
    - **Action**: Delete and recreate Reddit app at https://www.reddit.com/prefs/apps
    - **Risk**: Medium - Automated posting access
 
