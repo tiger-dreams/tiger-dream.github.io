@@ -33,7 +33,7 @@ class CommunityMarketingAgent {
             
             CRITICAL REQUIREMENTS:
             - Write as Tiger (AnnotateShot PM) sharing personal product insights
-            - MUST include clickable link: "Try it at [annotateshot.com](https://annotateshot.com)" 
+            - MUST include clickable link: "Try it at [annotateshot.com](http://annotateshot.com)" 
             - Mention specific AnnotateShot features naturally
             - Provide genuine value about screenshot workflows
             - Professional but approachable tone (use "I've been working on..." style)
@@ -71,7 +71,7 @@ class CommunityMarketingAgent {
             REQUIREMENTS:
             - Write as Tiger (AnnotateShot PM) with personal touch
             - Be helpful first, promotional second
-            - Include clickable link: "[annotateshot.com](https://annotateshot.com)" naturally
+            - Include clickable link: "[annotateshot.com](http://annotateshot.com)" naturally
             - Mention specific real-world use cases briefly
             - Keep each reply under 100 words
             
@@ -93,7 +93,7 @@ class CommunityMarketingAgent {
             
             REQUIREMENTS:
             - Write as Tiger (AnnotateShot PM) sharing personal product development insights
-            - MUST include clickable link: "Try it at [annotateshot.com](https://annotateshot.com)"
+            - MUST include clickable link: "Try it at [annotateshot.com](http://annotateshot.com)"
             - Focus on workflow optimization principles
             - Share specific productivity metrics/improvements
             - Include step-by-step best practices
