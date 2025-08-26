@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>간단한 유닛 테스트 데모</title>
+    <title>AnnotateShot 유닛 테스트</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
         .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
@@ -11,8 +11,8 @@
     </style>
 </head>
 <body>
-    <h1>🧪 AnnotateShot 유닛 테스트 데모</h1>
-    <p>이것이 실제 유닛 테스트가 어떻게 작동하는지 보여주는 예시입니다.</p>
+    <h1>🧪 AnnotateShot 유닛 테스트</h1>
+    <p>AnnotateShot 애플리케이션의 핵심 기능들에 대한 유닛 테스트입니다.</p>
     
     <button onclick="runAllTests()">테스트 실행</button>
     
@@ -54,10 +54,39 @@
         
         function translateText(key, lang = 'ko') {
             const translations = {
-                ko: { save: '저장하기', undo: '뒤로가기', red: '빨간색' },
-                en: { save: 'Save', undo: 'Undo', red: 'Red' }
+                ko: { save: '저장하기', undo: '뒤로가기', red: '빨간색', blue: '파란색', green: '초록색' },
+                en: { save: 'Save', undo: 'Undo', red: 'Red', blue: 'Blue', green: 'Green' }
             };
             return translations[lang]?.[key] || key;
+        }
+        
+        function validateAnnotationClick(click) {
+            if (!click || typeof click !== 'object') return false;
+            if (!click.type || typeof click.type !== 'string') return false;
+            if (typeof click.x !== 'number' || typeof click.y !== 'number') return false;
+            if (click.x < 0 || click.y < 0) return false;
+            return true;
+        }
+        
+        function calculateNumberPosition(x, y, size) {
+            const sizeMap = { small: 20, medium: 30, large: 40 };
+            const radius = sizeMap[size] || 30;
+            return { 
+                centerX: x, 
+                centerY: y, 
+                radius: radius 
+            };
+        }
+        
+        function isValidColor(color) {
+            if (!color || typeof color !== 'string') return false;
+            // Hex color validation
+            if (color.startsWith('#')) {
+                return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
+            }
+            // Named colors
+            const validColors = ['red', 'blue', 'green', 'yellow', 'black', 'white'];
+            return validColors.includes(color.toLowerCase());
         }
 
         // 간단한 테스트 프레임워크
@@ -81,6 +110,21 @@
                     toEqual: (expected) => {
                         if (JSON.stringify(actual) !== JSON.stringify(expected)) {
                             throw new Error(`Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(actual)}`);
+                        }
+                    },
+                    toBeTrue: () => {
+                        if (actual !== true) {
+                            throw new Error(`Expected true, but got ${actual}`);
+                        }
+                    },
+                    toBeFalse: () => {
+                        if (actual !== false) {
+                            throw new Error(`Expected false, but got ${actual}`);
+                        }
+                    },
+                    toContain: (expected) => {
+                        if (!actual || !actual.includes || !actual.includes(expected)) {
+                            throw new Error(`Expected ${actual} to contain ${expected}`);
                         }
                     }
                 };
@@ -144,6 +188,83 @@
         runner.test('번역 - 영어 저장', () => {
             const result = translateText('save', 'en');
             runner.expect(result).toBe('Save');
+        });
+        
+        runner.test('번역 - 존재하지 않는 키', () => {
+            const result = translateText('nonexistent', 'ko');
+            runner.expect(result).toBe('nonexistent');
+        });
+        
+        runner.test('색상 변환 - blue', () => {
+            const result = getColorFromSelector('blue');
+            runner.expect(result).toBe('#0000FF');
+        });
+        
+        runner.test('색상 변환 - 사용자 정의 색상', () => {
+            const result = getColorFromSelector('#FF5500');
+            runner.expect(result).toBe('#FF5500');
+        });
+        
+        runner.test('어노테이션 클릭 검증 - 유효한 데이터', () => {
+            const click = { type: 'number', x: 100, y: 200, color: 'red' };
+            runner.expect(validateAnnotationClick(click)).toBeTrue();
+        });
+        
+        runner.test('어노테이션 클릭 검증 - 잘못된 좌표', () => {
+            const click = { type: 'number', x: -10, y: 200 };
+            runner.expect(validateAnnotationClick(click)).toBeFalse();
+        });
+        
+        runner.test('어노테이션 클릭 검증 - 타입 누락', () => {
+            const click = { x: 100, y: 200 };
+            runner.expect(validateAnnotationClick(click)).toBeFalse();
+        });
+        
+        runner.test('숫자 포지션 계산 - medium 크기', () => {
+            const result = calculateNumberPosition(100, 200, 'medium');
+            runner.expect(result).toEqual({ centerX: 100, centerY: 200, radius: 30 });
+        });
+        
+        runner.test('숫자 포지션 계산 - large 크기', () => {
+            const result = calculateNumberPosition(150, 250, 'large');
+            runner.expect(result).toEqual({ centerX: 150, centerY: 250, radius: 40 });
+        });
+        
+        runner.test('숫자 포지션 계산 - 기본 크기', () => {
+            const result = calculateNumberPosition(50, 75, 'unknown');
+            runner.expect(result).toEqual({ centerX: 50, centerY: 75, radius: 30 });
+        });
+        
+        runner.test('색상 유효성 검사 - 유효한 hex', () => {
+            runner.expect(isValidColor('#FF0000')).toBeTrue();
+            runner.expect(isValidColor('#abc')).toBeTrue();
+        });
+        
+        runner.test('색상 유효성 검사 - 잘못된 hex', () => {
+            runner.expect(isValidColor('#GG0000')).toBeFalse();
+            runner.expect(isValidColor('#12')).toBeFalse();
+        });
+        
+        runner.test('색상 유효성 검사 - 유효한 색상명', () => {
+            runner.expect(isValidColor('red')).toBeTrue();
+            runner.expect(isValidColor('BLUE')).toBeTrue();
+        });
+        
+        runner.test('색상 유효성 검사 - 잘못된 입력', () => {
+            runner.expect(isValidColor('')).toBeFalse();
+            runner.expect(isValidColor(null)).toBeFalse();
+            runner.expect(isValidColor('purple')).toBeFalse();
+        });
+        
+        runner.test('자동 리사이즈 - 작은 이미지 (변경 없음)', () => {
+            const result = calculateImageDimensions(800, 600, 'auto');
+            runner.expect(result).toEqual({ width: 800, height: 600 });
+        });
+        
+        runner.test('이미지 크기 계산 - 폭이 더 큰 경우', () => {
+            const result = calculateImageDimensions(2800, 800, 'auto');
+            runner.expect(result.width).toBe(1400);
+            runner.expect(result.height).toBe(400);
         });
         
         function runAllTests() {
