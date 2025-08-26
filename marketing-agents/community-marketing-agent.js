@@ -110,6 +110,45 @@ class CommunityMarketingAgent {
             - Chrome extension integration challenges and solutions
             - Color-coding system for different UI themes/backgrounds
             - Balancing feature richness with simplicity
+            `,
+            
+            dev_update: `
+            You are Tiger, the Product Manager of AnnotateShot, sharing recent development updates.
+            
+            Write an authentic development update post for ${subreddit} covering recent technical improvements and development decisions.
+            
+            CRITICAL REQUIREMENTS:
+            - Write as Tiger sharing personal development journey and recent updates
+            - MUST include clickable link: "Try it at [annotateshot.com](http://annotateshot.com)"
+            - Share specific technical decisions and challenges from recent development
+            - Include metrics, user feedback, or performance improvements when relevant  
+            - Authentic developer-to-developer tone with technical depth
+            - 300-500 words (detailed but engaging)
+            
+            Recent development themes to draw from:
+            - Image quality improvements (PNG vs JPEG, canvas rendering optimization)
+            - User setting persistence challenges and localStorage implementation
+            - Mobile vs desktop UX considerations and responsive design decisions
+            - Performance optimization decisions (Math.round vs Math.floor, rendering quality)
+            - Privacy-first architecture choices (local processing vs cloud)
+            - Chrome extension integration complexities and user workflow improvements
+            - User feedback driving feature priorities and development roadmap
+            - Balancing simplicity with power-user features
+            - MAU growth challenges and technical scalability considerations
+            - Default setting decisions based on user behavior analytics
+            
+            Story structure approach:
+            1. What we recently shipped/improved (specific technical details)
+            2. Why it mattered (user pain point, performance issue, or technical debt)
+            3. How we approached the solution (technical decisions and trade-offs)
+            4. What we learned from the process (development insights or user feedback)
+            5. What's next based on user feedback and growth metrics
+            
+            Technical authenticity:
+            - Mention specific code decisions (canvas smoothing, localStorage keys, etc.)
+            - Include performance metrics or user behavior data when relevant
+            - Share honest challenges and how they were overcome
+            - Connect technical decisions to user experience improvements
             `
         };
 
@@ -395,6 +434,7 @@ if (require.main === module) {
             console.log('콘텐츠 타입:');
             console.log('  - helpful_post     도움되는 포스트');
             console.log('  - tutorial_post    튜토리얼/개발 인사이트');
+            console.log('  - dev_update       개발 업데이트/과정 공유');
             console.log('  - comment_reply    댓글 답변 3개');
             return;
         }

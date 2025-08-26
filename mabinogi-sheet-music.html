@@ -390,12 +390,40 @@
 
             <div class="upload-section" id="uploadSection">
                 <div class="upload-icon">📄</div>
-                <div class="upload-text">악보 이미지 또는 MIDI 파일을 드래그하거나 클릭하여 업로드하세요</div>
-                <div class="upload-subtext">지원 형식: JPG, PNG, GIF, PDF, MIDI (최대 10MB)</div>
-                <input type="file" id="fileInput" class="file-input" accept="image/*,.pdf,.gif,.mid,.midi">
+                <div class="upload-text">악보 이미지, MIDI 파일, 또는 YouTube URL을 입력하세요</div>
+                <div class="upload-subtext">지원 형식: JPG, PNG, GIF, PDF, MIDI, MP3 (최대 10MB)</div>
+                <input type="file" id="fileInput" class="file-input" accept="image/*,.pdf,.gif,.mid,.midi,.mp3">
                 <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
                     파일 선택
                 </button>
+                
+                <!-- YouTube URL 입력 섹션 -->
+                <div class="youtube-section" style="margin-top: 20px; padding-top: 20px; border-top: 2px dashed #cbd5e1;">
+                    <div class="youtube-icon" style="width: 48px; height: 48px; margin: 0 auto 15px; background: #ff0000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">
+                        ▶️
+                    </div>
+                    <div style="font-size: 1.1rem; color: #475569; margin-bottom: 15px; font-weight: 600;">
+                        YouTube에서 음악을 변환하세요
+                    </div>
+                    <div class="youtube-input-group" style="display: flex; gap: 10px; max-width: 500px; margin: 0 auto;">
+                        <input 
+                            type="url" 
+                            id="youtubeUrl" 
+                            placeholder="https://www.youtube.com/watch?v=..." 
+                            style="flex: 1; padding: 10px 15px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 1rem;"
+                        >
+                        <button 
+                            id="youtubeProcessBtn" 
+                            onclick="processYouTubeUrl()" 
+                            style="padding: 10px 20px; background: #ff0000; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem;"
+                        >
+                            변환
+                        </button>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #64748b; margin-top: 10px;">
+                        💡 비영리 교육 목적으로만 사용하세요
+                    </div>
+                </div>
             </div>
 
             <div class="preview-section" id="previewSection">
@@ -480,8 +508,51 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/midi-parser-js@4.0.4/dist/index.js"></script>
+    <!-- Multiple MIDI parser sources -->
+    <script src="https://unpkg.com/midi-parser-js@4.0.4/dist/midi-parser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/verovio@4.1.0/dist/verovio-toolkit-wasm.js"></script>
+    
+    <!-- MIDI 파서 백업 로딩 -->
+    <script>
+        // MidiParser가 로드되지 않은 경우 백업 처리
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof MidiParser === 'undefined') {
+                console.warn('Primary MIDI parser failed, loading backup...');
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/midi-parser-js@4.0.4/dist/midi-parser.min.js';
+                script.onload = function() {
+                    console.log('Backup MIDI parser loaded successfully');
+                };
+                script.onerror = function() {
+                    console.error('Backup MIDI parser also failed');
+                    // 최후의 수단: 간단한 MIDI 파서 구현
+                    window.MidiParser = createFallbackMidiParser();
+                };
+                document.head.appendChild(script);
+            } else {
+                console.log('MIDI parser loaded successfully');
+            }
+        });
+        
+        // 간단한 폴백 MIDI 파서
+        function createFallbackMidiParser() {
+            return {
+                parse: function(arrayBuffer) {
+                    console.warn('Using fallback MIDI parser - limited functionality');
+                    try {
+                        // 실제 파싱은 parseBasicMIDI 함수 사용
+                        return parseBasicMIDI(arrayBuffer);
+                    } catch (error) {
+                        console.error('Fallback MIDI parser error:', error);
+                        return {
+                            timeDivision: 480,
+                            track: []
+                        };
+                    }
+                }
+            };
+        }
+    </script>
     <script>
         let uploadedFile = null;
         let convertedMML = '';
@@ -535,15 +606,72 @@
         // Verovio 초기화
         async function initializeVerovio() {
             try {
-                if (typeof verovio_module !== 'undefined') {
-                    console.log('Verovio 툴킷 로딩 중...');
-                    verovio = new verovio_module.toolkit();
-                    console.log('Verovio 툴킷 초기화 완료');
-                } else {
-                    console.warn('Verovio 모듈을 찾을 수 없습니다. 고급 기능이 제한됩니다.');
+                // 다양한 Verovio 모듈 이름 시도
+                const moduleNames = ['verovio_module', 'verovio', 'VerovioModule'];
+                let moduleFound = false;
+                
+                for (const moduleName of moduleNames) {
+                    if (typeof window[moduleName] !== 'undefined') {
+                        console.log(`Verovio 툴킷 로딩 중... (${moduleName})`);
+                        try {
+                            verovio = new window[moduleName].toolkit();
+                            console.log('Verovio 툴킷 초기화 완료');
+                            moduleFound = true;
+                            break;
+                        } catch (e) {
+                            console.warn(`${moduleName}로 초기화 실패:`, e);
+                            continue;
+                        }
+                    }
+                }
+                
+                if (!moduleFound) {
+                    console.warn('Verovio 모듈을 찾을 수 없습니다.');
+                    console.log('사용 가능한 전역 객체:', Object.keys(window).filter(key => key.toLowerCase().includes('verovio')));
+                    
+                    // 대체 Verovio 라이브러리 로드 시도
+                    await loadBackupVerovio();
                 }
             } catch (error) {
                 console.error('Verovio 초기화 실패:', error);
+                await loadBackupVerovio();
+            }
+        }
+        
+        // 백업 Verovio 로더
+        async function loadBackupVerovio() {
+            try {
+                console.log('백업 Verovio 라이브러리 로딩 중...');
+                const script = document.createElement('script');
+                script.src = 'https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js';
+                
+                return new Promise((resolve, reject) => {
+                    script.onload = () => {
+                        console.log('백업 Verovio 로드 완료');
+                        setTimeout(() => {
+                            try {
+                                if (typeof verovio_module !== 'undefined') {
+                                    verovio = new verovio_module.toolkit();
+                                    console.log('백업 Verovio 초기화 완료');
+                                    resolve();
+                                } else {
+                                    console.warn('백업 Verovio도 초기화 실패 - 고급 기능 비활성화');
+                                    resolve();
+                                }
+                            } catch (e) {
+                                console.error('백업 Verovio 초기화 오류:', e);
+                                resolve();
+                            }
+                        }, 1000);
+                    };
+                    script.onerror = () => {
+                        console.error('백업 Verovio 로드 실패');
+                        resolve();
+                    };
+                    document.head.appendChild(script);
+                });
+            } catch (error) {
+                console.error('백업 Verovio 로더 오류:', error);
             }
         }
 
@@ -582,9 +710,12 @@
             }
 
             // 파일 형식 체크
-            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'audio/midi', 'audio/mid'];
-            if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.mid') && !file.name.toLowerCase().endsWith('.midi')) {
-                showError('지원하지 않는 파일 형식입니다. JPG, PNG, GIF, PDF, MIDI 파일만 업로드 가능합니다.');
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'audio/midi', 'audio/mid', 'audio/mp3', 'audio/mpeg'];
+            const allowedExtensions = ['.mid', '.midi', '.mp3'];
+            const hasValidExtension = allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+            
+            if (!allowedTypes.includes(file.type) && !hasValidExtension) {
+                showError('지원하지 않는 파일 형식입니다. JPG, PNG, GIF, PDF, MIDI, MP3 파일만 업로드 가능합니다.');
                 return;
             }
 
@@ -598,6 +729,8 @@
                 processGIF(file);
             } else if (file.name.toLowerCase().endsWith('.mid') || file.name.toLowerCase().endsWith('.midi')) {
                 processMIDI(file);
+            } else if (file.name.toLowerCase().endsWith('.mp3') || file.type.includes('audio/mp3') || file.type.includes('audio/mpeg')) {
+                processMP3(file);
             } else {
                 // 일반 이미지 파일 미리보기 표시
                 const reader = new FileReader();
@@ -690,10 +823,26 @@
         // MIDI 파일 처리 함수
         async function processMIDI(file) {
             try {
+                console.log('MIDI 파일 처리 시작:', file.name);
                 const arrayBuffer = await file.arrayBuffer();
-                const midiData = MidiParser.parse(arrayBuffer);
                 
-                console.log('MIDI 파일 파싱됨:', midiData);
+                // MidiParser 사용 가능성 체크
+                if (typeof MidiParser === 'undefined') {
+                    console.error('MidiParser가 정의되지 않음, 대체 방법 시도');
+                    await waitForMidiParser();
+                }
+                
+                let midiData = null;
+                
+                if (typeof MidiParser !== 'undefined') {
+                    console.log('MidiParser로 파싱 시도...');
+                    midiData = MidiParser.parse(arrayBuffer);
+                } else {
+                    console.log('내장 파서로 파싱 시도...');
+                    midiData = parseBasicMIDI(arrayBuffer);
+                }
+                
+                console.log('MIDI 파일 파싱 결과:', midiData);
                 
                 // MIDI 정보를 미리보기로 표시
                 const canvas = document.createElement('canvas');
@@ -727,8 +876,212 @@
                 
             } catch (error) {
                 console.error('MIDI 파일 처리 중 오류:', error);
-                showError('MIDI 파일 처리 중 오류가 발생했습니다. 파일이 손상되었을 수 있습니다.');
+                showError('MIDI 파일 처리 중 오류가 발생했습니다: ' + error.message);
             }
+        }
+        
+        // MidiParser 로딩 대기
+        function waitForMidiParser() {
+            return new Promise((resolve) => {
+                const checkInterval = setInterval(() => {
+                    if (typeof MidiParser !== 'undefined') {
+                        clearInterval(checkInterval);
+                        console.log('MidiParser 로드 완료');
+                        resolve();
+                    }
+                }, 100);
+                
+                // 3초 후 타임아웃
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    console.warn('MidiParser 로딩 타임아웃');
+                    resolve();
+                }, 3000);
+            });
+        }
+        
+        // 기본 MIDI 파서 (간단한 구현)
+        function parseBasicMIDI(arrayBuffer) {
+            console.log('기본 MIDI 파서 사용');
+            const view = new DataView(arrayBuffer);
+            
+            // MIDI 헤더 확인 (MThd)
+            if (view.getUint32(0) !== 0x4D546864) {
+                throw new Error('유효하지 않은 MIDI 파일 형식');
+            }
+            
+            const headerLength = view.getUint32(4);
+            const format = view.getUint16(8);
+            const trackCount = view.getUint16(10);
+            const timeDivision = view.getUint16(12);
+            
+            console.log(`MIDI 정보: Format=${format}, Tracks=${trackCount}, TimeDivision=${timeDivision}`);
+            
+            const tracks = [];
+            let offset = 8 + headerLength;
+            
+            for (let i = 0; i < trackCount; i++) {
+                if (offset + 8 > arrayBuffer.byteLength) break;
+                
+                // 트랙 헤더 (MTrk)
+                const trackHeader = view.getUint32(offset);
+                if (trackHeader !== 0x4D54726B) {
+                    console.warn(`트랙 ${i} 헤더가 잘못됨`);
+                    break;
+                }
+                
+                const trackLength = view.getUint32(offset + 4);
+                offset += 8;
+                
+                // 간단한 노트 이벤트 추출
+                const events = extractBasicNotes(view, offset, trackLength);
+                tracks.push({ event: events });
+                
+                offset += trackLength;
+            }
+            
+            return {
+                timeDivision: timeDivision,
+                track: tracks
+            };
+        }
+        
+        // 기본 노트 이벤트 추출
+        function extractBasicNotes(view, start, length) {
+            const events = [];
+            let offset = start;
+            const end = start + length;
+            let runningStatus = 0;
+            
+            console.log(`트랙 데이터 추출 시작: offset=${offset}, length=${length}, end=${end}`);
+            
+            while (offset < end - 1) {
+                try {
+                    // 델타 타임 읽기
+                    const deltaTime = readVariableLength(view, offset);
+                    offset += deltaTime.length;
+                    
+                    if (offset >= end) {
+                        console.log('델타 타임 읽기 후 범위 초과');
+                        break;
+                    }
+                    
+                    // 이벤트 타입 읽기
+                    let eventType = view.getUint8(offset);
+                    let dataOffset = offset + 1;
+                    
+                    // Running Status 처리
+                    if (eventType < 0x80) {
+                        eventType = runningStatus;
+                        dataOffset = offset;
+                    } else {
+                        runningStatus = eventType;
+                        offset++;
+                    }
+                    
+                    if (dataOffset >= end) break;
+                    
+                    // MIDI 이벤트 처리
+                    if ((eventType & 0xF0) === 0x90) {
+                        // Note On
+                        if (dataOffset + 1 < end) {
+                            const note = view.getUint8(dataOffset);
+                            const velocity = view.getUint8(dataOffset + 1);
+                            
+                            events.push({
+                                type: eventType,
+                                deltaTime: deltaTime.value,
+                                data: [note, velocity]
+                            });
+                            
+                            if (velocity > 0) {
+                                console.log(`Note On: ${note}, velocity: ${velocity}, delta: ${deltaTime.value}`);
+                            } else {
+                                console.log(`Note Off (vel=0): ${note}, delta: ${deltaTime.value}`);
+                            }
+                            offset = dataOffset + 2;
+                        } else {
+                            break;
+                        }
+                    } else if ((eventType & 0xF0) === 0x80) {
+                        // Note Off
+                        if (dataOffset + 1 < end) {
+                            const note = view.getUint8(dataOffset);
+                            const velocity = view.getUint8(dataOffset + 1);
+                            
+                            events.push({
+                                type: eventType,
+                                deltaTime: deltaTime.value,
+                                data: [note, velocity]
+                            });
+                            console.log(`Note Off: ${note}, velocity: ${velocity}, delta: ${deltaTime.value}`);
+                            offset = dataOffset + 2;
+                        } else {
+                            break;
+                        }
+                    } else if ((eventType & 0xF0) === 0xB0) {
+                        // Control Change
+                        if (dataOffset + 1 < end) {
+                            offset = dataOffset + 2;
+                        } else {
+                            break;
+                        }
+                    } else if ((eventType & 0xF0) === 0xC0) {
+                        // Program Change
+                        if (dataOffset < end) {
+                            offset = dataOffset + 1;
+                        } else {
+                            break;
+                        }
+                    } else if ((eventType & 0xF0) === 0xE0) {
+                        // Pitch Bend
+                        if (dataOffset + 1 < end) {
+                            offset = dataOffset + 2;
+                        } else {
+                            break;
+                        }
+                    } else if (eventType === 0xFF) {
+                        // Meta Event
+                        if (dataOffset + 1 < end) {
+                            const metaType = view.getUint8(dataOffset);
+                            const metaLength = readVariableLength(view, dataOffset + 1);
+                            offset = dataOffset + 1 + metaLength.length + metaLength.value;
+                        } else {
+                            break;
+                        }
+                    } else if (eventType === 0xF0 || eventType === 0xF7) {
+                        // SysEx
+                        const sysexLength = readVariableLength(view, dataOffset);
+                        offset = dataOffset + sysexLength.length + sysexLength.value;
+                    } else {
+                        // 알 수 없는 이벤트, 한 바이트 건너뛰기
+                        offset = dataOffset + 1;
+                    }
+                    
+                } catch (e) {
+                    console.warn('이벤트 파싱 오류:', e, 'offset:', offset);
+                    offset++;
+                }
+            }
+            
+            console.log(`추출된 노트 이벤트: ${events.length}개`);
+            return events;
+        }
+        
+        // MIDI 가변 길이 값 읽기
+        function readVariableLength(view, offset) {
+            let value = 0;
+            let length = 0;
+            let byte;
+            
+            do {
+                if (offset + length >= view.byteLength) break;
+                byte = view.getUint8(offset + length);
+                value = (value << 7) | (byte & 0x7F);
+                length++;
+            } while ((byte & 0x80) && length < 4);
+            
+            return { value, length };
         }
 
         async function convertSheetMusic() {
@@ -1306,12 +1659,16 @@
                 console.log(`트랙 ${trackIndex} 분석:`, track.event.length, '이벤트');
                 
                 const notes = [];
+                const activeNotes = new Map(); // Note On 추적
                 let currentTempo = 120;
+                let currentTime = 0;
                 
+                // 이벤트를 시간순으로 처리하면서 절대 시간 계산
                 for (const event of track.event) {
-                    // 템포 변경 이벤트
+                    currentTime += event.deltaTime || 0;
+                    
+                    // 템포 변경 이벤트 (Meta Event type 81)
                     if (event.type === 255 && event.metaType === 81) {
-                        // 마이크로초 단위를 BPM으로 변환
                         const microsecondsPerBeat = (event.data[0] << 16) | (event.data[1] << 8) | event.data[2];
                         currentTempo = Math.round(60000000 / microsecondsPerBeat);
                         console.log('템포 변경:', currentTempo, 'BPM');
@@ -1321,30 +1678,94 @@
                     if (event.type >= 144 && event.type <= 159 && event.data && event.data[1] > 0) {
                         const midiNote = event.data[0];
                         const velocity = event.data[1];
-                        const deltaTime = event.deltaTime || 0;
                         
-                        // MIDI 노트 번호를 MML 노트로 변환
-                        const mmlNote = midiNoteToMML(midiNote);
-                        if (mmlNote) {
-                            // 길이 계산 (틱을 4분음표 기준으로 변환)
-                            const duration = calculateNoteDuration(deltaTime, ticksPerBeat, simplifyRhythm);
+                        // 동일한 노트가 이미 연주 중이면 이전 것을 먼저 종료
+                        if (activeNotes.has(midiNote)) {
+                            const prevNoteData = activeNotes.get(midiNote);
+                            const prevDuration = currentTime - prevNoteData.startTime;
                             
-                            notes.push({
-                                note: mmlNote.note,
-                                octave: mmlNote.octave,
-                                duration: duration,
-                                velocity: velocity,
-                                time: deltaTime
-                            });
+                            const mmlNote = midiNoteToMML(midiNote);
+                            if (mmlNote && prevDuration > 0) {
+                                const duration = calculateNoteDurationFromTicks(prevDuration, ticksPerBeat, simplifyRhythm);
+                                
+                                notes.push({
+                                    note: mmlNote.note,
+                                    octave: mmlNote.octave,
+                                    duration: duration,
+                                    velocity: prevNoteData.velocity,
+                                    startTime: prevNoteData.startTime,
+                                    actualDurationTicks: prevDuration
+                                });
+                                console.log(`중복 음표 처리: ${mmlNote.note}${mmlNote.octave}, 길이: ${duration}`);
+                            }
+                        }
+                        
+                        activeNotes.set(midiNote, {
+                            startTime: currentTime,
+                            velocity: velocity
+                        });
+                    }
+                    
+                    // Note Off 이벤트 (8x) 또는 velocity 0인 Note On
+                    if (((event.type >= 128 && event.type <= 143) || 
+                         (event.type >= 144 && event.type <= 159 && event.data && event.data[1] === 0)) &&
+                        event.data) {
+                        
+                        const midiNote = event.data[0];
+                        
+                        if (activeNotes.has(midiNote)) {
+                            const noteData = activeNotes.get(midiNote);
+                            const noteDuration = currentTime - noteData.startTime;
+                            
+                            const mmlNote = midiNoteToMML(midiNote);
+                            if (mmlNote) {
+                                // 최소 길이 보장 (너무 짧은 노트 방지)
+                                const finalDuration = Math.max(noteDuration, ticksPerBeat / 16); // 최소 64분음표
+                                const duration = calculateNoteDurationFromTicks(finalDuration, ticksPerBeat, simplifyRhythm);
+                                
+                                notes.push({
+                                    note: mmlNote.note,
+                                    octave: mmlNote.octave,
+                                    duration: duration,
+                                    velocity: noteData.velocity,
+                                    startTime: noteData.startTime,
+                                    actualDurationTicks: finalDuration
+                                });
+                                
+                                console.log(`음표 추가: ${mmlNote.note}${mmlNote.octave}, 길이: ${duration}, 틱: ${finalDuration}`);
+                            }
+                            
+                            activeNotes.delete(midiNote);
                         }
                     }
                 }
                 
+                // 아직 끝나지 않은 노트들 처리
+                for (const [midiNote, noteData] of activeNotes) {
+                    const mmlNote = midiNoteToMML(midiNote);
+                    if (mmlNote) {
+                        notes.push({
+                            note: mmlNote.note,
+                            octave: mmlNote.octave,
+                            duration: 4, // 기본 4분음표
+                            velocity: noteData.velocity,
+                            startTime: noteData.startTime,
+                            actualDurationTicks: ticksPerBeat
+                        });
+                    }
+                }
+                
                 if (notes.length > 0) {
+                    // 시작 시간순으로 정렬
+                    notes.sort((a, b) => a.startTime - b.startTime);
+                    
                     tracks.push({
                         notes: notes,
-                        tempo: currentTempo
+                        tempo: currentTempo,
+                        totalTime: currentTime
                     });
+                    
+                    console.log(`트랙 ${trackIndex} 완료: ${notes.length}개 음표, 총 시간: ${Math.round(currentTime/ticksPerBeat*60/currentTempo)}초`);
                 }
             }
             
@@ -1363,7 +1784,7 @@
                 if (i > 0) mml += ',';
                 if (i === 1) mml += 'v8o3'; // 두 번째 트랙은 낮은 볼륨, 낮은 옥타브
                 
-                for (const noteData of track.notes.slice(0, 32)) { // 최대 32개 음표
+                for (const noteData of track.notes.slice(0, 96)) { // 더 많은 음표 포함
                     // 옥타브 변경
                     if (noteData.octave !== currentOctave) {
                         const octaveDiff = noteData.octave - currentOctave;
@@ -1400,29 +1821,40 @@
             };
         }
 
-        // 음표 길이 계산
-        function calculateNoteDuration(deltaTime, ticksPerBeat, simplifyRhythm) {
-            if (deltaTime === 0) return 4; // 기본값
+        // 음표 길이 계산 (실제 노트 길이 기반)
+        function calculateNoteDurationFromTicks(durationTicks, ticksPerBeat, simplifyRhythm) {
+            if (durationTicks <= 0) return 4; // 기본값
             
             // 틱을 4분음표 기준으로 변환
-            const quarterNoteRatio = deltaTime / ticksPerBeat;
+            const quarterNoteRatio = durationTicks / ticksPerBeat;
+            
+            console.log(`음표 길이 계산: ${durationTicks} 틱 = ${quarterNoteRatio.toFixed(2)} * 4분음표`);
             
             let duration;
-            if (quarterNoteRatio >= 2) {
+            if (quarterNoteRatio >= 3.5) {
+                duration = 1; // 온음표
+            } else if (quarterNoteRatio >= 1.75) {
                 duration = 2; // 2분음표
-            } else if (quarterNoteRatio >= 1) {
+            } else if (quarterNoteRatio >= 0.875) {
                 duration = 4; // 4분음표  
-            } else if (quarterNoteRatio >= 0.5) {
+            } else if (quarterNoteRatio >= 0.4375) {
                 duration = 8; // 8분음표
-            } else {
+            } else if (quarterNoteRatio >= 0.21875) {
                 duration = 16; // 16분음표
+            } else {
+                duration = 32; // 32분음표
             }
             
             if (simplifyRhythm) {
-                duration = Math.min(duration, 4); // 최대 4분음표로 제한
+                duration = Math.max(Math.min(duration, 4), 8); // 8분음표~4분음표로 제한
             }
             
             return duration;
+        }
+        
+        // 기존 함수는 간격 계산용으로 유지
+        function calculateNoteDuration(deltaTime, ticksPerBeat, simplifyRhythm) {
+            return calculateNoteDurationFromTicks(deltaTime, ticksPerBeat, simplifyRhythm);
         }
 
         // 샘플 MML 로드 함수 (마비노기 표준 MML 형식으로 수정)
@@ -1762,6 +2194,34 @@
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.style.display = 'block';
+        }
+
+        function showMessage(message) {
+            const messageDiv = document.getElementById('messageDiv') || createMessageDiv();
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            messageDiv.style.background = '#10b981';
+            messageDiv.style.color = 'white';
+        }
+
+        function createMessageDiv() {
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'messageDiv';
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #10b981;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: 600;
+                z-index: 1000;
+                display: none;
+            `;
+            document.body.appendChild(messageDiv);
+            return messageDiv;
         }
 
         function hideError() {
@@ -2240,6 +2700,359 @@
             if (stopBtn) {
                 stopBtn.disabled = true;
             }
+        }
+
+        // YouTube URL 처리
+        async function processYouTubeUrl() {
+            const youtubeInput = document.getElementById('youtubeUrl');
+            const youtubeUrl = youtubeInput.value.trim();
+            
+            if (!youtubeUrl) {
+                showError('YouTube URL을 입력해주세요.');
+                return;
+            }
+            
+            // YouTube URL 검증
+            const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+            const match = youtubeUrl.match(youtubeRegex);
+            
+            if (!match) {
+                showError('올바른 YouTube URL을 입력해주세요.');
+                return;
+            }
+            
+            try {
+                showMessage('YouTube 오디오 추출 중...');
+                const audioBlob = await extractYouTubeAudio(youtubeUrl);
+                
+                showMessage('오디오를 MIDI로 변환 중...');
+                await processAudioToMIDI(audioBlob);
+                
+            } catch (error) {
+                console.error('YouTube 처리 오류:', error);
+                showError('YouTube 오디오 처리 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // YouTube 오디오 추출 (공개 API 시도)
+        async function extractYouTubeAudio(youtubeUrl) {
+            try {
+                // YouTube Video ID 추출
+                const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+                const match = youtubeUrl.match(youtubeRegex);
+                const videoId = match[1];
+                
+                console.log('YouTube Video ID:', videoId);
+                
+                // 여러 무료 YouTube API 시도
+                const apiUrls = [
+                    `https://api.cobalt.tools/api/json`,
+                    `https://youtube-mp3-download1.p.rapidapi.com/dl?id=${videoId}`,
+                    `https://ytmp3.cc/en/ajax/yt_mp3.php?id=${videoId}`
+                ];
+                
+                // Cobalt API 시도 (가장 안정적)
+                try {
+                    const response = await fetch('https://api.cobalt.tools/api/json', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            url: youtubeUrl,
+                            vCodec: 'h264',
+                            vQuality: '720',
+                            aFormat: 'mp3',
+                            filenamePattern: 'basic',
+                            isAudioOnly: true
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Cobalt API 응답:', data);
+                        
+                        if (data.status === 'success' && data.url) {
+                            // 오디오 URL에서 실제 오디오 데이터 다운로드
+                            const audioResponse = await fetch(data.url);
+                            if (audioResponse.ok) {
+                                const audioBlob = await audioResponse.blob();
+                                console.log('오디오 다운로드 성공:', audioBlob.size, 'bytes');
+                                return audioBlob;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log('Cobalt API 실패:', e.message);
+                }
+                
+                // 대안: yt-dlp 기반 서비스 시도
+                try {
+                    const response = await fetch(`https://api.youtubei.com/get_audio?url=${encodeURIComponent(youtubeUrl)}&format=mp3`);
+                    if (response.ok) {
+                        const audioBlob = await response.blob();
+                        if (audioBlob.size > 1000) { // 최소 1KB 이상
+                            console.log('대안 API 성공:', audioBlob.size, 'bytes');
+                            return audioBlob;
+                        }
+                    }
+                } catch (e) {
+                    console.log('대안 API 실패:', e.message);
+                }
+                
+                // 모든 API 실패시
+                throw new Error('YouTube 오디오 추출에 실패했습니다. 현재 이용 가능한 무료 API가 제한적입니다. 대신 YouTube 동영상을 MP3로 다운로드한 후 파일을 직접 업로드해주세요.');
+                
+            } catch (error) {
+                console.error('YouTube 오디오 추출 오류:', error);
+                throw error;
+            }
+        }
+
+        // MP3 파일 처리
+        async function processMP3(file) {
+            try {
+                showMessage('MP3 파일을 분석 중...');
+                
+                const audioBuffer = await file.arrayBuffer();
+                const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+                
+                await processAudioToMIDI(audioBlob, file.name);
+                
+            } catch (error) {
+                console.error('MP3 처리 오류:', error);
+                showError('MP3 파일 처리 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // 오디오를 MIDI로 변환
+        async function processAudioToMIDI(audioBlob, fileName = 'audio') {
+            try {
+                // Web Audio API를 사용하여 오디오 분석
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                showMessage('오디오 디코딩 중...');
+                const arrayBuffer = await audioBlob.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                showMessage('음정 분석 중...');
+                const pitchData = await analyzeAudioPitch(audioBuffer);
+                
+                if (pitchData.length === 0) {
+                    throw new Error('음정을 감지할 수 없습니다. 더 선명한 멜로디가 포함된 오디오를 사용해주세요.');
+                }
+                
+                showMessage('MIDI 데이터 생성 중...');
+                const midiData = convertPitchDataToMIDI(pitchData);
+                
+                // MIDI 미리보기 생성 (동적으로 생성)
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 400;
+                canvas.height = 200;
+                
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#333';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                
+                ctx.fillText('🎵 오디오 → MIDI 변환', canvas.width/2, 40);
+                ctx.font = '12px Arial';
+                ctx.fillText(`파일명: ${fileName}`, canvas.width/2, 70);
+                ctx.fillText(`감지된 음표: ${pitchData.length}개`, canvas.width/2, 90);
+                ctx.fillText(`지속시간: ${Math.round(audioBuffer.duration)}초`, canvas.width/2, 110);
+                ctx.fillText('MML 변환 준비 완료', canvas.width/2, 140);
+                
+                const previewImage = document.getElementById('previewImage');
+                const previewSection = document.getElementById('previewSection');
+                const convertBtn = document.getElementById('convertBtn');
+                
+                previewImage.src = canvas.toDataURL();
+                previewSection.style.display = 'block';
+                convertBtn.disabled = false;
+                
+                // MIDI 데이터를 전역 변수에 저장
+                window.currentMidiData = midiData;
+                
+                showMessage('변환 완료! 이제 MML로 변환할 수 있습니다.');
+                
+            } catch (error) {
+                console.error('오디오 → MIDI 변환 오류:', error);
+                throw error;
+            }
+        }
+
+        // 오디오 음정 분석
+        async function analyzeAudioPitch(audioBuffer) {
+            const sampleRate = audioBuffer.sampleRate;
+            const audioData = audioBuffer.getChannelData(0); // 모노 채널 사용
+            const frameSize = 1024;
+            const hopSize = 512;
+            const pitchData = [];
+            
+            // 분석할 주파수 범위 (C3 ~ C7, 130Hz ~ 2093Hz)
+            const minFreq = 130;
+            const maxFreq = 2093;
+            
+            for (let i = 0; i < audioData.length - frameSize; i += hopSize) {
+                const frame = audioData.slice(i, i + frameSize);
+                const pitch = detectPitch(frame, sampleRate, minFreq, maxFreq);
+                
+                if (pitch > 0) {
+                    const timeStamp = i / sampleRate;
+                    const midiNote = frequencyToMidiNote(pitch);
+                    
+                    if (midiNote >= 48 && midiNote <= 84) { // C3 ~ C6 범위
+                        pitchData.push({
+                            time: timeStamp,
+                            frequency: pitch,
+                            midiNote: midiNote,
+                            duration: hopSize / sampleRate
+                        });
+                    }
+                }
+            }
+            
+            // 연속된 같은 음정 병합
+            return mergeContinuousPitches(pitchData);
+        }
+
+        // 자기상관함수를 이용한 음정 감지
+        function detectPitch(audioFrame, sampleRate, minFreq, maxFreq) {
+            const bufferSize = audioFrame.length;
+            const maxPeriod = Math.floor(sampleRate / minFreq);
+            const minPeriod = Math.floor(sampleRate / maxFreq);
+            
+            let maxCorrelation = 0;
+            let bestPeriod = 0;
+            
+            // 자기상관함수 계산
+            for (let period = minPeriod; period <= Math.min(maxPeriod, bufferSize / 2); period++) {
+                let correlation = 0;
+                let normalizer = 0;
+                
+                for (let i = 0; i < bufferSize - period; i++) {
+                    correlation += audioFrame[i] * audioFrame[i + period];
+                    normalizer += audioFrame[i] * audioFrame[i];
+                }
+                
+                if (normalizer > 0) {
+                    correlation /= normalizer;
+                    
+                    if (correlation > maxCorrelation) {
+                        maxCorrelation = correlation;
+                        bestPeriod = period;
+                    }
+                }
+            }
+            
+            // 신뢰도가 낮으면 0 반환 (무음 또는 노이즈)
+            if (maxCorrelation < 0.3) {
+                return 0;
+            }
+            
+            return bestPeriod > 0 ? sampleRate / bestPeriod : 0;
+        }
+
+        // 주파수를 MIDI 노트 번호로 변환
+        function frequencyToMidiNote(frequency) {
+            return Math.round(12 * Math.log2(frequency / 440) + 69);
+        }
+
+        // 연속된 같은 음정 병합
+        function mergeContinuousPitches(pitchData) {
+            if (pitchData.length === 0) return [];
+            
+            const merged = [];
+            let currentNote = pitchData[0];
+            
+            for (let i = 1; i < pitchData.length; i++) {
+                const nextNote = pitchData[i];
+                
+                // 같은 MIDI 노트이고 시간 간격이 작으면 병합
+                if (nextNote.midiNote === currentNote.midiNote && 
+                    nextNote.time - currentNote.time < 0.2) {
+                    currentNote.duration += nextNote.duration;
+                } else {
+                    // 최소 지속시간 필터링 (0.1초 이상)
+                    if (currentNote.duration >= 0.1) {
+                        merged.push(currentNote);
+                    }
+                    currentNote = nextNote;
+                }
+            }
+            
+            // 마지막 노트 추가
+            if (currentNote.duration >= 0.1) {
+                merged.push(currentNote);
+            }
+            
+            return merged;
+        }
+
+        // 음정 데이터를 MIDI 형식으로 변환
+        function convertPitchDataToMIDI(pitchData) {
+            const ticksPerBeat = 480;
+            const events = [];
+            
+            // 헤더 이벤트들
+            events.push({
+                deltaTime: 0,
+                type: 255,
+                metaType: 88,
+                data: [4, 2, 24, 8] // 4/4 박자
+            });
+            
+            events.push({
+                deltaTime: 0,
+                type: 255,
+                metaType: 81,
+                data: [7, 161, 32] // 120 BPM
+            });
+            
+            let currentTime = 0;
+            
+            for (const noteData of pitchData) {
+                const startTicks = Math.round(noteData.time * ticksPerBeat * 2); // 2 = 120bpm/60
+                const durationTicks = Math.round(noteData.duration * ticksPerBeat * 2);
+                
+                // Note On 이벤트
+                events.push({
+                    deltaTime: startTicks - currentTime,
+                    type: 144, // Note On
+                    data: [noteData.midiNote, 80] // velocity 80
+                });
+                
+                currentTime = startTicks;
+                
+                // Note Off 이벤트
+                events.push({
+                    deltaTime: durationTicks,
+                    type: 128, // Note Off
+                    data: [noteData.midiNote, 0]
+                });
+                
+                currentTime += durationTicks;
+            }
+            
+            // End of Track
+            events.push({
+                deltaTime: 0,
+                type: 255,
+                metaType: 47,
+                data: []
+            });
+            
+            return {
+                timeDivision: ticksPerBeat,
+                track: [{
+                    event: events
+                }]
+            };
         }
     </script>
 </body>

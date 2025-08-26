@@ -84,6 +84,7 @@ node community-marketing-agent.js reddit [서브레딧] [타입] --post
 **콘텐츠 타입:**
 - `helpful_post` - 도움되는 포스트 (250-400단어)
 - `tutorial_post` - 튜토리얼/개발 인사이트 (300-450단어)
+- `dev_update` - 개발 업데이트/과정 공유 (300-500단어)
 - `comment_reply` - 댓글 답변 3개 생성 (각 100단어 이하)
 
 **추천 서브레딧:**
@@ -99,6 +100,12 @@ node community-marketing-agent.js reddit r/javascript helpful_post
 
 # 디자인 도구 관련
 node community-marketing-agent.js reddit r/DesignPorn comment_reply
+
+# 개발 업데이트 공유
+node community-marketing-agent.js reddit r/webdev dev_update
+
+# 개발 과정 공유 (자동 포스팅)
+node community-marketing-agent.js reddit r/programming dev_update --post
 ```
 
 ### ⚠️ 주의사항
