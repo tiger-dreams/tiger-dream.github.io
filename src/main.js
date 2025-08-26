@@ -13,6 +13,10 @@
         const sizeSelector = document.getElementById('sizeSelector');
         const canvas = document.getElementById('imageCanvas');
         const ctx = canvas.getContext('2d');
+        
+        // 메인 캔버스 고화질 설정
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         const messageDiv = document.getElementById('message');
         const modeSelector = document.getElementById('modeSelector');
         const shapeSelector = document.getElementById('shapeSelector');
@@ -828,17 +832,17 @@
                 case "original": 
                     return { width, height };
                 case "300": 
-                    return { width: 300, height: Math.floor(height * (300 / width)) };
+                    return { width: 300, height: Math.round(height * (300 / width)) };
                 case "600": 
-                    return { width: 600, height: Math.floor(height * (600 / width)) };
+                    return { width: 600, height: Math.round(height * (600 / width)) };
                 case "900": 
-                    return { width: 900, height: Math.floor(height * (900 / width)) };
+                    return { width: 900, height: Math.round(height * (900 / width)) };
                 case "scale30": 
-                    return { width: Math.floor(width * 0.3), height: Math.floor(height * 0.3) };
+                    return { width: Math.round(width * 0.3), height: Math.round(height * 0.3) };
                 case "scale50": 
-                    return { width: Math.floor(width * 0.5), height: Math.floor(height * 0.5) };
+                    return { width: Math.round(width * 0.5), height: Math.round(height * 0.5) };
                 case "scale70": 
-                    return { width: Math.floor(width * 0.7), height: Math.floor(height * 0.7) };
+                    return { width: Math.round(width * 0.7), height: Math.round(height * 0.7) };
                 default:
                     // Auto-resize: fit to viewport width, but allow full height with scrolling
                     const sidebarWidth = getSidebarWidth();
@@ -857,8 +861,8 @@
                     // 높이 제한 완전 제거 - 폭만 맞추고 높이는 비율 유지
                     const scale = Math.min(finalMaxWidth / width, 1);
                     
-                    const finalWidth = Math.floor(width * scale);
-                    const finalHeight = Math.floor(height * scale);
+                    const finalWidth = Math.round(width * scale);
+                    const finalHeight = Math.round(height * scale);
                     
                     return { width: finalWidth, height: finalHeight };
             }
@@ -911,11 +915,17 @@
         function cacheImageToLocalStorage(img, url) {
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
+            
+            // 고화질 렌더링을 위한 설정
+            tempCtx.imageSmoothingEnabled = true;
+            tempCtx.imageSmoothingQuality = 'high';
+            
             tempCanvas.width = img.width;
             tempCanvas.height = img.height;
             tempCtx.drawImage(img, 0, 0);
             try {
-                const dataURL = tempCanvas.toDataURL('image/jpeg');
+                // JPEG 대신 PNG 사용으로 무손실 저장
+                const dataURL = tempCanvas.toDataURL('image/png');
                 localStorage.setItem('cachedImage_' + url, dataURL);
             } catch (e) {
                 console.error("Failed to cache image:", e);
@@ -1767,6 +1777,10 @@
             // 크롭된 이미지만 추출
             const croppedCanvas = document.createElement('canvas');
             const croppedCtx = croppedCanvas.getContext('2d');
+            
+            // 크롭 캔버스도 고화질 설정
+            croppedCtx.imageSmoothingEnabled = true;
+            croppedCtx.imageSmoothingQuality = 'high';
             
             // 기본 크롭 먼저 수행
             if (currentImage) {
