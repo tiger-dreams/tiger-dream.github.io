@@ -3192,6 +3192,7 @@
                 canvasMode: canvasMode,
                 backgroundColor: canvasBackgroundColor,
                 canvasSize: canvasSize,
+                resizeOption: resizeSelector ? resizeSelector.value : 'default',
                 clicks, // clicks array already contains emoji objects
                 clickCount,
                 shapeCount
@@ -3230,6 +3231,11 @@
             backgroundColorSelector.value = canvasBackgroundColor;
             canvasSize = settings.canvasSize || '';
             canvasSizeSelector.value = canvasSize;
+            
+            // 리사이즈 옵션 복원
+            if (settings.resizeOption && resizeSelector) {
+                resizeSelector.value = settings.resizeOption;
+            }
             
             // 캔버스 모드에 따른 UI 업데이트
             updateCanvasModeUI();
@@ -3270,6 +3276,11 @@
             backgroundColorSelector.value = canvasBackgroundColor;
             canvasSize = settings.canvasSize || '';
             canvasSizeSelector.value = canvasSize;
+            
+            // 리사이즈 옵션 복원
+            if (settings.resizeOption && resizeSelector) {
+                resizeSelector.value = settings.resizeOption;
+            }
             
             // UI 업데이트
             updateCanvasModeUI();
