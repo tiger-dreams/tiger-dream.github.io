@@ -24,7 +24,7 @@ class CommunityMarketingAgent {
         };
     }
 
-    async generateRedditContent(subreddit, contentType) {
+    async generateRedditContent(subreddit, contentType, customPrompt = null) {
         const contentPrompts = {
             helpful_post: `
             You are Tiger, the Product Manager of AnnotateShot, a web-based screenshot annotation tool.
@@ -152,7 +152,14 @@ class CommunityMarketingAgent {
             `
         };
 
-        return await this.callGemini(contentPrompts[contentType]);
+        // 사용자 정의 프롬프트가 있으면 기본 프롬프트에 추가
+        let finalPrompt = contentPrompts[contentType];
+        
+        if (customPrompt) {
+            finalPrompt += `\n\n추가 요청사항:\n${customPrompt}`;
+        }
+        
+        return await this.callGemini(finalPrompt);
     }
 
     async generateDiscordEngagement() {
@@ -420,22 +427,33 @@ if (require.main === module) {
         const contentType = args[2];
         const shouldPost = args.includes('--post');
         
+        // 사용자 정의 프롬프트 추출 (따옴표로 감싸진 텍스트)
+        let customPrompt = null;
+        const quotedArgs = process.argv.join(' ').match(/'([^']+)'/);
+        if (quotedArgs) {
+            customPrompt = quotedArgs[1];
+        }
+        
         if (!subreddit || !contentType) {
             console.log('🚀 Reddit 마케팅 도구');
             console.log('════════════════════');
             console.log('사용법:');
             console.log('  node community-marketing-agent.js reddit [서브레딧] [타입]');
             console.log('  node community-marketing-agent.js reddit [서브레딧] [타입] --post');
+            console.log('  node community-marketing-agent.js reddit [서브레딧] [타입] \'사용자 정의 요청\' --post');
             console.log('');
             console.log('예시:');
             console.log('  node community-marketing-agent.js reddit r/productivity helpful_post');
             console.log('  node community-marketing-agent.js reddit r/webdev tutorial_post --post');
+            console.log('  node community-marketing-agent.js reddit r/webdev helpful_post \'개발자 관점에서 작성해줘\' --post');
             console.log('');
             console.log('콘텐츠 타입:');
             console.log('  - helpful_post     도움되는 포스트');
             console.log('  - tutorial_post    튜토리얼/개발 인사이트');
             console.log('  - dev_update       개발 업데이트/과정 공유');
             console.log('  - comment_reply    댓글 답변 3개');
+            console.log('');
+            console.log('💡 팁: 따옴표 안에 추가 요청사항을 넣으면 기본 프롬프트에 반영됩니다.');
             return;
         }
         
@@ -444,7 +462,10 @@ if (require.main === module) {
         async function runRedditTask() {
             try {
                 console.log(`🎯 ${subreddit} - ${contentType} 생성 중...`);
-                const content = await agent.generateRedditContent(subreddit, contentType);
+                if (customPrompt) {
+                    console.log(`📝 추가 요청: "${customPrompt}"`);
+                }
+                const content = await agent.generateRedditContent(subreddit, contentType, customPrompt);
                 
                 console.log('\\n🚀 === 생성된 Reddit 콘텐츠 ===\\n');
                 console.log(content);
