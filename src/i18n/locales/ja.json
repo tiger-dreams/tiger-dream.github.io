@@ -1,0 +1,20 @@
+{
+  "fileOperations": "ファイル操作",
+  "annotationMode": "注釈モード",
+  "uploadImageFile": "画像ファイルアップロード",
+  "clipboard": "クリップボードから貼り付け",
+  "save": "保存",
+  "undo": "元に戻す",
+  "rectangle": "四角",
+  "circle": "円",
+  "arrow": "矢印",
+  "thin": "細い",
+  "normal": "普通",
+  "thick": "太い",
+  "imageLoaded": "画像を読み込みました。サイズ: {width}x{height}",
+  "noImageLoaded": "クリックする前に画像を読み込んでください。",
+  "clipboardCopySuccess": "クリップボードにコピーしました！",
+  "clipboardCopyError": "クリップボードへのコピーに失敗しました。",
+  "clearAllLayers": "全レイヤーを消去",
+  "language": "言語"
+}
