@@ -158,69 +158,123 @@ async function captureFullPageWithDevTools(tabId) {
             
             // Page 도메인 활성화
             await chrome.debugger.sendCommand({ tabId }, 'Page.enable');
-            
-            // 페이지 완전 로드 대기 (시간 단축)
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
+
+            // 현재 스크롤 위치 확인
+            const scrollBefore = await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+                expression: '({ scrollX: window.scrollX, scrollY: window.scrollY })',
+                returnByValue: true
+            });
+            console.log('캡처 전 스크롤 위치:', scrollBefore.result.value);
+
+            // 페이지를 맨 위로 스크롤 (상단 잘림 방지)
+            await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+                expression: 'window.scrollTo(0, 0);',
+                returnByValue: true
+            });
+
+            // 스크롤 완료 대기
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // 스크롤 후 위치 확인
+            const scrollAfter = await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+                expression: '({ scrollX: window.scrollX, scrollY: window.scrollY })',
+                returnByValue: true
+            });
+            console.log('스크롤 후 위치:', scrollAfter.result.value);
+
+            // 스크롤이 0이 아니면 추가 대기
+            if (scrollAfter.result.value.scrollY !== 0) {
+                console.log('스크롤이 아직 0이 아님, 추가 대기...');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // 다시 스크롤 시도
+                await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+                    expression: 'window.scrollTo(0, 0);',
+                    returnByValue: true
+                });
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
             // 페이지 레이아웃 메트릭 가져오기
             const layoutMetrics = await chrome.debugger.sendCommand({ tabId }, 'Page.getLayoutMetrics');
             console.log('페이지 레이아웃 메트릭:', layoutMetrics);
-            
-            const { contentSize, visualViewport } = layoutMetrics;
-            
-            // 실제 콘텐츠 크기 계산 (여백 제거)
-            // DOM에서 실제 콘텐츠 크기 확인
-            const actualContentSize = await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+
+            const { contentSize } = layoutMetrics;
+
+            // 실제 document의 전체 크기 확인 (fixed/sticky 요소 포함)
+            const fullDocumentSize = await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
                 expression: `
                     (() => {
-                        const body = document.body;
                         const html = document.documentElement;
-                        
-                        // 실제 콘텐츠의 스크롤 크기
-                        const scrollWidth = Math.max(
-                            body.scrollWidth || 0,
-                            html.scrollWidth || 0,
-                            body.offsetWidth || 0,
-                            html.offsetWidth || 0,
-                            body.clientWidth || 0,
-                            html.clientWidth || 0
+                        const body = document.body;
+
+                        // getBoundingClientRect로 실제 렌더링된 전체 크기 확인
+                        const htmlRect = html.getBoundingClientRect();
+                        const bodyRect = body.getBoundingClientRect();
+
+                        // 모든 요소의 실제 바운딩 박스 확인
+                        let maxWidth = Math.max(
+                            html.scrollWidth,
+                            html.offsetWidth,
+                            html.clientWidth,
+                            body.scrollWidth,
+                            body.offsetWidth,
+                            body.clientWidth,
+                            window.innerWidth
                         );
-                        
-                        const scrollHeight = Math.max(
-                            body.scrollHeight || 0,
-                            html.scrollHeight || 0,
-                            body.offsetHeight || 0,
-                            html.offsetHeight || 0,
-                            body.clientHeight || 0,
-                            html.clientHeight || 0
+
+                        let maxHeight = Math.max(
+                            html.scrollHeight,
+                            html.offsetHeight,
+                            html.clientHeight,
+                            body.scrollHeight,
+                            body.offsetHeight,
+                            body.clientHeight
                         );
-                        
+
+                        // Fixed/Sticky 요소들도 포함
+                        const allElements = document.querySelectorAll('*');
+                        allElements.forEach(el => {
+                            const rect = el.getBoundingClientRect();
+                            const computedStyle = window.getComputedStyle(el);
+
+                            // Fixed나 Sticky 요소는 특별히 처리
+                            if (computedStyle.position === 'fixed' || computedStyle.position === 'sticky') {
+                                maxWidth = Math.max(maxWidth, rect.right);
+                                maxHeight = Math.max(maxHeight, rect.bottom);
+                            }
+                        });
+
                         return {
-                            width: scrollWidth,
-                            height: scrollHeight,
+                            width: Math.round(maxWidth),
+                            height: Math.round(maxHeight),
                             viewportWidth: window.innerWidth,
-                            viewportHeight: window.innerHeight
+                            viewportHeight: window.innerHeight,
+                            htmlTop: htmlRect.top,
+                            bodyTop: bodyRect.top
                         };
                     })()
                 `,
                 returnByValue: true
             });
-            
-            const actualSize = actualContentSize.result.value;
-            console.log('실제 콘텐츠 크기:', actualSize);
-            console.log('DevTools 레이아웃 크기:', contentSize);
-            
-            // 더 정확한 크기 사용 (실제 콘텐츠 크기와 DevTools 크기 중 작은 값)
-            const finalWidth = Math.min(actualSize.width, contentSize.width);
-            const finalHeight = Math.min(actualSize.height, contentSize.height);
-            
+
+            const docSize = fullDocumentSize.result.value;
+            console.log('전체 Document 크기 (fixed 포함):', docSize);
+            console.log('DevTools contentSize:', contentSize);
+
+            // contentSize와 fullDocumentSize 중 더 큰 값 사용
+            const finalWidth = Math.max(contentSize.width, docSize.width);
+            const finalHeight = Math.max(contentSize.height, docSize.height);
+
             console.log('최종 캡처 크기:', { width: finalWidth, height: finalHeight });
-            
+            console.log('- contentSize:', contentSize.width, 'x', contentSize.height);
+            console.log('- docSize:', docSize.width, 'x', docSize.height);
+
             // 전체 페이지 캡처 설정
+            // fromSurface 제거: 더 안정적인 캡처를 위해
             const screenshotConfig = {
                 format: 'png',
                 captureBeyondViewport: true,
-                fromSurface: true,
                 clip: {
                     x: 0,
                     y: 0,
@@ -274,49 +328,22 @@ async function captureFullPage() {
         }
         
         console.log('활성 탭 ID:', tab.id, 'URL:', tab.url);
-        
+
         // 특정 URL에서는 캡처할 수 없음
         if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('moz-extension://')) {
             throw new Error('이 페이지에서는 캡처할 수 없습니다.');
         }
-        
-        // 사용자 설정 확인 (디버그 모드가 활성화된 경우에만 DevTools Protocol 사용)
-        let useDevTools = false;
-        try {
-            const settings = await chrome.storage.local.get(['enableDebugMode']);
-            if (settings.enableDebugMode === true) {
-                useDevTools = true;
-                console.log('사용자 설정: 디버그 모드 활성화 - DevTools Protocol 사용');
-            } else {
-                console.log('사용자 설정: 디버그 모드 비활성화 - 전체 페이지 캡처 불가');
-            }
-        } catch (storageError) {
-            console.warn('설정 읽기 실패, 기본값 사용:', storageError);
-        }
 
-        if (useDevTools) {
-            try {
-                // 1순위: DevTools Protocol 사용 시도
-                console.log('DevTools Protocol 방식 시도...');
-                const devToolsImage = await captureFullPageWithDevTools(tab.id);
-                
-                console.log('DevTools Protocol 캡처 성공, 디버거 연결 해제 후 AnnotateShot으로 전송...');
-                
-                // 디버거 연결 해제 후 잠시 대기
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                await openAnnotateShot(devToolsImage);
-                
-                return { success: true, method: 'devtools' };
-                
-            } catch (devToolsError) {
-                console.error('DevTools Protocol 실패:', devToolsError.message);
-                throw new Error('고품질 캡처 실패: ' + devToolsError.message);
-            }
-        } else {
-            // 디버그 모드가 비활성화된 경우
-            throw new Error('전체 페이지 캡처가 비활성화되어 있습니다. 익스텐션 팝업에서 디버그 모드를 활성화해주세요.');
-        }
+        // DevTools Protocol을 사용한 전체 페이지 캡처
+        console.log('DevTools Protocol 전체 페이지 캡처 시작...');
+        const imageDataUrl = await captureFullPageWithDevTools(tab.id);
+
+        console.log('캡처 완료, AnnotateShot으로 전송 중...');
+
+        // AnnotateShot으로 이미지 전송
+        await openAnnotateShot(imageDataUrl);
+
+        return { success: true };
         
     } catch (error) {
         console.error('전체 페이지 캡처 최종 실패:', error);

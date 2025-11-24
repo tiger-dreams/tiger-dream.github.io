@@ -245,16 +245,18 @@ async function startFullPageCapture() {
         // 고정 요소들 감지
         const fixedElements = detectFixedElements();
         console.log(`감지된 고정 요소: ${fixedElements.length}개`);
-        
-        // 고정 요소를 임시로 숨길지 결정 (3개 이상이면 숨김 방식 사용)
-        const useHideMethod = fixedElements.length >= 3;
+
+        // 고정 요소를 임시로 숨길지 결정 (항상 숨김 방식 사용 - 더 정확한 병합을 위해)
+        const useHideMethod = true; // 항상 고정 요소 숨김 방식 사용
         let hiddenElements = [];
-        
-        if (useHideMethod) {
-            console.log('고정 요소가 많아 임시 숨김 방식 사용');
+
+        if (useHideMethod && fixedElements.length > 0) {
+            console.log(`고정 요소 ${fixedElements.length}개 임시 숨김 처리 (정확한 병합을 위해)`);
             hiddenElements = hideFixedElements(fixedElements);
             // 숨김 처리 후 잠시 대기
             await new Promise(resolve => setTimeout(resolve, 300));
+        } else if (fixedElements.length === 0) {
+            console.log('고정 요소 없음 - 단순 병합 사용');
         }
         
         try {
@@ -327,6 +329,13 @@ async function startFullPageCapture() {
                             scrollY: y
                         });
                         console.log(`캡처 ${i + 1}/${maxCaptures} 완료`);
+
+                        // Chrome API rate limit 방지 (초당 최대 2회 제한)
+                        // 마지막 캡처가 아니면 600ms 대기
+                        if (i < maxCaptures - 1) {
+                            console.log('API rate limit 방지를 위해 600ms 대기...');
+                            await new Promise(resolve => setTimeout(resolve, 600));
+                        }
                     } else {
                         console.warn(`캡처 ${i + 1} 실패:`, captureData?.error);
                     }
@@ -347,9 +356,12 @@ async function startFullPageCapture() {
             }
             
             console.log(`총 ${captures.length}개 이미지 캡처 완료, 합성 시작`);
-            
+
             // 이미지 합성 (숨김 방식을 사용했다면 헤더 처리 안 함)
-            const mergedImage = await mergeVerticalImages(captures, documentHeight, viewportHeight, useHideMethod);
+            // 고정 요소를 숨긴 경우 실제 필요한 캔버스 높이는 actualMaxScrollY + viewportHeight
+            const canvasHeight = useHideMethod ? (actualMaxScrollY + viewportHeight) : documentHeight;
+            console.log(`캔버스 높이 설정: ${canvasHeight}px (useHideMethod=${useHideMethod})`);
+            const mergedImage = await mergeVerticalImages(captures, canvasHeight, viewportHeight, useHideMethod);
             
             // 이미지 크기 확인 및 압축
             const optimizedImage = await optimizeImageSize(mergedImage);
@@ -744,18 +756,26 @@ async function mergeVerticalImages(captures, totalHeight, _viewportHeight, skipH
                         const prevImageEnd = prevScrollY + prevImg.height;
                         const currentImageStart = scrollY;
                         const scrollBasedOverlap = Math.max(0, prevImageEnd - currentImageStart);
-                        
-                        // 2. 이미지 콘텐츠 기반 겹침 감지
-                        const contentBasedOverlap = detectImageOverlap(prevImg, img);
-                        
-                        // 3. 최적의 겹침 값 선택
+
                         let finalOverlap;
-                        if (Math.abs(scrollBasedOverlap - contentBasedOverlap) < 50) {
-                            finalOverlap = contentBasedOverlap;
-                            console.log(`이미지 ${index}: 스크롤 기반=${scrollBasedOverlap}px, 콘텐츠 기반=${contentBasedOverlap}px → 콘텐츠 기반 사용`);
+
+                        // 고정 요소를 숨긴 경우 스크롤 위치만으로 정확히 계산 가능
+                        if (skipHeaderProcessing) {
+                            // 고정 요소 숨김: 스크롤 위치 기반만 사용 (더 정확함)
+                            finalOverlap = scrollBasedOverlap;
+                            console.log(`이미지 ${index}: 스크롤 기반=${scrollBasedOverlap}px 사용 (고정 요소 숨김 모드)`);
                         } else {
-                            finalOverlap = Math.min(scrollBasedOverlap, contentBasedOverlap);
-                            console.log(`이미지 ${index}: 스크롤 기반=${scrollBasedOverlap}px, 콘텐츠 기반=${contentBasedOverlap}px → 작은 값(${finalOverlap}px) 사용`);
+                            // 고정 요소 있음: 이미지 콘텐츠 기반 겹침 감지 필요
+                            const contentBasedOverlap = detectImageOverlap(prevImg, img);
+
+                            // 최적의 겹침 값 선택
+                            if (Math.abs(scrollBasedOverlap - contentBasedOverlap) < 50) {
+                                finalOverlap = contentBasedOverlap;
+                                console.log(`이미지 ${index}: 스크롤 기반=${scrollBasedOverlap}px, 콘텐츠 기반=${contentBasedOverlap}px → 콘텐츠 기반 사용`);
+                            } else {
+                                finalOverlap = Math.min(scrollBasedOverlap, contentBasedOverlap);
+                                console.log(`이미지 ${index}: 스크롤 기반=${scrollBasedOverlap}px, 콘텐츠 기반=${contentBasedOverlap}px → 작은 값(${finalOverlap}px) 사용`);
+                            }
                         }
                         
                         console.log(`이전 이미지 끝: ${prevImageEnd}, 현재 이미지 시작: ${currentImageStart}`);

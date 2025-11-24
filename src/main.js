@@ -344,11 +344,13 @@
             
             // 더 적극적으로 여러 번 시도
             scrollToTop(); // 즉시 실행
+            requestAnimationFrame(scrollToTop); // 렌더링 프레임에 맞춰 실행
             setTimeout(scrollToTop, 10);
             setTimeout(scrollToTop, 50);
             setTimeout(scrollToTop, 100);
             setTimeout(scrollToTop, 200);
-            setTimeout(scrollToTop, 500); // 추가 지연 시간
+            setTimeout(scrollToTop, 500);
+            setTimeout(scrollToTop, 1000); // 매우 큰 이미지를 위한 추가 대기
             
             resetDrawingState();
             messageDiv.textContent = translate('imageLoaded', { width, height });
@@ -1830,7 +1832,7 @@
         function redrawCanvas() {
             // Clear canvas
             canvas.width = canvas.width;
-            
+
             if (canvasMode === 'single') {
                 // 싱글 모드: 기존 방식
                 redrawSingleModeCanvas();
@@ -1838,11 +1840,21 @@
                 // 멀티 모드: 레이어 시스템
                 redrawMultiModeCanvas();
             }
-            
+
             // Draw resize handles if an image is selected (멀티 모드에서만)
             if (canvasMode === 'multi' && selectedImageLayer) {
                 drawResizeHandles(selectedImageLayer);
             }
+
+            // 캔버스 렌더링 완료 후 뷰포트를 최상단으로 스크롤
+            // requestAnimationFrame을 사용하여 렌더링이 완전히 끝난 후 실행
+            requestAnimationFrame(() => {
+                const canvasContainer = canvas.parentElement;
+                if (canvasContainer && canvasContainer.classList.contains('canvas-container')) {
+                    canvasContainer.scrollTop = 0;
+                    canvasContainer.scrollLeft = 0;
+                }
+            });
         }
 
         function redrawSingleModeCanvas() {
