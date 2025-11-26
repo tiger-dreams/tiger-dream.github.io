@@ -179,7 +179,7 @@
     padding: 1rem;
     overflow: auto;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
 }
 
