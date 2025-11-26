@@ -185,7 +185,7 @@
 
 .canvas-container {
     max-width: 100%;
-    max-height: 100%;
+    /* max-height 제거: flex-start 정렬이 제대로 작동하도록 함 */
 }
 
 /* 상태 바 */
