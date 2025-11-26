@@ -1846,15 +1846,6 @@
                 drawResizeHandles(selectedImageLayer);
             }
 
-            // 캔버스 렌더링 완료 후 뷰포트를 최상단으로 스크롤
-            // requestAnimationFrame을 사용하여 렌더링이 완전히 끝난 후 실행
-            requestAnimationFrame(() => {
-                const canvasContainer = canvas.parentElement;
-                if (canvasContainer && canvasContainer.classList.contains('canvas-container')) {
-                    canvasContainer.scrollTop = 0;
-                    canvasContainer.scrollLeft = 0;
-                }
-            });
         }
 
         function redrawSingleModeCanvas() {
