@@ -108,6 +108,22 @@
             }
             // 최초 적용
             try { applyLanguage(); } catch (e) { /* noop */ }
+
+            // Layer sidebar toggle functionality
+            const layerSidebarToggle = document.getElementById('layerSidebarToggle');
+            const layerSidebar = document.getElementById('layerSidebar');
+            if (layerSidebarToggle && layerSidebar) {
+                layerSidebarToggle.addEventListener('click', () => {
+                    layerSidebar.classList.toggle('collapsed');
+
+                    // Recalculate canvas dimensions when sidebar width changes
+                    if (currentImage) {
+                        const { width, height } = calculateImageDimensions(currentImage.width, currentImage.height);
+                        applyCanvasDimensions(width, height);
+                        redrawCanvas();
+                    }
+                });
+            }
         });
 
         // 이미지 로드 관련 함수
